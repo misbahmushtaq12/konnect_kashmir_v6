@@ -19,6 +19,7 @@ import '../widgets/category_meta.dart';
 import 'ad_watch_dialog.dart';
 
 class CustomerScreen extends StatefulWidget {
+  final VoidCallback? onOpenProfile;
   /// Optional: open the screen with a service category already selected
   /// (used by the Home screen's category tiles).
   final String? initialCategory;
@@ -34,6 +35,7 @@ class CustomerScreen extends StatefulWidget {
 
   const CustomerScreen({
     Key? key,
+    this.onOpenProfile,
     this.initialCategory,
     this.initialSearch,
     this.initialFavoritesOnly = false,
@@ -44,6 +46,8 @@ class CustomerScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<CustomerScreen> {
+  bool _showAllCategories = false;
+
   ApiService get _api => ApiService(
     token: context.read<AuthProvider>().accessToken,
     userId: context.read<AuthProvider>().userId,
@@ -1138,91 +1142,80 @@ class _HomeScreenState extends State<CustomerScreen> {
     final theme = Theme.of(context);
     final width = MediaQuery.of(context).size.width;
     final hPad = width > 600 ? width * 0.12 : 16.0;
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        bottom: false,
-        child: Column(children: [
-          _buildAppBar(auth),
-          _buildSearchAndFilters(),
-          if (_refreshingVendors && !isLoading)
-            const LinearProgressIndicator(
-                minHeight: 2, color: AppColors.primary),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadData,
-              color: AppColors.primary,
-              child: ListView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
-                children: [
-                  _buildBrowseByService(),
-                  _buildActiveFilters(),
-                  const SizedBox(height: 12),
-                  _buildVendorCount(),
-                  const SizedBox(height: 4),
-                  _buildVendorsList(),
-                  const SizedBox(height: 32),
-                  _buildPlatformGuidelines(),
-                  const SizedBox(height: 32),
-                  _buildFooter(),
-                  const SizedBox(height: 24),
-                ],
+    return Stack(children: [
+      Positioned(
+        top: -30,
+        right: -50,
+        child: IgnorePointer(
+          child: Opacity(
+            opacity: isDark ? 0.10 : 0.08,
+            child: Image.asset('assets/images/chinar.png', width: 280),
+          ),
+        ),
+      ),
+      Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          bottom: false,
+          child: Column(children: [
+            _topBar(auth),
+            if (_refreshingVendors && !isLoading)
+              const LinearProgressIndicator(minHeight: 2, color: AppColors.primary),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                color: AppColors.primary,
+                child: ListView(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
+                  children: [
+                    FadeSlideIn(child: _headline(auth)),
+                    const SizedBox(height: 18),
+                    FadeSlideIn(delay: const Duration(milliseconds: 80), child: _buildSearchAndFilters()),
+                    const SizedBox(height: 28),
+                    FadeSlideIn(delay: const Duration(milliseconds: 160), child: _buildCategoriesGrid()),
+                    _buildActiveFilters(),
+                    const SizedBox(height: 12),
+                    _buildVendorCount(),
+                    const SizedBox(height: 4),
+                    _buildVendorsList(),
+                    const SizedBox(height: 32),
+                    _buildPlatformGuidelines(),
+                    const SizedBox(height: 32),
+                    _buildFooter(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildAppBar(AuthProvider auth) {
-    final cs = Theme.of(context).colorScheme;
-    final first = (auth.user?.name ?? '').trim().split(' ').first;
-
-    Widget trailing;
-    if (!auth.isAuthenticated) {
-      trailing = FilledButton.tonal(
-        onPressed: () => Navigator.pushNamed(context, '/login'),
-        style: FilledButton.styleFrom(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-        ),
-        child: const Text('Sign In'),
-      );
-    } else {
-      trailing = InkWell(
-        borderRadius: BorderRadius.circular(999),
-        onTap: _hasWatchableAds ? _showWatchAdSheet : null,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.stars_rounded,
-                size: 18, color: AppColors.primary),
-            const SizedBox(width: 6),
-            Text('$userCredits ${userCredits == 1 ? 'credit' : 'credits'}',
-                style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700)),
-            if (_hasWatchableAds) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.play_circle_outline,
-                  size: 16, color: AppColors.primary),
-            ],
           ]),
         ),
+      ),
+    ]);
+  }
+
+  Widget _topBar(AuthProvider auth) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final name = auth.user?.name ?? '';
+
+    Widget logo = Image.asset('assets/images/konnectkashmir.png', height: 42);
+    if (isDark) {
+      logo = ColorFiltered(
+        colorFilter: const ColorFilter.matrix([
+          -1, 0, 0, 0, 255,
+          0, -1, 0, 0, 255,
+          0, 0, -1, 0, 255,
+          0, 0, 0, 1, 0,
+        ]),
+        child: logo,
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Row(children: [
         if (Navigator.canPop(context))
           IconButton(
@@ -1230,114 +1223,156 @@ class _HomeScreenState extends State<CustomerScreen> {
             onPressed: () => Navigator.maybePop(context),
           )
         else
-          const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Find services',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              if (auth.isAuthenticated && first.isNotEmpty)
-                Text('Hi, $first',
-                    style: TextStyle(
-                        fontSize: 12.5,
-                        color: cs.onSurface.withValues(alpha: 0.55))),
-            ],
+          logo,
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.stars_rounded, size: 16, color: AppColors.primary),
+            const SizedBox(width: 4),
+            Text('$userCredits',
+                style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13)),
+          ]),
+        ),
+        const SizedBox(width: 8),
+        InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: widget.onOpenProfile,
+          child: CircleAvatar(
+            radius: 17,
+            backgroundColor: AppColors.primary,
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+            ),
           ),
         ),
-        trailing,
       ]),
     );
   }
 
-  Widget _buildBrowseByService() {
+  Widget _headline(AuthProvider auth) {
     final cs = Theme.of(context).colorScheme;
+    final isSmall = MediaQuery.of(context).size.width < 360;
+    final first = (auth.user?.name ?? '').trim().split(' ').first;
 
-    if (_serviceCategories.isEmpty) {
-      if (!isLoading) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: SizedBox(
-          height: 40,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: 5,
-            separatorBuilder: (_, __) => const SizedBox(width: 8),
-            itemBuilder: (_, __) =>
-                const Skeleton(width: 90, height: 38, radius: 999),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(first.isNotEmpty ? 'Salam, $first' : 'Salam',
+            style: TextStyle(
+                fontSize: 14, color: cs.onSurface.withValues(alpha: 0.6))),
+        const SizedBox(height: 6),
+        Text.rich(
+          const TextSpan(children: [
+            TextSpan(text: 'Trusted local pros,\n'),
+            TextSpan(
+                text: 'one tap away.',
+                style: TextStyle(color: AppColors.primary)),
+          ]),
+          style: TextStyle(
+            fontSize: isSmall ? 28 : 34,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+            letterSpacing: -0.8,
+            color: cs.onSurface,
           ),
         ),
-      );
-    }
+      ]),
+    );
+  }
 
-    final chips = <Map<String, dynamic>>[
-      {'slug': 'all', 'name': 'All'},
-      ..._serviceCategories,
-    ];
+  Widget _buildCategoriesGrid() {
+    final cs = Theme.of(context).colorScheme;
+    final allCats = CategoryMeta.allCategories;
+    
+    final displayCount = _showAllCategories ? allCats.length : 8;
+    final items = allCats.take(displayCount).toList();
 
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        itemCount: chips.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final chip = chips[index];
-          final slug =
-              chip['slug'] as String? ?? chip['id']?.toString() ?? 'default';
-          final name = chip['name'] as String? ?? 'Service';
-          final isAll = slug == 'all';
-          final meta = isAll ? null : CategoryMeta.of(slug);
-          final isSelected = isAll
-              ? selectedBrowseCategory == null
-              : selectedBrowseCategory == slug;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SectionHeader(
+          title: 'Our services',
+          actionLabel: _showAllCategories ? 'Show less' : 'See all',
+          onAction: () => setState(() => _showAllCategories = !_showAllCategories),
+        ),
+        const SizedBox(height: 16),
+        GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            mainAxisExtent: 112,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+          ),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: items.length,
+          itemBuilder: (_, i) => _serviceTile(items[i]),
+        ),
+      ]),
+    );
+  }
 
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                selectedBrowseCategory = isAll ? null : slug;
-                selectedServiceSlug = null;
-                selectedServiceName = null;
-              });
-              _loadVendors();
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : cs.onSurface.withValues(alpha: 0.15),
-                ),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(
-                  isAll ? Icons.grid_view_rounded : meta!.icon,
-                  size: 17,
-                  color: isSelected
-                      ? Colors.white
-                      : (isAll
-                          ? cs.onSurface.withValues(alpha: 0.7)
-                          : meta!.color),
-                ),
-                const SizedBox(width: 6),
-                Text(name,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected
-                          ? Colors.white
-                          : cs.onSurface.withValues(alpha: 0.8),
-                    )),
-              ]),
-            ),
-          );
+  Widget _serviceTile(Map<String, dynamic> c) {
+    final cs = Theme.of(context).colorScheme;
+    final slug = c['slug']?.toString();
+    final name = c['name']?.toString() ?? 'Service';
+    final isAll = slug == 'all';
+    final meta = isAll ? const CategoryMeta(Icons.auto_awesome, Color(0xFF2E9A7B)) : CategoryMeta.of(slug);
+    final isSelected = isAll
+        ? selectedBrowseCategory == null
+        : selectedBrowseCategory == slug;
+
+    return Material(
+      color: isSelected ? meta.color.withValues(alpha: 0.2) : meta.color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            selectedBrowseCategory = isAll ? null : slug;
+            selectedServiceSlug = null;
+            selectedServiceName = null;
+          });
+          _loadVendors();
         },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
+          child: Column(children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: meta.color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(meta.icon, color: meta.color, size: 26),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Text(
+                name,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    height: 1.2,
+                    color: cs.onSurface.withValues(alpha: 0.88)),
+              ),
+            ),
+          ]),
+        ),
       ),
     );
   }

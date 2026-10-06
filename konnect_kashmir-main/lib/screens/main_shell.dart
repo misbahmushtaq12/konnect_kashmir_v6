@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import 'home_screen.dart';
+import 'customer_screen.dart';
 import 'my_business_tab.dart';
 import 'profile_tab.dart';
 
@@ -37,7 +37,7 @@ class _MainShellState extends State<MainShell> {
         body: IndexedStack(
           index: _index,
           children: [
-            HomeScreen(onOpenProfile: () => _select(2)),
+            CustomerScreen(onOpenProfile: () => _select(2)),
             _opened.contains(1)
                 ? const MyBusinessTab()
                 : const SizedBox.shrink(),
