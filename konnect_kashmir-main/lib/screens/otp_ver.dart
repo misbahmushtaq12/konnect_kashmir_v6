@@ -347,8 +347,9 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen>
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: Stack(
-        children: [
+      body: SizedBox.expand(
+        child: Stack(
+          children: [
           // ── 1. Atmospheric Ambient Gradients ─────────────────────────────
           Positioned.fill(
             child: Container(
@@ -879,6 +880,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }
