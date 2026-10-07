@@ -89,328 +89,351 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Widget _adaptiveLogo({double height = 80}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    Widget logo = Image.asset('assets/images/konnectkashmir.png', height: height);
+    if (isDark) {
+      return ColorFiltered(
+        colorFilter: const ColorFilter.matrix([
+          -1, 0, 0, 0, 255,
+          0, -1, 0, 0, 255,
+          0, 0, -1, 0, 255,
+          0, 0, 0, 1, 0,
+        ]),
+        child: logo,
+      );
+    }
+    return logo;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size   = MediaQuery.of(context).size;
-    final theme  = Theme.of(context);
-    final cs     = theme.colorScheme;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    // ── Responsive breakpoints ─────────────────────────────────────────────
-    final double screenWidth  = size.width;
-    final double screenHeight = size.height;
-
-    final bool isSmall  = screenWidth < 360;
-    final bool isMedium = screenWidth >= 360 && screenWidth < 480;
-
-    final double horizontalPadding = isSmall ? 16.0 : (isMedium ? 24.0 : 32.0);
-    final double topSpacing        = screenHeight < 700 ? 32.0 : 60.0;
-    final double logoIconSize      = isSmall ? 20.0 : 24.0;
-    final double logoIconPad       = isSmall ? 8.0  : 10.0;
-    final double logoFontSize      = isSmall ? 20.0 : (isMedium ? 23.0 : 26.0);
-    final double subtitleFontSize  = isSmall ? 13.0 : 15.0;
-    final double sectionSpacing    = screenHeight < 700 ? 28.0 : 48.0;
-    final double labelFontSize     = isSmall ? 13.0 : 15.0;
-    final double inputFontSize     = isSmall ? 14.0 : 16.0;
-    final double prefixPadH        = isSmall ? 12.0 : 16.0;
-    final double prefixPadV        = isSmall ? 15.0 : 18.0;
-    final double buttonVertPad     = isSmall ? 13.0 : 16.0;
-    final double buttonFontSize    = isSmall ? 14.0 : 16.0;
-    final double hintFontSize      = isSmall ? 11.0 : 13.0;
-    final double termsFontSize     = isSmall ? 11.0 : 13.0;
-    final double bannerFontSize    = isSmall ? 12.0 : 13.0;
-    final double bannerIconSize    = isSmall ? 16.0 : 18.0;
-    final double bannerPad         = isSmall ? 10.0 : 14.0;
-    final double bottomSpacing     = screenHeight < 700 ? 16.0 : 32.0;
+    // Palette tailored precisely to reference design
+    const Color bgDark = Color(0xFF0C1916);
+    const Color cardBgDark = Color(0xFF132521);
+    const Color cardBorderDark = Color(0xFF244F45);
+    const Color inputBgDark = Color(0xFF10211E);
+    const Color inputBorderDark = Color(0xFF2D8272);
+    const Color inputDividerDark = Color(0xFF254B42);
+    const Color textMuted = Color(0xFF8FA9A2);
+    const Color textFooterMuted = Color(0xFF7E9791);
+    const Color tealBrand = Color(0xFF339985);
+    const Color iconBadgeBg = Color(0xFF1B3B34);
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: isDark ? bgDark : theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ── Background fill ──────────────────────────────────────────────
+          // Background fill
           Positioned.fill(
-            child: Container(color: theme.scaffoldBackgroundColor),
-          ),
-
-          // ── Watermark chinar ─────────────────────────────────────────────
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: 0.18,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: screenWidth,
-                  height: screenHeight,
-                  fit: BoxFit.contain,
-                ),
-              ),
+            child: Container(
+              color: isDark ? bgDark : theme.scaffoldBackgroundColor,
             ),
           ),
-
+          // Top right subtle Chinar watermark
+          Positioned(
+            top: -20,
+            right: -40,
+            child: Opacity(
+              opacity: isDark ? 0.12 : 0.08,
+              child: Image.asset('assets/images/chinar.png', width: 280),
+            ),
+          ),
+          // Bottom left subtle Chinar watermark
+          Positioned(
+            bottom: -30,
+            left: -40,
+            child: Opacity(
+              opacity: isDark ? 0.09 : 0.06,
+              child: Image.asset('assets/images/chinar.png', width: 260),
+            ),
+          ),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(height: topSpacing),
-
-                  // ── Logo ─────────────────────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: EdgeInsets.all(logoIconPad),
-                        decoration: BoxDecoration(
-                          color: cs.primary.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: cs.primary.withOpacity(0.5),
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.location_on,
-                          color: cs.primary,
-                          size: logoIconSize,
-                        ),
-                      ),
-                      SizedBox(width: isSmall ? 8.0 : 12.0),
-                      Flexible(
-                        child: Text(
-                          'KonnectKashmir',
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 44),
+                        // 1. Top Logo - Large, prominent, centered
+                        _adaptiveLogo(height: 80),
+                        const SizedBox(height: 32),
+                        // 3. Tagline
+                        const Text(
+                          "Kashmir's Local Services & Business Directory",
                           style: TextStyle(
-                            fontSize: logoFontSize,
-                            fontWeight: FontWeight.bold,
-                            color: cs.primary,
+                            fontSize: 14.5,
+                            color: textMuted,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: 0.2,
                           ),
-                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: isSmall ? 10.0 : 16.0),
-
-                  Text(
-                    'Enter your phone number to continue',
-                    style: TextStyle(
-                      fontSize: subtitleFontSize,
-                      color: cs.onSurface.withOpacity(0.55),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  // ── Redirect message banner ──────────────────────────────
-                  if (widget.redirectMessage != null &&
-                      widget.redirectMessage!.trim().isNotEmpty) ...[
-                    SizedBox(height: isSmall ? 12.0 : 16.0),
-                    Container(
-                      padding: EdgeInsets.all(bannerPad),
-                      decoration: BoxDecoration(
-                        color: cs.primary.withOpacity(0.10),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: cs.primary.withOpacity(0.4),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline,
-                              color: cs.primary, size: bannerIconSize),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              widget.redirectMessage!,
-                              style: TextStyle(
-                                color: cs.primary,
-                                fontSize: bannerFontSize,
+                        const SizedBox(height: 32),
+                        
+                        // Redirect message banner if present
+                        if (widget.redirectMessage != null &&
+                            widget.redirectMessage!.trim().isNotEmpty) ...[
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 20),
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: tealBrand.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: tealBrand.withValues(alpha: 0.4),
                               ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline,
+                                    color: tealBrand, size: 18),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    widget.redirectMessage!,
+                                    style: const TextStyle(
+                                      color: tealBrand,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
 
-                  SizedBox(height: sectionSpacing),
-
-                  // ── Phone label ──────────────────────────────────────────
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Phone Number',
-                      style: TextStyle(
-                        fontSize: labelFontSize,
-                        color: cs.onSurface.withOpacity(0.8),
-                        fontWeight: FontWeight.w500,
-                      ),
+                        // 4. Main Card
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
+                          decoration: BoxDecoration(
+                            color: isDark ? cardBgDark : theme.colorScheme.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: isDark ? cardBorderDark : theme.colorScheme.onSurface.withValues(alpha: 0.08),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.22),
+                                blurRadius: 24,
+                                offset: const Offset(0, 10),
+                              )
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 5. Header inside card
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? iconBadgeBg : tealBrand.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.lock_person_rounded,
+                                      color: tealBrand,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  const Text(
+                                    'Sign In / Register',
+                                    style: TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              const Text(
+                                'Enter your mobile number to get started',
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  color: textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              const Text(
+                                'Mobile Number',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              
+                              // 6. Mobile number field - Rectangular with moderately rounded corners
+                              Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: isDark ? inputBgDark : theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: inputBorderDark,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Left section: Flag + Country Code
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: const [
+                                          Text('🇮🇳', style: TextStyle(fontSize: 18)),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '+91',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Vertical divider
+                                    Container(
+                                      height: 28,
+                                      width: 1.2,
+                                      color: inputDividerDark,
+                                    ),
+                                    // Right section: Phone input
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _phoneController,
+                                        keyboardType: TextInputType.phone,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          letterSpacing: 1.2,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          hintText: '98765 43210',
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFF557069),
+                                            letterSpacing: 1.2,
+                                            fontSize: 15,
+                                          ),
+                                          border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                        ),
+                                        onChanged: (_) {
+                                          if (_error != null) setState(() => _error = null);
+                                          else setState(() {});
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_error != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(_error!, style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 12)),
+                                ),
+                              const SizedBox(height: 24),
+                              
+                              // 7. OTP button
+                              Container(
+                                width: double.infinity,
+                                height: 54,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: tealBrand.withValues(alpha: 0.35),
+                                      blurRadius: 18,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _sendOTP,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: tealBrand,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    elevation: 0,
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          height: 24,
+                                          width: 24,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                        )
+                                      : const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'Send Verification OTP',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.2,
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Icon(Icons.arrow_forward_rounded, size: 20),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              
+                              // 8. Security text
+                              Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: const [
+                                    Icon(Icons.lock_outline_rounded, size: 14, color: textFooterMuted),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Safe & secure',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        color: textFooterMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
                     ),
                   ),
-                  SizedBox(height: isSmall ? 8.0 : 10.0),
-
-                  // ── Phone input row ──────────────────────────────────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // +91 prefix box
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: prefixPadH,
-                          vertical: prefixPadV,
-                        ),
-                        decoration: BoxDecoration(
-                          color: cs.onSurface.withOpacity(0.07),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: cs.primary.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Text(
-                          '+91',
-                          style: TextStyle(
-                            color: cs.onSurface,
-                            fontSize: inputFontSize,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: isSmall ? 8.0 : 12.0),
-                      Expanded(
-                        child: TextField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          style: TextStyle(
-                            color: cs.onSurface,
-                            fontSize: inputFontSize,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: '9876543210',
-                            hintStyle: TextStyle(
-                              color: cs.onSurface.withOpacity(0.35),
-                              fontSize: inputFontSize,
-                            ),
-                            filled: true,
-                            fillColor: cs.onSurface.withOpacity(0.07),
-                            counterText: '',
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: isSmall ? 12.0 : 16.0,
-                              vertical: isSmall ? 13.0 : 16.0,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: cs.primary.withOpacity(0.3),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: cs.primary.withOpacity(0.3),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: cs.primary,
-                                width: 2,
-                              ),
-                            ),
-                            errorText: _error,
-                            errorStyle: TextStyle(
-                              color: const Color(0xFFFF6B6B),
-                              fontSize: isSmall ? 11.0 : 12.0,
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFFF6B6B),
-                                width: 1.5,
-                              ),
-                            ),
-                            focusedErrorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFFF6B6B),
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          enabled: !_isLoading,
-                          onChanged: (_) {
-                            if (_error != null) {
-                              setState(() => _error = null);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: isSmall ? 20.0 : 28.0),
-
-                  // ── Send OTP button ──────────────────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _sendOTP,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
-                        foregroundColor: cs.onPrimary,
-                        padding: EdgeInsets.symmetric(vertical: buttonVertPad),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                        disabledBackgroundColor: cs.primary.withOpacity(0.35),
-                      ),
-                      child: _isLoading
-                          ? SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            cs.onPrimary,
-                          ),
-                        ),
-                      )
-                          : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Send OTP',
-                            style: TextStyle(
-                              fontSize: buttonFontSize,
-                              fontWeight: FontWeight.w700,
-                              color: cs.onPrimary,
-                            ),
-                          ),
-                          SizedBox(width: isSmall ? 6.0 : 8.0),
-                          Icon(Icons.arrow_forward,
-                              color: cs.onPrimary,
-                              size: isSmall ? 16.0 : 18.0),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: isSmall ? 14.0 : 20.0),
-
-                  Text(
-                    'We will send a 6-digit code to verify your number',
-                    style: TextStyle(
-                      fontSize: hintFontSize,
-                      color: cs.onSurface.withOpacity(0.45),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-
-                  SizedBox(height: isSmall ? 24.0 : 36.0),
-
-                  _buildTermsText(context, cs, termsFontSize),
-
-                  SizedBox(height: bottomSpacing),
-                ],
-              ),
+                ),
+                // 9. Terms section
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
+                  child: _buildTermsText(context, tealBrand, textFooterMuted, 12.0),
+                ),
+              ],
             ),
           ),
         ],
@@ -418,47 +441,64 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTermsText(BuildContext context, ColorScheme cs, double fontSize) {
-    return RichText(
-      textAlign: TextAlign.center,
-      text: TextSpan(
-        style: TextStyle(
-          fontSize: fontSize,
-          color: cs.onSurface.withOpacity(0.45),
+  Widget _buildTermsText(BuildContext context, Color tealColor, Color mutedColor, double fontSize) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          "By continuing, you agree to KonnectKashmir's",
+          style: TextStyle(
+            fontSize: fontSize,
+            color: mutedColor,
+          ),
+          textAlign: TextAlign.center,
         ),
-        children: [
-          const TextSpan(text: 'By continuing, you agree to our '),
-          WidgetSpan(
-            child: GestureDetector(
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const TermsScreen())),
+        const SizedBox(height: 3),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TermsScreen()),
+              ),
               child: Text(
                 'Terms of Service',
                 style: TextStyle(
-                  color: cs.primary,
+                  color: tealColor,
                   decoration: TextDecoration.underline,
+                  decorationColor: tealColor,
+                  fontWeight: FontWeight.w600,
                   fontSize: fontSize,
                 ),
               ),
             ),
-          ),
-          const TextSpan(text: ' and '),
-          WidgetSpan(
-            child: GestureDetector(
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const PrivacyScreen())),
+            Text(
+              ' and ',
+              style: TextStyle(
+                color: mutedColor,
+                fontSize: fontSize,
+              ),
+            ),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+              ),
               child: Text(
                 'Privacy Policy',
                 style: TextStyle(
-                  color: cs.primary,
+                  color: tealColor,
                   decoration: TextDecoration.underline,
+                  decorationColor: tealColor,
+                  fontWeight: FontWeight.w600,
                   fontSize: fontSize,
                 ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }
