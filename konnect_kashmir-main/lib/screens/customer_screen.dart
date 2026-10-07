@@ -1944,9 +1944,9 @@ class _HomeScreenState extends State<CustomerScreen> {
       action = _buildSignInButton();
     } else if (isRevealed) {
       action = Row(mainAxisSize: MainAxisSize.min, children: [
-        IconButton.outlined(
+        IconButton(
           onPressed: () => _openWhatsApp(phone),
-          icon: const Icon(FontAwesomeIcons.whatsapp, size: 20),
+          icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 28),
           tooltip: 'WhatsApp',
           color: const Color(0xFF25D366),
         ),
