@@ -22,7 +22,8 @@ const Color _kTealLight   = Color(0xFFD6F0EB);
 const Color _kOrange      = Color(0xFFE07B2E);
 
 class VendorDashboardScreen extends StatefulWidget {
-  const VendorDashboardScreen({super.key});
+  final String? initialBusinessId;
+  const VendorDashboardScreen({super.key, this.initialBusinessId});
 
   @override
   State<VendorDashboardScreen> createState() => _VendorDashboardScreenState();
@@ -188,6 +189,15 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     setState(() {
       _businesses = bizList;
       _leadsByVendor.addAll(byVendor);
+      
+      if (widget.initialBusinessId != null && _selectedBiz == null) {
+        try {
+          _selectedBiz = _businesses.firstWhere((b) => b['id'].toString() == widget.initialBusinessId);
+          if (_selectedBiz != null) {
+            _loadLeadsForBusiness(widget.initialBusinessId!);
+          }
+        } catch (_) {}
+      }
     });
   }
 

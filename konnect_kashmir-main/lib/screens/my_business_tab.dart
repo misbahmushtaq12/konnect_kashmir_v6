@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/category_meta.dart';
@@ -24,8 +25,10 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   static const String _baseUrl = 'https://fmmpsqnpezjofsluirrv.supabase.co';
 
   List<Map<String, dynamic>> _businesses = [];
+  Map<String, List<dynamic>> _leadsByVendor = {};
   bool _loading = true;
-  bool _failed = false;
+  String? _errorMsg;
+  String? _expandedBizId;
 
   @override
   void initState() {
@@ -54,19 +57,45 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           .timeout(const Duration(seconds: 15));
       if (!mounted) return;
       if (res.statusCode == 200) {
+        final bizList = List<Map<String, dynamic>>.from(jsonDecode(res.body));
+        
+        final api = ApiService(token: auth.accessToken, userId: userId);
+        final vendorIds = bizList.map((b) => b['id'].toString()).toList();
+        
+        Map<String, List<dynamic>> leadsByVendor = {};
+        if (vendorIds.isNotEmpty) {
+          final leadsResult = await api.getLeadNames(vendorIds);
+          if (leadsResult['success'] == true && leadsResult['leads'] != null) {
+            for (final lead in leadsResult['leads'] as List) {
+              final vId = lead['vendor_id'].toString();
+              leadsByVendor.putIfAbsent(vId, () => []).add(lead);
+            }
+          }
+        }
+
+        if (!mounted) return;
         setState(() {
-          _businesses = List<Map<String, dynamic>>.from(jsonDecode(res.body));
-          _failed = false;
+          _businesses = bizList;
+          _leadsByVendor = leadsByVendor;
+          _errorMsg = null;
           _loading = false;
         });
         return;
       }
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() {
-      _failed = true;
-      _loading = false;
-    });
+      
+      if (!mounted) return;
+      setState(() {
+        _errorMsg = 'Server returned status code: ${res.statusCode}\nResponse: ${res.body}';
+        _loading = false;
+      });
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMsg = e.toString();
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _push(Widget screen) async {
@@ -91,24 +120,29 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                   parent: BouncingScrollPhysics()),
               padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
               children: [
-                const Text('My Business',
-                    style:
-                        TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('My Business',
+                        style: TextStyle(
+                            fontSize: 26, fontWeight: FontWeight.w800)),
+                    if (!_loading && _errorMsg == null && _businesses.isNotEmpty)
+                      IconButton(
+                        onPressed: () => _push(const ListBusinessScreen()),
+                        icon: const Icon(Icons.add_circle_outline, size: 28),
+                        color: AppColors.primary,
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 16),
                 if (_loading)
                   ..._skeletons()
-                else if (_failed)
+                else if (_errorMsg != null)
                   _errorState()
                 else if (_businesses.isEmpty)
                   _emptyState()
                 else ...[
                   for (final b in _businesses) _businessCard(b),
-                  const SizedBox(height: 4),
-                  OutlinedButton.icon(
-                    onPressed: () => _push(const ListBusinessScreen()),
-                    icon: const Icon(Icons.add_rounded),
-                    label: const Text('Add another business'),
-                  ),
                 ],
               ],
             ),
@@ -119,7 +153,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   }
 
   List<Widget> _skeletons() => [
-        for (var i = 0; i < 2; i++) ...[
+        for (var i = 0; i < 1; i++) ...[
           const Skeleton(height: 170, radius: AppRadius.lg),
           const SizedBox(height: 14),
         ]
@@ -174,6 +208,15 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         const SizedBox(height: 12),
         const Text("Couldn't load your business",
             style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        if (_errorMsg != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
+            child: Text(
+              _errorMsg!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: cs.error, fontSize: 13),
+            ),
+          ),
         const SizedBox(height: 16),
         OutlinedButton(
           onPressed: _load,
@@ -187,134 +230,263 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   Widget _businessCard(Map<String, dynamic> b) {
     final cs = Theme.of(context).colorScheme;
     final name = (b['business_name'] ?? 'Business').toString();
-    final slug = b['service_type']?.toString();
-    final meta = CategoryMeta.of(slug);
+    final svcType = b['service_type']?.toString() ?? '';
     final locality = b['localities'] is Map
         ? (b['localities']['name']?.toString() ?? '')
         : '';
-    final approved = b['is_approved'] == true;
-    final verified = b['is_verified'] == true;
-    final logo = b['logo_url']?.toString();
-    final initials = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-        .join();
+    final isApproved = b['is_approved'] == true;
+    final bizId = b['id']?.toString();
 
-    final initialsWidget = Center(
-      child: Text(initials,
-          style: TextStyle(
-              color: meta.color, fontSize: 18, fontWeight: FontWeight.w800)),
-    );
+    String formatSlug(String s) {
+      if (s.isEmpty) return '';
+      return s
+          .split('_')
+          .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+          .join(' ');
+    }
 
-    Widget chip(String text, Color color, IconData icon) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 4),
-            Text(text,
-                style: TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.w700, color: color)),
-          ]),
-        );
+    const svcIcons = <String, IconData>{
+      'electrician': Icons.bolt,
+      'plumber': Icons.plumbing,
+      'carpenter': Icons.handyman,
+      'painter': Icons.brush,
+      'cleaner': Icons.cleaning_services,
+      'catering': Icons.restaurant,
+      'mechanic': Icons.build,
+      'home_tutor': Icons.school,
+    };
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: AppCard(
+    final kTeal = AppColors.primary;
+    final tealContainer = kTeal.withValues(alpha: 0.15);
+
+    return GestureDetector(
+      onTap: () => setState(() {
+        if (_expandedBizId == bizId) {
+          _expandedBizId = null;
+        } else {
+          _expandedBizId = bizId;
+        }
+      }),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cs.onSurface.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
+        ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
             Container(
-              width: 56,
-              height: 56,
-              clipBehavior: Clip.antiAlias,
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: meta.color.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: (logo != null && logo.isNotEmpty)
-                  ? Image.network(logo,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => initialsWidget)
-                  : initialsWidget,
+                  color: tealContainer,
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(svcIcons[svcType] ?? Icons.storefront,
+                  color: kTeal, size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 3),
-                    Text(
-                      [
-                        if (slug != null && slug.isNotEmpty)
-                          slug
-                              .split('_')
-                              .map((w) => w.isEmpty
-                                  ? w
-                                  : '${w[0].toUpperCase()}${w.substring(1)}')
-                              .join(' '),
-                        if (locality.isNotEmpty) locality,
-                      ].join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Text(name,
                       style: TextStyle(
-                          fontSize: 13,
-                          color: cs.onSurface.withValues(alpha: 0.6)),
-                    ),
-                  ]),
-            ),
+                          color: cs.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold)),
+                  Text('${formatSlug(svcType)} • $locality',
+                      style: TextStyle(
+                          color: cs.onSurface.withValues(alpha: 0.6),
+                          fontSize: 13)),
+                ])),
+            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                    color: tealContainer,
+                    borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.people_alt_rounded, size: 12, color: kTeal),
+                    const SizedBox(width: 4),
+                    Text('${_leadsByVendor[bizId]?.length ?? 0} Leads',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: kTeal,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                    color: isApproved
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : Colors.orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8)),
+                child: Text(isApproved ? 'Active' : 'Pending',
+                    style: TextStyle(
+                        color: isApproved ? Colors.green : Colors.orange,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ]),
           ]),
           const SizedBox(height: 12),
-          Wrap(spacing: 8, runSpacing: 6, children: [
-            approved
-                ? chip('Live', AppColors.success, Icons.check_circle_rounded)
-                : chip('Pending approval', AppColors.accent,
-                    Icons.hourglass_top_rounded),
-            if (verified)
-              chip('Verified', const Color(0xFF378ADD), Icons.verified),
-          ]),
-          if (!approved) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Our team is reviewing your listing. It will appear to customers once approved.',
-              style: TextStyle(
-                  fontSize: 12.5,
-                  height: 1.4,
-                  color: cs.onSurface.withValues(alpha: 0.6)),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _push(ListBusinessScreen(existingVendor: b)),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: cs.onSurface.withValues(alpha: 0.08),
+                      foregroundColor: cs.onSurface,
+                      elevation: 0,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10))),
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Edit',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => setState(() {
+                    if (_expandedBizId == bizId) {
+                      _expandedBizId = null;
+                    } else {
+                      _expandedBizId = bizId;
+                    }
+                  }),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: tealContainer,
+                      foregroundColor: kTeal,
+                      elevation: 0,
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10))),
+                  icon: Icon(_expandedBizId == bizId ? Icons.expand_less : Icons.expand_more, size: 18),
+                  label: const Text('Leads',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+          if (_expandedBizId == bizId) ...[
+            const SizedBox(height: 16),
+            Divider(color: cs.onSurface.withValues(alpha: 0.08)),
+            const SizedBox(height: 8),
+            if ((_leadsByVendor[bizId] ?? []).isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Center(
+                  child: Text('No leads yet',
+                      style: TextStyle(
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                          fontSize: 13)),
+                ),
+              )
+            else
+              ...(_leadsByVendor[bizId] ?? []).map((lead) {
+                final leadName = lead['user_name']?.toString() ?? 'Customer';
+                final dtStr = lead['created_at']?.toString() ?? '';
+                final dt = DateTime.tryParse(dtStr) ?? DateTime.now();
+                
+                String monthName(int m) {
+                  const mths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                  return m >= 1 && m <= 12 ? mths[m - 1] : '';
+                }
+                final dateStr = '${dt.day} ${monthName(dt.month)} ${dt.year}';
+                final timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour < 12 ? 'am' : 'pm'}';
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                      color: cs.onSurface.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cs.onSurface.withValues(alpha: 0.08))),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Icon(Icons.person_outline, color: kTeal, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(leadName,
+                                    style: TextStyle(
+                                        color: cs.onSurface,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Row(children: [
+                                  Icon(Icons.calendar_today_outlined,
+                                      color: cs.onSurface.withValues(alpha: 0.4), size: 13),
+                                  const SizedBox(width: 4),
+                                  Text(dateStr,
+                                      style: TextStyle(
+                                          color: cs.onSurface.withValues(alpha: 0.4),
+                                          fontSize: 12)),
+                                  const SizedBox(width: 10),
+                                  Icon(Icons.access_time_outlined,
+                                      color: cs.onSurface.withValues(alpha: 0.4), size: 13),
+                                  const SizedBox(width: 4),
+                                  Text(timeStr,
+                                      style: TextStyle(
+                                          color: cs.onSurface.withValues(alpha: 0.4),
+                                          fontSize: 12)),
+                                ]),
+                              ])),
+                    ]),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _push(VendorDashboardScreen(initialBusinessId: bizId)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: tealContainer,
+                        foregroundColor: kTeal,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        minimumSize: const Size(double.infinity, 44),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      label: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Text('Get Lead',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                              color: kTeal.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10)),
+                          child: const Text('1',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ]),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text('Costs 1 credit to reveal contact',
+                          style: TextStyle(
+                              color: cs.onSurface.withValues(alpha: 0.4),
+                              fontSize: 11)),
+                    ),
+                  ]),
+                );
+              }),
           ],
-          const SizedBox(height: 14),
-          Row(children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _push(ListBusinessScreen(existingVendor: b)),
-                style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44)),
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Edit'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () => _push(const VendorDashboardScreen()),
-                style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(44)),
-                icon: const Icon(Icons.people_alt_outlined, size: 18),
-                label: const Text('Leads'),
-              ),
-            ),
-          ]),
         ]),
       ),
     );

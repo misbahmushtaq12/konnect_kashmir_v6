@@ -50,23 +50,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadServices() async {
     if (mounted) setState(() => _loading = true);
-    List<Map<String, dynamic>> data = [];
-    try {
-      data = await _api.getFeaturedServiceCategories();
-      if (data.length < _gridCount) {
-        // Top up with other active categories so the grid fills up to 8.
-        final all = await _api.getServiceCategories();
-        final have = data.map((e) => e['slug']).toSet();
-        data = [
-          ...data,
-          ...all.where((e) => !have.contains(e['slug'])),
-        ];
-      }
-    } catch (_) {}
+    
+    // As requested, always show exactly these 8 items on the Home Screen.
+    final staticServices = [
+      {'slug': 'electrician', 'name': 'Electrician'},
+      {'slug': 'painter', 'name': 'Painter'},
+      {'slug': 'carpenter', 'name': 'Carpenter'},
+      {'slug': 'home_services', 'name': 'Home Services'},
+      {'slug': 'tailor', 'name': 'Tailor'},
+      {'slug': 'plumber', 'name': 'Plumber'},
+      {'slug': 'mason', 'name': 'Mason (Dasil)'},
+      {'slug': 'labour', 'name': 'Labour / Helper'},
+    ];
+
     if (!mounted) return;
     setState(() {
-      _services = data.take(_gridCount).toList();
-      _failed = data.isEmpty;
+      _services = staticServices;
+      _failed = false;
       _loading = false;
     });
   }
