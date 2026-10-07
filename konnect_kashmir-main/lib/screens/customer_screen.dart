@@ -10,8 +10,6 @@ import 'package:konnect_kashmir/services/api_service.dart';
 import '../providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/dashboard_screen.dart';
 import 'package:konnect_kashmir/static/grevience_screen.dart';
-import 'package:konnect_kashmir/static/privacy_screen.dart';
-import 'package:konnect_kashmir/static/terms_screen.dart';
 import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
@@ -1705,8 +1703,6 @@ class _HomeScreenState extends State<CustomerScreen>
                   _buildVendorCount(),
                   const SizedBox(height: 4),
                   _buildVendorsList(),
-                  const SizedBox(height: 32),
-                  _buildPlatformGuidelines(),
                   const SizedBox(height: 24),
                   ],
                 ],
@@ -3118,79 +3114,6 @@ class _HomeScreenState extends State<CustomerScreen>
     }
   }
 
-  Widget _buildPlatformGuidelines() {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-            color: cs.primary.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(20)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: cs.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.shield_outlined, color: cs.primary, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text('Platform Guidelines',
-                  style: TextStyle(
-                      color: cs.onSurface,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
-            ),
-          ]),
-          const SizedBox(height: 16),
-          Text(
-              'KonnectKashmir operates as an intermediary connecting service seekers '
-              'with providers under the IT Act, 2000.',
-              style: TextStyle(
-                  color: cs.onSurface.withValues(alpha: 0.7),
-                  fontSize: 14,
-                  height: 1.5)),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _guidelineLink(context, 'Privacy Policy', Icons.privacy_tip_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())), cs),
-              _guidelineLink(context, 'Terms', Icons.description_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen())), cs),
-              _guidelineLink(context, 'Refunds', Icons.receipt_long_outlined, () => Navigator.pushNamed(context, '/refund'), cs),
-            ],
-          ),
-        ]),
-      ),
-    );
-  }
-
-  Widget _guidelineLink(BuildContext context, String text, IconData icon, VoidCallback onTap, ColorScheme cs) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: cs.primary),
-            const SizedBox(width: 6),
-            Text(text,
-                style: TextStyle(
-                    color: cs.primary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ),
-    );
-  }
 
 
 }

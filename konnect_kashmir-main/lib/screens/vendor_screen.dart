@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../static/grevience_screen.dart';
-import '../static/terms_screen.dart';
+import '../services/api_service.dart';
+import '../widgets/category_meta.dart';
 
 // ── Brand accent — consistent across light & dark ──────────────────────────
 const Color _kTeal   = Color(0xFF6BC4B2);
@@ -95,20 +95,43 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     }
   }
 
-  final List<_ServiceOption> _serviceOptions = const [
-    _ServiceOption(name: 'Home Services', icon: Icons.home,              iconColor: Color(0xFFE8A838), slug: 'other'),
-    _ServiceOption(name: 'Electrician',   icon: Icons.bolt,              iconColor: Color(0xFFF0C040), slug: 'electrician'),
-    _ServiceOption(name: 'Plumber',       icon: Icons.plumbing,          iconColor: Color(0xFF5B9BD5), slug: 'plumber'),
-    _ServiceOption(name: 'Carpenter',     icon: Icons.handyman,          iconColor: Color(0xFFE07B39), slug: 'carpenter'),
-    _ServiceOption(name: 'Painter',       icon: Icons.brush,             iconColor: Color(0xFF9B59B6), slug: 'painter'),
-    _ServiceOption(name: 'Mason (Dasil)', icon: Icons.domain,            iconColor: Color(0xFFE8A838), slug: 'mason_dasil'),
-    _ServiceOption(name: 'Cleaning',      icon: Icons.cleaning_services, iconColor: Color(0xFF5BC4B2), slug: 'cleaner'),
-    _ServiceOption(name: 'Catering',      icon: Icons.restaurant,        iconColor: Color(0xFFE74C3C), slug: 'catering'),
-    _ServiceOption(name: 'Tailoring',     icon: Icons.checkroom,         iconColor: Color(0xFF8E44AD), slug: 'tailor'),
-    _ServiceOption(name: 'Mechanic',      icon: Icons.build,             iconColor: Color(0xFF7F8C8D), slug: 'mechanic'),
-    _ServiceOption(name: 'Tutor',         icon: Icons.school,            iconColor: Color(0xFF27AE60), slug: 'home_tutor'),
-    _ServiceOption(name: 'Other',         icon: Icons.more_horiz,        iconColor: Color(0xFF95A5A6), slug: 'other'),
-  ];
+  // Same categories as the customer screen: built-in list first, replaced by
+  // the live service_categories from the API once loaded.
+  List<_ServiceOption> _serviceOptions = _optionsFrom(CategoryMeta.allCategories);
+
+  static List<_ServiceOption> _optionsFrom(List<dynamic> source) {
+    final seen = <String>{};
+    final out = <_ServiceOption>[];
+    for (final e in source) {
+      final slug = (e['slug'] ?? e['id'] ?? '').toString();
+      final name = (e['name'] ?? '').toString();
+      if (slug.isEmpty || name.isEmpty || !seen.add(name)) continue;
+      final meta = CategoryMeta.of(slug);
+      out.add(_ServiceOption(
+          name: name, icon: meta.icon, iconColor: meta.color, slug: slug));
+    }
+    return out;
+  }
+
+  Future<void> _loadServiceOptions() async {
+    try {
+      final auth = context.read<AuthProvider>();
+      final data = await ApiService(token: auth.accessToken, userId: auth.userId)
+          .getServiceCategories();
+      final opts = _optionsFrom(data);
+      if (!mounted || opts.isEmpty) return;
+      setState(() {
+        // Keep selections valid when names differ between the two lists.
+        final selectedSlugs =
+            _selectedServiceTypes.map(_slugForService).toList();
+        _serviceOptions = opts;
+        _selectedServiceTypes = [
+          for (final s in selectedSlugs)
+            ...opts.where((o) => o.slug == s).take(1).map((o) => o.name),
+        ];
+      });
+    } catch (_) {}
+  }
 
   final Map<String, List<String>> _districtLocalities = {
     'Srinagar': [
@@ -149,6 +172,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   @override
   void initState() {
     super.initState();
+    _loadServiceOptions();
     if (_isEditing) {
       final v = widget.existingVendor!;
       _businessNameController.text        = v['business_name']    as String? ?? '';
@@ -284,7 +308,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Text(
                           _isEditing
                               ? 'Update your business information'
@@ -295,7 +319,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
                         _buildCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,21 +339,21 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                   ),
                                 ),
                               ]),
-                              Divider(color: _subtleBorder, height: 32),
+                              Divider(color: _subtleBorder, height: 20),
                               _buildLabel('Business Name *'),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildTextField(
                                 controller: _businessNameController,
                                 hintText: "e.g., Ahmed's Plumbing Service",
                                 isRequired: true,
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               _buildLabel('Service Categories * (select up to 3)'),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildServiceCategorySelector(),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               _buildLabel('District *'),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildDropdown(
                                 value: _selectedDistrict,
                                 hint: 'Select district',
@@ -340,9 +364,9 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 }),
                                 isRequired: true,
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               _buildLabel('Locality *'),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildDropdown(
                                 value: _selectedLocality,
                                 hint: _selectedDistrict == null
@@ -356,17 +380,22 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                     : null,
                                 isRequired: true,
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               _buildLabel('Business Description (optional)'),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildTextField(
                                 controller: _businessDescriptionController,
                                 hintText: 'Tell customers about your services...',
-                                maxLines: 4,
+                                maxLines: 3,
                               ),
-
-                              const SizedBox(height: 40),
-
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _buildCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               // ── Contact Info header ──────────────────────
                               Row(children: [
                                 const Icon(Icons.phone, color: _kTeal),
@@ -382,127 +411,67 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                   ),
                                 ),
                               ]),
-                              Divider(color: _subtleBorder, height: 32),
+                              Divider(color: _subtleBorder, height: 20),
 
                               _buildLabel('Business Phone Number *'),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildPhoneRow(
                                 controller: _phoneController,
                                 hintText: '9876543210',
                                 isRequired: true,
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               Row(children: [
                                 Icon(Icons.chat_bubble_outline, color: _onSurfaceMuted),
                                 const SizedBox(width: 8),
                                 Text('WhatsApp', style: TextStyle(color: _onSurfaceMuted)),
                               ]),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildPhoneRow(
                                 controller: _whatsappController,
                                 hintText: 'Same or different',
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               Row(children: [
                                 Icon(Icons.email_outlined, color: _onSurfaceMuted),
                                 const SizedBox(width: 8),
                                 Text('Email', style: TextStyle(color: _onSurfaceMuted)),
                               ]),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildTextField(
                                 controller: _emailController,
                                 hintText: 'business@email.com',
                                 keyboardType: TextInputType.emailAddress,
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               Row(children: [
                                 Icon(Icons.location_on_outlined, color: _onSurfaceMuted),
                                 const SizedBox(width: 8),
                                 Text('Address', style: TextStyle(color: _onSurfaceMuted)),
                               ]),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               _buildTextField(
                                 controller: _addressController,
                                 hintText: 'Shop/Office address',
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 14),
                               _buildSwitchTile(
                                 icon: Icons.home_outlined,
                                 label: 'Home Service Available',
                                 value: _homeServiceAvailable,
                                 onChanged: (v) => setState(() => _homeServiceAvailable = v),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 10),
                               _buildSwitchTile(
                                 icon: Icons.payment_outlined,
                                 label: 'Accept Online Payment',
                                 value: _acceptOnlinePayment,
                                 onChanged: (v) => setState(() => _acceptOnlinePayment = v),
                               ),
-
-                              const SizedBox(height: 40),
-
-                              // ── Intermediary disclaimer ──────────────────
-                              Container(
-                                padding: EdgeInsets.all(_rs(0.04, min: 12, max: 20)),
-                                decoration: BoxDecoration(
-                                  color: _cs.onSurface.withOpacity(0.08),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: _subtleBorder),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(children: [
-                                      Icon(Icons.balance, color: _onSurfaceMuted),
-                                      const SizedBox(width: 8),
-                                      Flexible(
-                                        child: Text(
-                                          'Intermediary Disclaimer',
-                                          style: TextStyle(
-                                            color: _onSurface,
-                                            fontSize: _rs(0.04, min: 13, max: 17),
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ]),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'KonnectKashmir is an information intermediary under Section 2(1)(w) of the Information Technology Act, 2000 and operates in compliance with IT (Intermediary Guidelines) Rules, 2021. We do not guarantee the accuracy of vendor information or quality of services. Users are advised to verify vendor credentials independently. Any disputes shall be governed by the laws of India and subject to exclusive jurisdiction of courts in Srinagar, J&K.',
-                                      style: TextStyle(
-                                        color: _onSurfaceMuted,
-                                        fontSize: _rs(0.033, min: 11, max: 14),
-                                        height: 1.5,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // ── CHANGE 8: Disclaimer links use Wrap so
-                                    //    they don't clip on narrow screens ───────
-                                    Wrap(
-                                      crossAxisAlignment: WrapCrossAlignment.center,
-                                      children: [
-                                        TextButton(
-                                          onPressed: () => Navigator.push(context,
-                                              MaterialPageRoute(builder: (_) => const TermsScreen())),
-                                          child: const Text('Terms',
-                                              style: TextStyle(color: _kTeal)),
-                                        ),
-                                        Text('|', style: TextStyle(color: _onSurfaceMuted)),
-                                        TextButton(
-                                          onPressed: () => Navigator.push(context,
-                                              MaterialPageRoute(builder: (_) => const GrievanceScreen())),
-                                          child: const Text('Grievance Portal',
-                                              style: TextStyle(color: _kTeal)),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(height: 24),
-
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                               if (!_isEditing) ...[
                                 Row(children: [
                                   Icon(Icons.hourglass_empty, color: Colors.orange[300]),
@@ -517,7 +486,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                     ),
                                   ),
                                 ]),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 12),
                               ],
 
                               // ── CHANGE 9: Action buttons use LayoutBuilder
@@ -596,10 +565,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                   Expanded(child: submitBtn),
                                 ]);
                               }),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),
@@ -755,6 +721,10 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                           _selectedServiceTypes.remove(option.name);
                         } else {
                           _selectedServiceTypes.add(option.name);
+                          // Picked a category: close the dropdown.
+                          _serviceDropdownOpen = false;
+                          _searchController.clear();
+                          _searchQuery = '';
                         }
                       }),
                       child: Container(
