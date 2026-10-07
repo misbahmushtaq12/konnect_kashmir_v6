@@ -1999,20 +1999,6 @@ class _HomeScreenState extends State<CustomerScreen> {
               ],
             ),
           ),
-          InkWell(
-            borderRadius: BorderRadius.circular(999),
-            onTap: () => _toggleFavorite(vendorId),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(
-                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                color: isFav
-                    ? AppColors.danger
-                    : cs.onSurface.withValues(alpha: 0.4),
-                size: 22,
-              ),
-            ),
-          ),
         ]),
         if (desc.isNotEmpty) ...[
           const SizedBox(height: 12),
