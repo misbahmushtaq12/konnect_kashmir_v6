@@ -31,12 +31,17 @@ class CustomerScreen extends StatefulWidget {
   /// Opens the "watch an ad for credits" sheet once data has loaded.
   final bool openAdsOnStart;
 
+  /// False while another bottom-nav tab is showing (Home stays alive in an
+  /// IndexedStack); leaving Home collapses the "Our services" grid.
+  final bool isActive;
+
   const CustomerScreen({
     Key? key,
     this.initialCategory,
     this.initialSearch,
     this.initialFavoritesOnly = false,
     this.openAdsOnStart = false,
+    this.isActive = true,
   }) : super(key: key);
   @override
   State<CustomerScreen> createState() => _HomeScreenState();
@@ -45,6 +50,34 @@ class CustomerScreen extends StatefulWidget {
 class _HomeScreenState extends State<CustomerScreen>
     with SingleTickerProviderStateMixin {
   bool _showAllCategories = false;
+
+  // Temporary UI state only: collapse "Our services" whenever Home is left,
+  // either by switching bottom-nav tab or by another route covering Home.
+  Animation<double>? _coveringRoute;
+
+  @override
+  void didUpdateWidget(CustomerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive) _showAllCategories = false;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final secondary = ModalRoute.of(context)?.secondaryAnimation;
+    if (secondary != _coveringRoute) {
+      _coveringRoute?.removeStatusListener(_onRouteCovered);
+      _coveringRoute = secondary;
+      secondary?.addStatusListener(_onRouteCovered);
+    }
+  }
+
+  void _onRouteCovered(AnimationStatus status) {
+    // Fully covered by another screen, so the collapse is never seen.
+    if (status == AnimationStatus.completed && _showAllCategories && mounted) {
+      setState(() => _showAllCategories = false);
+    }
+  }
 
   // Home-tab search mode (search bar slides to the top, results only).
   final FocusNode _searchFocus = FocusNode();
@@ -182,6 +215,7 @@ class _HomeScreenState extends State<CustomerScreen>
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _coveringRoute?.removeStatusListener(_onRouteCovered);
     _searchFocus.removeListener(_onSearchFocusChange);
     _searchFocus.dispose();
     _searchAnim.dispose();

@@ -37,7 +37,7 @@ class _MainShellState extends State<MainShell> {
         body: IndexedStack(
           index: _index,
           children: [
-            const CustomerScreen(),
+            CustomerScreen(isActive: _index == 0),
             _opened.contains(1)
                 ? const MyBusinessTab()
                 : const SizedBox.shrink(),
