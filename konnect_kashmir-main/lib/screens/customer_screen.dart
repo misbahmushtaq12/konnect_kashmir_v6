@@ -1191,10 +1191,22 @@ class _HomeScreenState extends State<CustomerScreen> {
 
   Widget _buildCategoriesGrid() {
     final cs = Theme.of(context).colorScheme;
-    final allCats = CategoryMeta.allCategories;
+    
+    final List<dynamic> sourceList = _serviceCategories.isNotEmpty 
+        ? _serviceCategories 
+        : CategoryMeta.allCategories;
+
+    final allCats = [
+      {'slug': 'all', 'name': 'All'},
+      ...sourceList.map((e) => {
+        'slug': e['slug']?.toString() ?? e['id']?.toString() ?? '',
+        'name': e['name']?.toString() ?? 'Service',
+      })
+    ];
 
     final displayCount = _showAllCategories ? allCats.length : 8;
-    final items = allCats.take(displayCount).toList();
+    final safeCount = displayCount > allCats.length ? allCats.length : displayCount;
+    final items = allCats.take(safeCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1228,32 +1240,40 @@ class _HomeScreenState extends State<CustomerScreen> {
     final name = c['name']?.toString() ?? 'Service';
     final meta = CategoryMeta.of(slug);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isAll = slug == 'all';
+    final isSelected = isAll 
+        ? selectedBrowseCategory == null 
+        : selectedBrowseCategory == slug;
+
     return Material(
-      color: meta.color.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      color: cs.surface,
+      borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
           setState(() {
-            selectedBrowseCategory = slug;
+            selectedBrowseCategory = isAll ? null : slug;
             selectedServiceSlug = null;
             selectedServiceName = null;
           });
           _loadVendors();
         },
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
-          child: Column(children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: meta.color.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(meta.icon, color: meta.color, size: 26),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : null,
+            border: Border.all(
+              color: isSelected 
+                  ? AppColors.primary 
+                  : cs.onSurface.withValues(alpha: 0.08),
+              width: isSelected ? 1.5 : 1.0,
             ),
-            const SizedBox(height: 8),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+          child: Column(children: [
+            Icon(meta.icon, color: meta.color, size: 28),
+            const SizedBox(height: 12),
             Expanded(
               child: Text(
                 name,
@@ -1261,10 +1281,10 @@ class _HomeScreenState extends State<CustomerScreen> {
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w600,
-                    height: 1.2,
-                    color: cs.onSurface.withValues(alpha: 0.88)),
+                    height: 1.15,
+                    color: isDark ? cs.onSurface : const Color(0xFF333333)),
               ),
             ),
           ]),
@@ -1384,7 +1404,6 @@ class _HomeScreenState extends State<CustomerScreen> {
                 padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
                 children: [
                   if (isHomeTab) _buildHomeHero(auth),
-                  _buildBrowseByService(),
                   _buildActiveFilters(),
                   const SizedBox(height: 12),
                   _buildVendorCount(),
@@ -1712,7 +1731,6 @@ class _HomeScreenState extends State<CustomerScreen> {
   }
 
   Widget _buildVendorCount() {
-    final cs = Theme.of(context).colorScheme;
     final n = _displayVendors.length;
 
     return Row(children: [
@@ -1720,29 +1738,6 @@ class _HomeScreenState extends State<CustomerScreen> {
         child: Text(
           isLoading ? 'Finding providers…' : '$n ${n == 1 ? 'provider' : 'providers'}',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-      ),
-      PopupMenuButton<String>(
-        tooltip: 'Sort',
-        initialValue: _sort,
-        onSelected: (v) => setState(() => _sort = v),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md)),
-        itemBuilder: (_) => const [
-          PopupMenuItem(value: 'newest', child: Text('Newest')),
-          PopupMenuItem(value: 'experience', child: Text('Most experienced')),
-          PopupMenuItem(value: 'price_low', child: Text('Price: low to high')),
-        ],
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Text(_sortLabel(),
-                style: TextStyle(
-                    fontSize: 13,
-                    color: cs.onSurface.withValues(alpha: 0.65))),
-            Icon(Icons.keyboard_arrow_down_rounded,
-                size: 20, color: cs.onSurface.withValues(alpha: 0.65)),
-          ]),
         ),
       ),
     ]);
