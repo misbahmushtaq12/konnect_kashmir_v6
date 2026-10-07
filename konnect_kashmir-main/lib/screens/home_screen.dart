@@ -18,14 +18,27 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   static const int _gridCount = 8;
 
   final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
   List<Map<String, dynamic>> _services = [];
   bool _loading = true;
   bool _failed = false;
   int? _credits;
+
+  // Search overlay state
+  bool _isSearching = false;
+  List<Map<String, dynamic>> _searchResults = [];
+
+  late final AnimationController _searchAnim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 250),
+  );
+  late final Animation<double> _searchFade =
+      CurvedAnimation(parent: _searchAnim, curve: Curves.easeOutCubic);
 
   ApiService get _api {
     final auth = context.read<AuthProvider>();
@@ -36,12 +49,61 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadAll();
+    _searchFocus.addListener(_onFocusChange);
+    _searchCtrl.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
+    _searchFocus.removeListener(_onFocusChange);
+    _searchCtrl.removeListener(_onSearchChanged);
     _searchCtrl.dispose();
+    _searchFocus.dispose();
+    _searchAnim.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (_searchFocus.hasFocus && !_isSearching) {
+      setState(() => _isSearching = true);
+      _searchAnim.forward();
+    }
+  }
+
+  void _onSearchChanged() {
+    if (!_isSearching) return;
+    final query = _searchCtrl.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+      });
+      return;
+    }
+    _runLocalSearch(query);
+  }
+
+  void _runLocalSearch(String query) {
+    // Filter the static services list client-side for instant results.
+    // The full server-side search is triggered on submit (existing _openBrowse logic).
+    final q = query.toLowerCase();
+    final results = _services.where((s) {
+      final name = (s['name'] ?? '').toString().toLowerCase();
+      final slug = (s['slug'] ?? '').toString().toLowerCase();
+      return name.contains(q) || slug.contains(q);
+    }).toList();
+    setState(() {
+      _searchResults = results;
+    });
+  }
+
+  void _exitSearch() {
+    _searchFocus.unfocus();
+    _searchCtrl.clear();
+    setState(() {
+      _isSearching = false;
+      _searchResults = [];
+    });
+    _searchAnim.reverse();
   }
 
   Future<void> _loadAll() async {
@@ -105,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Stack(children: [
+      // Background chinar watermark
       Positioned(
         top: -30,
         right: -50,
@@ -119,33 +182,166 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760),
-            child: RefreshIndicator(
-              color: AppColors.primary,
-              onRefresh: _loadAll,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics()),
-                padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 24),
-                children: [
-                  _topBar(auth),
-                  const SizedBox(height: 24),
-                  FadeSlideIn(child: _headline(auth)),
-                  const SizedBox(height: 18),
-                  FadeSlideIn(
-                      delay: const Duration(milliseconds: 80),
-                      child: _searchPill()),
-                  const SizedBox(height: 28),
-                  FadeSlideIn(
-                      delay: const Duration(milliseconds: 160),
-                      child: _servicesSection()),
-                ],
-              ),
-            ),
+            child: _buildHomeContent(hPad, auth),
           ),
         ),
       ),
     ]);
   }
+
+  // ── Home content (the search pill slides up when search is active) ────────
+  Widget _buildHomeContent(double hPad, AuthProvider auth) {
+    final hideOnSearch = ReverseAnimation(_searchFade);
+
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _loadAll,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics()),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 24),
+        children: [
+          // Top bar + headline collapse upwards so the search pill moves to the top.
+          SizeTransition(
+            sizeFactor: hideOnSearch,
+            axisAlignment: -1,
+            child: FadeTransition(
+              opacity: hideOnSearch,
+              child: Column(children: [
+                _topBar(auth),
+                const SizedBox(height: 24),
+                FadeSlideIn(child: _headline(auth)),
+                const SizedBox(height: 18),
+              ]),
+            ),
+          ),
+          FadeSlideIn(
+            delay: const Duration(milliseconds: 80),
+            child: Row(children: [
+              Expanded(child: _searchPill()),
+              SizeTransition(
+                axis: Axis.horizontal,
+                sizeFactor: _searchFade,
+                axisAlignment: -1,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10),
+                  child: TextButton(
+                    onPressed: _exitSearch,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('Cancel',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
+                  ),
+                ),
+              ),
+            ]),
+          ),
+          AnimatedBuilder(
+            animation: _searchFade,
+            builder: (_, __) =>
+                SizedBox(height: 28 - 16 * _searchFade.value),
+          ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isSearching
+                ? _buildSearchResults()
+                : FadeSlideIn(
+                    key: const ValueKey('services'),
+                    delay: const Duration(milliseconds: 160),
+                    child: _servicesSection()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Search results (blank until the user types) ───────────────────────────
+  Widget _buildSearchResults() {
+    final cs = Theme.of(context).colorScheme;
+    final query = _searchCtrl.text.trim();
+
+    if (query.isEmpty) return const SizedBox.shrink(key: ValueKey('results'));
+
+    if (_searchResults.isEmpty) {
+      return Padding(
+        key: const ValueKey('results'),
+        padding: const EdgeInsets.only(top: 48),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off_rounded,
+                size: 48, color: cs.onSurface.withValues(alpha: 0.2)),
+            const SizedBox(height: 12),
+            Text(
+              'No results for "$query"',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.5), fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: _submitSearch,
+              icon: const Icon(Icons.search, size: 18),
+              label: Text('Search all vendors for "$query"'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      key: const ValueKey('results'),
+      children: [
+        for (final svc in _searchResults) ...[
+          _searchResultTile(svc, cs),
+          Divider(height: 1, color: cs.onSurface.withValues(alpha: 0.07)),
+        ],
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: TextButton.icon(
+            onPressed: _submitSearch,
+            icon: const Icon(Icons.search, size: 18),
+            label: Text('See all results for "$query"'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _searchResultTile(Map<String, dynamic> svc, ColorScheme cs) {
+    final slug = svc['slug']?.toString();
+    final name = svc['name']?.toString() ?? 'Service';
+    final meta = CategoryMeta.of(slug);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: meta.color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(meta.icon, color: meta.color, size: 22),
+      ),
+      title: Text(name,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+      trailing: Icon(Icons.arrow_forward_ios_rounded,
+          size: 14, color: cs.onSurface.withValues(alpha: 0.3)),
+      onTap: () {
+        _exitSearch();
+        _openBrowse(category: slug);
+      },
+    );
+  }
+
 
   // ── Top bar ───────────────────────────────────────────────────────────────
   Widget _topBar(AuthProvider auth) {
@@ -248,6 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: TextField(
             controller: _searchCtrl,
+            focusNode: _searchFocus,
             textInputAction: TextInputAction.search,
             onSubmitted: (_) => _submitSearch(),
             style: TextStyle(color: cs.onSurface, fontSize: 15),
@@ -264,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         InkWell(
-          onTap: _submitSearch,
+          onTap: _isSearching ? _submitSearch : _submitSearch,
           borderRadius: BorderRadius.circular(999),
           child: Container(
             width: 42,

@@ -8,7 +8,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
-import '../widgets/category_meta.dart';
+
 import 'vendor_dashboard.dart';
 import 'vendor_screen.dart';
 
@@ -98,6 +98,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     }
   }
 
+  double _viewportHeight = 0;
+
   Future<void> _push(Widget screen) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
     if (mounted) _load(); // pick up new / edited business
@@ -115,7 +117,9 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           child: RefreshIndicator(
             color: AppColors.primary,
             onRefresh: _load,
-            child: ListView(
+            child: LayoutBuilder(builder: (context, constraints) {
+              _viewportHeight = constraints.maxHeight;
+              return ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
               padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
@@ -145,7 +149,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                   for (final b in _businesses) _businessCard(b),
                 ],
               ],
-            ),
+              );
+            }),
           ),
         ),
       ),
@@ -161,64 +166,72 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
 
   Widget _emptyState() {
     final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(top: 60),
-      child: TweenAnimationBuilder<double>(
-        duration: const Duration(milliseconds: 600),
-        tween: Tween(begin: 0.0, end: 1.0),
-        curve: Curves.easeOutCubic,
-        builder: (context, val, child) {
-          return Transform.translate(
-            offset: Offset(0, 20 * (1 - val)),
-            child: Opacity(
-              opacity: val,
-              child: child,
+    // Exact space left below the title: viewport minus list padding (12 top,
+    // 24 bottom), title row (~32) and the 16px gap under it.
+    const double headerHeight = 12 + 32 + 16 + 24;
+    final double availableHeight =
+        (_viewportHeight - headerHeight).clamp(360.0, double.infinity);
+
+    return SizedBox(
+      height: availableHeight,
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 600),
+          tween: Tween(begin: 0.0, end: 1.0),
+          curve: Curves.easeOutCubic,
+          builder: (context, val, child) {
+            return Transform.translate(
+              offset: Offset(0, 20 * (1 - val)),
+              child: Opacity(
+                opacity: val,
+                child: child,
+              ),
+            );
+          },
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.storefront_rounded,
+                  size: 56, color: AppColors.primary),
             ),
-          );
-        },
-        child: Column(children: [
-          Container(
-            width: 110,
-            height: 110,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+            const SizedBox(height: 28),
+            const Text("You haven't listed a business yet",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'List your services and get discovered by customers across Kashmir.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 15,
+                    height: 1.5,
+                    color: cs.onSurface.withValues(alpha: 0.6)),
+              ),
             ),
-            child: const Icon(Icons.storefront_rounded,
-                size: 56, color: AppColors.primary),
-          ),
-          const SizedBox(height: 28),
-          const Text("You haven't listed a business yet",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Text(
-              'List your services and get discovered by customers across Kashmir.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 15,
-                  height: 1.5,
-                  color: cs.onSurface.withValues(alpha: 0.6)),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () => _push(const ListBusinessScreen()),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  minimumSize: const Size(240, 56)),
+              icon: const Icon(Icons.add_business_rounded),
+              label: const Text('List my business',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () => _push(const ListBusinessScreen()),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                minimumSize: const Size(240, 56)),
-            icon: const Icon(Icons.add_business_rounded),
-            label: const Text('List my business',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
-        ]),
+          ]),
+        ),
       ),
     );
   }

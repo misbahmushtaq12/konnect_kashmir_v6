@@ -44,8 +44,51 @@ class CustomerScreen extends StatefulWidget {
   State<CustomerScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<CustomerScreen> {
+class _HomeScreenState extends State<CustomerScreen>
+    with SingleTickerProviderStateMixin {
   bool _showAllCategories = false;
+
+  // Home-tab search mode (search bar slides to the top, results only).
+  final FocusNode _searchFocus = FocusNode();
+  bool _searchActive = false;
+  String _resultsFor = ''; // query the current `vendors` list belongs to
+  late final AnimationController _searchAnim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 250),
+  );
+  late final Animation<double> _searchFade =
+      CurvedAnimation(parent: _searchAnim, curve: Curves.easeOutCubic);
+
+  // Marks the "N providers" heading so a service tap can scroll to it.
+  final GlobalKey _providersKey = GlobalKey();
+
+  Future<void> _scrollToProviders() async {
+    final ctx = _providersKey.currentContext;
+    if (ctx == null || !_scrollController.hasClients) return;
+    await Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubic,
+    );
+  }
+
+  void _onSearchFocusChange() {
+    if (_searchFocus.hasFocus && !_searchActive && !Navigator.canPop(context)) {
+      setState(() => _searchActive = true);
+      _searchAnim.forward();
+    }
+  }
+
+  void _exitSearch() {
+    _searchFocus.unfocus();
+    _searchDebounce?.cancel();
+    final hadQuery = searchQuery.isNotEmpty;
+    _searchController.clear();
+    searchQuery = '';
+    setState(() => _searchActive = false);
+    _searchAnim.reverse();
+    if (hadQuery) _loadVendors();
+  }
   
   ApiService get _api => ApiService(
     token: context.read<AuthProvider>().accessToken,
@@ -70,8 +113,6 @@ class _HomeScreenState extends State<CustomerScreen> {
   }
 
   final ScrollController _scrollController = ScrollController();
-  bool _isAppBarVisible = true;
-  double _lastScrollOffset = 0;
 
   int _selectedNavIndex = 0;
 
@@ -124,15 +165,6 @@ class _HomeScreenState extends State<CustomerScreen> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      final current = _scrollController.offset;
-      if (current > _lastScrollOffset && current > 80) {
-        if (_isAppBarVisible) setState(() => _isAppBarVisible = false);
-      } else {
-        if (!_isAppBarVisible) setState(() => _isAppBarVisible = true);
-      }
-      _lastScrollOffset = current;
-    });
     selectedBrowseCategory = widget.initialCategory;
     final initialSearch = (widget.initialSearch ?? '').trim();
     if (initialSearch.isNotEmpty) {
@@ -140,6 +172,7 @@ class _HomeScreenState extends State<CustomerScreen> {
       searchQuery = initialSearch;
     }
     _favoritesOnly = widget.initialFavoritesOnly;
+    _searchFocus.addListener(_onSearchFocusChange);
     _loadFavorites();
     _loadData().then((_) {
       if (widget.openAdsOnStart && mounted && _hasWatchableAds) {
@@ -151,6 +184,9 @@ class _HomeScreenState extends State<CustomerScreen> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _searchFocus.removeListener(_onSearchFocusChange);
+    _searchFocus.dispose();
+    _searchAnim.dispose();
     _searchController.dispose();
     _scrollController.dispose();
     for (final c in reviewControllers.values) {
@@ -315,22 +351,37 @@ class _HomeScreenState extends State<CustomerScreen> {
     });
   }
 
-  Future<void> _loadVendors() async {
+  /// [hold]: an animation (e.g. scroll) to let finish before the UI changes.
+  /// The request itself starts immediately, so no loading time is lost.
+  Future<void> _loadVendors({Future<void>? hold}) async {
     if (!mounted) return;
     final reqId = ++_vendorReq;
-    setState(() => _refreshingVendors = true);
+    final reqQuery = searchQuery;
+    bool finished = false;
+    if (hold == null) {
+      setState(() => _refreshingVendors = true);
+    } else {
+      hold.whenComplete(() {
+        if (mounted && !finished && reqId == _vendorReq) {
+          setState(() => _refreshingVendors = true);
+        }
+      });
+    }
     try {
-      await _fetchVendors(reqId);
+      await _fetchVendors(reqId, hold);
     } finally {
+      finished = true;
       if (mounted && reqId == _vendorReq) {
-        setState(() => _refreshingVendors = false);
+        setState(() {
+          _refreshingVendors = false;
+          _resultsFor = reqQuery;
+        });
       }
     }
   }
 
-  Future<void> _fetchVendors(int reqId) async {
+  Future<void> _fetchVendors(int reqId, [Future<void>? hold]) async {
     if (!mounted) return;
-    setState(() => _visibleVendorCount = _pageSize);
     final apiVendors = await _api.getVendors(
       search: searchQuery,
       districtId: selectedDistrictId,
@@ -340,7 +391,9 @@ class _HomeScreenState extends State<CustomerScreen> {
       limit: 1000,
     );
 
+    if (hold != null) await hold;
     if (!mounted || reqId != _vendorReq) return;
+    setState(() => _visibleVendorCount = _pageSize);
 
     // Demo vendors are only used while developing (debug builds), so real
     // users never see fake providers with fake phone numbers.
@@ -1142,7 +1195,7 @@ class _HomeScreenState extends State<CustomerScreen> {
 
     return Container(
       height: 56,
-      padding: const EdgeInsets.fromLTRB(18, 0, 7, 0),
+      padding: EdgeInsets.fromLTRB(18, 0, hasText ? 7 : 18, 0),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(999),
@@ -1154,13 +1207,12 @@ class _HomeScreenState extends State<CustomerScreen> {
         Expanded(
           child: TextField(
             controller: _searchController,
+            focusNode: _searchFocus,
             textInputAction: TextInputAction.search,
             onChanged: (val) {
               setState(() {});
-              if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
-              _searchDebounce = Timer(const Duration(milliseconds: 400), () {
-                _onSearchChanged(val);
-              });
+              // _onSearchChanged already debounces before hitting the API.
+              _onSearchChanged(val);
             },
             onSubmitted: (val) {
               FocusScope.of(context).unfocus();
@@ -1187,25 +1239,180 @@ class _HomeScreenState extends State<CustomerScreen> {
               setState(() {});
               _onSearchChanged('');
             },
-          )
-        else
-          InkWell(
-            onTap: () {
-              FocusScope.of(context).unfocus();
-              _onSearchChanged(_searchController.text);
-            },
-            borderRadius: BorderRadius.circular(999),
-            child: Container(
-              width: 42,
-              height: 42,
-              decoration: const BoxDecoration(
-                  color: AppColors.primary, shape: BoxShape.circle),
-              child: const Icon(Icons.arrow_forward_rounded,
-                  color: Colors.white, size: 20),
-            ),
           ),
       ]),
     );
+  }
+
+  Widget _buildDistrictChip() {
+    return Wrap(spacing: 10, runSpacing: 10, children: [
+      _filterChip(Icons.location_city_outlined,
+          selectedDistrictName ?? 'All districts', selectedDistrictId != null,
+          _showDistrictSheet),
+      _filterChip(
+          Icons.place_outlined,
+          selectedLocalityName ?? 'All localities',
+          selectedLocalityId != null,
+          _showLocalitySheet),
+    ]);
+  }
+
+  Widget _filterChip(
+      IconData icon, String label, bool active, VoidCallback onTap) {
+    final cs = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      widthFactor: 1,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: active ? AppColors.primary.withValues(alpha: 0.12) : null,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+                color: active
+                    ? AppColors.primary
+                    : cs.onSurface.withValues(alpha: 0.12)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon,
+                size: 18,
+                color: active
+                    ? AppColors.primary
+                    : cs.onSurface.withValues(alpha: 0.6)),
+            const SizedBox(width: 8),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: active ? AppColors.primary : cs.onSurface)),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                size: 20,
+                color: active
+                    ? AppColors.primary
+                    : cs.onSurface.withValues(alpha: 0.6)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showDistrictSheet() async {
+    final picked = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        Widget option(String name, bool selected, Map<String, dynamic>? value) =>
+            ListTile(
+              leading: Icon(Icons.location_city_outlined,
+                  color: selected ? AppColors.primary : null),
+              title: Text(name,
+                  style: TextStyle(
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? AppColors.primary : cs.onSurface)),
+              trailing: selected
+                  ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                  : null,
+              onTap: () => Navigator.pop(ctx, value ?? <String, dynamic>{}),
+            );
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: Text('Filter by district',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                ),
+                option('All districts', selectedDistrictId == null, null),
+                for (final d in _districts)
+                  option(d['name']?.toString() ?? '',
+                      selectedDistrictId == d['id']?.toString(), d),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      selectedDistrictId = picked['id']?.toString();
+      selectedDistrictName = picked['name']?.toString();
+      selectedLocalityId = null;
+      selectedLocalityName = null;
+      _localities = [];
+    });
+    _loadVendors();
+    if (selectedDistrictId != null) _loadLocalities(selectedDistrictId!);
+  }
+
+  Future<void> _showLocalitySheet() async {
+    if (selectedDistrictId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select a district first')));
+      return;
+    }
+    if (_localities.isEmpty && !isLoadingLocalities) {
+      await _loadLocalities(selectedDistrictId!);
+      if (!mounted) return;
+    }
+    final picked = await showModalBottomSheet<Map<String, dynamic>?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        Widget option(String name, bool selected, Map<String, dynamic>? value) =>
+            ListTile(
+              leading: Icon(Icons.place_outlined,
+                  color: selected ? AppColors.primary : null),
+              title: Text(name,
+                  style: TextStyle(
+                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                      color: selected ? AppColors.primary : cs.onSurface)),
+              trailing: selected
+                  ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                  : null,
+              onTap: () => Navigator.pop(ctx, value ?? <String, dynamic>{}),
+            );
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+            child: ListView(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: Text('Localities in $selectedDistrictName',
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
+                ),
+                option('All localities', selectedLocalityId == null, null),
+                for (final l in _localities)
+                  option(l['name']?.toString() ?? '',
+                      selectedLocalityId == l['id']?.toString(), l),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      selectedLocalityId = picked['id']?.toString();
+      selectedLocalityName = picked['name']?.toString();
+    });
+    _loadVendors();
   }
 
   Widget _buildCategoriesGrid() {
@@ -1276,7 +1483,8 @@ class _HomeScreenState extends State<CustomerScreen> {
             selectedServiceSlug = null;
             selectedServiceName = null;
           });
-          _loadVendors();
+          // Fetch starts now; the UI waits for the scroll so it stays smooth.
+          _loadVendors(hold: _scrollToProviders());
         },
         child: Container(
           decoration: BoxDecoration(
@@ -1322,6 +1530,14 @@ class _HomeScreenState extends State<CustomerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizeTransition(
+            sizeFactor: ReverseAnimation(_searchFade),
+            axisAlignment: -1,
+            child: FadeTransition(
+              opacity: ReverseAnimation(_searchFade),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
           Row(children: [
             _adaptiveLogo(height: 48), // Increased size
             const Spacer(),
@@ -1383,15 +1599,72 @@ class _HomeScreenState extends State<CustomerScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          _searchPill(),
-          if (_searchController.text.isEmpty) ...[
+                ],
+              ),
+            ),
+          ),
+          Row(children: [
+            Expanded(child: _searchPill()),
+            SizeTransition(
+              axis: Axis.horizontal,
+              sizeFactor: _searchFade,
+              axisAlignment: -1,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 10),
+                child: TextButton(
+                  onPressed: _exitSearch,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Cancel',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                ),
+              ),
+            ),
+          ]),
+          if (!_searchActive) ...[
+            const SizedBox(height: 12),
+            _buildDistrictChip(),
+          ],
+          if (!_searchActive && _searchController.text.isEmpty) ...[
             const SizedBox(height: 28),
             _buildCategoriesGrid(),
           ],
-          const SizedBox(height: 24),
+          // Scroll anchor just above the providers heading. It lives in the hero
+          // (always built), unlike the lazily-built providers list.
+          SizedBox(key: _providersKey, height: 24),
         ],
       ),
     );
+  }
+
+  // Home-tab search mode: blank until the user types, then only matching vendors.
+  List<Widget> _buildSearchModeResults() {
+    final typed = _searchController.text.trim();
+    if (typed.isEmpty) return const [];
+    final ready = _resultsFor == typed && !_refreshingVendors;
+    if (!ready) {
+      return const [
+        Padding(
+          padding: EdgeInsets.only(top: 48),
+          child: Center(
+              child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5))),
+        ),
+      ];
+    }
+    return [
+      const SizedBox(height: 16),
+      _buildVendorCount(),
+      const SizedBox(height: 4),
+      _buildVendorsList(),
+    ];
   }
 
   @override
@@ -1412,9 +1685,6 @@ class _HomeScreenState extends State<CustomerScreen> {
             _buildAppBar(auth),
             _buildSearchAndFilters(),
           ],
-          if (_refreshingVendors && !isLoading)
-            const LinearProgressIndicator(
-                minHeight: 2, color: AppColors.primary),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _loadData,
@@ -1423,8 +1693,13 @@ class _HomeScreenState extends State<CustomerScreen> {
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 children: [
                   if (isHomeTab) _buildHomeHero(auth),
+                  if (isHomeTab && _searchActive)
+                    ..._buildSearchModeResults()
+                  else ...[
                   _buildActiveFilters(),
                   const SizedBox(height: 12),
                   _buildVendorCount(),
@@ -1432,9 +1707,8 @@ class _HomeScreenState extends State<CustomerScreen> {
                   _buildVendorsList(),
                   const SizedBox(height: 32),
                   _buildPlatformGuidelines(),
-                  const SizedBox(height: 32),
-                  _buildFooter(),
                   const SizedBox(height: 24),
+                  ],
                 ],
               ),
             ),
@@ -1757,17 +2031,33 @@ class _HomeScreenState extends State<CustomerScreen> {
     return Row(children: [
       Expanded(
         child: Text(
-          isLoading ? 'Finding providers…' : '$n ${n == 1 ? 'provider' : 'providers'}',
+          (isLoading || _refreshingVendors) ? 'Finding providers…' : '$n ${n == 1 ? 'provider' : 'providers'}',
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
         ),
       ),
     ]);
   }
 
+  // Skeleton cards while loading/refreshing, softly cross-faded into the list.
   Widget _buildVendorsList() {
+    final loading = isLoading || _refreshingVendors;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topCenter,
+        children: [...previous, if (current != null) current],
+      ),
+      child: KeyedSubtree(
+        key: ValueKey(loading),
+        child: _vendorsListBody(loading),
+      ),
+    );
+  }
+
+  Widget _vendorsListBody(bool loading) {
     final cs = Theme.of(context).colorScheme;
 
-    if (isLoading) {
+    if (loading) {
       return Column(
         children: List.generate(
           3,
@@ -1854,7 +2144,7 @@ class _HomeScreenState extends State<CustomerScreen> {
         OutlinedButton.icon(
           onPressed: () => setState(() => _visibleVendorCount += _pageSize),
           icon: const Icon(Icons.expand_more_rounded),
-          label: Text('Show more ($remaining left)'),
+          label: const Text('Show more'),
         ),
     ]);
   }
@@ -2833,121 +3123,76 @@ class _HomeScreenState extends State<CustomerScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: cs.onSurface.withOpacity(0.08))),
-        child:
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            color: cs.primary.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(20)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Icon(Icons.info_outline, color: Color(0xFF6BC4B2)),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.shield_outlined, color: cs.primary, size: 20),
+            ),
             const SizedBox(width: 12),
-            Text('Platform Guidelines',
-                style: TextStyle(
-                    color: cs.onSurface,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text('Platform Guidelines',
+                  style: TextStyle(
+                      color: cs.onSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800)),
+            ),
           ]),
           const SizedBox(height: 16),
           Text(
-              'KonnectKashmir operates as an intermediary under IT Act, 2000. Credits are non-refundable as per our Refund Policy.',
+              'KonnectKashmir operates as an intermediary connecting service seekers '
+              'with providers under the IT Act, 2000.',
               style: TextStyle(
-                  color: cs.onSurface.withOpacity(0.6),
+                  color: cs.onSurface.withValues(alpha: 0.7),
                   fontSize: 14,
                   height: 1.5)),
           const SizedBox(height: 16),
-          Wrap(children: [
-            TextButton(
-                onPressed: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const PrivacyScreen())),
-                child: const Text('Privacy Policy',
-                    style: TextStyle(color: Color(0xFF6BC4B2)))),
-            Text(' | ',
-                style:
-                TextStyle(color: cs.onSurface.withOpacity(0.3))),
-            TextButton(
-                onPressed: () => Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const TermsScreen())),
-                child: const Text('Terms',
-                    style: TextStyle(color: Color(0xFF6BC4B2)))),
-          ]),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _guidelineLink(context, 'Privacy Policy', Icons.privacy_tip_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())), cs),
+              _guidelineLink(context, 'Terms', Icons.description_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen())), cs),
+              _guidelineLink(context, 'Refunds', Icons.receipt_long_outlined, () => Navigator.pushNamed(context, '/refund'), cs),
+            ],
+          ),
         ]),
       ),
     );
   }
 
-  Widget _buildFooter() {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child:
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _adaptiveLogo(height: 60),
-        const SizedBox(height: 16),
-        Text("Connecting Kashmir's local service providers with customers.",
-            style: TextStyle(
-                color: cs.onSurface.withOpacity(0.6), fontSize: 14),
-            textAlign: TextAlign.center),
-        const SizedBox(height: 24),
-        Text('Quick Links',
-            style: TextStyle(
-                color: cs.onSurface,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        _buildFooterLink('Browse Vendors', '/vendors'),
-        _buildFooterLink('Job Listings', '/jobs'),
-        _buildFooterLink('Register as Vendor', '/register-vendor'),
-        _buildFooterLink('Contact Us', '/contact'),
-        const SizedBox(height: 24),
-        Text('Legal',
-            style: TextStyle(
-                color: cs.onSurface,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        _buildFooterLink('Terms of Service', '/terms'),
-        _buildFooterLink('Privacy Policy', '/privacy'),
-        _buildFooterLink('Refund Policy', '/refund'),
-        _buildFooterLink('Grievance Redressal', '/grievance'),
-        const SizedBox(height: 24),
-        Text('Contact Us',
-            style: TextStyle(
-                color: cs.onSurface,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        Text('info@konnectkashmir.com',
-            style: TextStyle(
-                color: cs.onSurface.withOpacity(0.6), fontSize: 14)),
-        const SizedBox(height: 8),
-        Text('+91 9055566624',
-            style: TextStyle(
-                color: cs.onSurface.withOpacity(0.6), fontSize: 14)),
-        const SizedBox(height: 32),
-        Divider(color: cs.onSurface.withOpacity(0.1)),
-        const SizedBox(height: 16),
-        Text(
-            '© 2026 Media Mosiac (OPC) Pvt. Ltd. All rights reserved.',
-            style: TextStyle(
-                color: cs.onSurface.withOpacity(0.4), fontSize: 12),
-            textAlign: TextAlign.center),
-      ]),
+  Widget _guidelineLink(BuildContext context, String text, IconData icon, VoidCallback onTap, ColorScheme cs) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: cs.primary),
+            const SizedBox(width: 6),
+            Text(text,
+                style: TextStyle(
+                    color: cs.primary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildFooterLink(String title, String route) {
-    final cs = Theme.of(context).colorScheme;
-    return InkWell(
-        onTap: () => Navigator.pushNamed(context, route),
-        child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(title,
-                style: TextStyle(
-                    color: cs.onSurface.withOpacity(0.6),
-                    fontSize: 14))));
-  }
+
 }
 
 class _NavItem {

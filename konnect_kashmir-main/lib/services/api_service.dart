@@ -421,7 +421,12 @@ class ApiService {
     }
   }
 
+  // Locality ids rarely change; cache per district so repeat filters skip a request.
+  static final Map<String, List<String>> _districtLocalityIds = {};
+
   Future<List<String>> _getLocalityIdsByDistrict(String districtId) async {
+    final cached = _districtLocalityIds[districtId];
+    if (cached != null) return cached;
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/localities').replace(
         queryParameters: {'district_id': 'eq.$districtId', 'select': 'id'},
@@ -429,7 +434,9 @@ class ApiService {
       final res = await http.get(uri, headers: _headers);
       if (res.statusCode == 200) {
         final list = List<Map<String, dynamic>>.from(jsonDecode(res.body));
-        return list.map((l) => l['id'].toString()).toList();
+        final ids = list.map((l) => l['id'].toString()).toList();
+        if (ids.isNotEmpty) _districtLocalityIds[districtId] = ids;
+        return ids;
       }
       return [];
     } catch (e) {
@@ -634,7 +641,15 @@ class ApiService {
           .replace(queryParameters: {'id': 'eq.$userId'});
       final res = await http.patch(uri,
           headers: _headersWithPreference, body: jsonEncode(updates));
-      if (res.statusCode == 200) return _ok(jsonDecode(res.body));
+      if (res.statusCode == 200) {
+        // PostgREST returns the updated rows as a list; empty means no row changed.
+        final body = jsonDecode(res.body);
+        if (body is List) {
+          if (body.isEmpty) return _err('Profile not found');
+          return _ok(Map<String, dynamic>.from(body.first as Map));
+        }
+        return _ok(body as Map<String, dynamic>?);
+      }
       return _err('Update failed (${res.statusCode})');
     } catch (e) {
       return _err('Network error: $e');

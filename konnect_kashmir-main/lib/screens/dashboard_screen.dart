@@ -621,8 +621,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildTransactionHistory(theme, cs),
                   const SizedBox(height: 16),
                   _buildPlatformGuidelines(cs),
-                  const SizedBox(height: 32),
-                  _buildFooter(cs),
                   const SizedBox(height: 40),
                 ]),
               ),
@@ -1265,151 +1263,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildPlatformGuidelines(ColorScheme cs) => Padding(
     padding: EdgeInsets.symmetric(horizontal: _rs(0.05, min: 14, max: 24)),
     child: Container(
-      padding: EdgeInsets.all(_rs(0.05, min: 14, max: 24)),
+      width: double.infinity,
+      padding: EdgeInsets.all(_rs(0.05, min: 16, max: 24)),
       decoration: BoxDecoration(
-        color: cs.surface.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outline.withOpacity(0.15)),
+        color: cs.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(Icons.info_outline, color: cs.primary, size: 22),
-          const SizedBox(width: 10),
-          Flexible(
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: cs.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.shield_outlined, color: cs.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Text('Platform Guidelines',
                 style: TextStyle(
                     color: cs.onSurface,
-                    fontSize: _rs(0.043, min: 14, max: 19),
-                    fontWeight: FontWeight.bold)),
+                    fontSize: _rs(0.043, min: 15, max: 19),
+                    fontWeight: FontWeight.w800)),
           ),
         ]),
-        const SizedBox(height: 12),
-        RichText(text: TextSpan(
+        const SizedBox(height: 16),
+        Text(
+          'KonnectKashmir operates as an intermediary connecting service seekers '
+          'with providers under the IT Act, 2000.',
           style: TextStyle(
-              color: cs.onSurface.withOpacity(0.55),
-              fontSize: _rs(0.033, min: 11, max: 14),
-              height: 1.6),
-          children: [
-            const TextSpan(
-                text: 'KonnectKashmir operates as an intermediary connecting service seekers '
-                    'with providers under IT Act, 2000. Credits are non-refundable as per our '),
-            WidgetSpan(child: GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/refund'),
-              child: Text('Refund Policy.',
-                  style: TextStyle(
-                      color: cs.primary,
-                      fontSize: _rs(0.033, min: 11, max: 14),
-                      decoration: TextDecoration.underline)),
-            )),
-          ],
-        )),
-        const SizedBox(height: 12),
+              color: cs.onSurface.withValues(alpha: 0.7),
+              fontSize: _rs(0.033, min: 13, max: 15),
+              height: 1.5),
+        ),
+        const SizedBox(height: 16),
         Wrap(
-          spacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 12,
           children: [
-            GestureDetector(
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const PrivacyScreen())),
-              child: Text('Privacy Policy',
-                  style: TextStyle(
-                      color: cs.primary,
-                      fontSize: _rs(0.035, min: 12, max: 15),
-                      decoration: TextDecoration.underline)),
-            ),
-            Text(' | ',
-                style: TextStyle(color: cs.onSurface.withOpacity(0.3))),
-            GestureDetector(
-              onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const TermsScreen())),
-              child: Text('Terms',
-                  style: TextStyle(
-                      color: cs.primary,
-                      fontSize: _rs(0.035, min: 12, max: 15),
-                      decoration: TextDecoration.underline)),
-            ),
+            _guidelineLink(context, 'Privacy Policy', Icons.privacy_tip_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen())), cs),
+            _guidelineLink(context, 'Terms', Icons.description_outlined, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen())), cs),
+            _guidelineLink(context, 'Refunds', Icons.receipt_long_outlined, () => Navigator.pushNamed(context, '/refund'), cs),
           ],
         ),
       ]),
     ),
   );
 
-  // ── Footer ────────────────────────────────────────────────────────────────
-  Widget _buildFooter(ColorScheme cs) => Padding(
-    padding: EdgeInsets.symmetric(horizontal: _rs(0.06, min: 16, max: 30)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _adaptiveLogo(),
-      const SizedBox(height: 12),
-      Text("Connecting Kashmir's local service providers with customers.",
-          style: TextStyle(
-              color: cs.onSurface.withOpacity(0.5),
-              fontSize: _rs(0.033, min: 11, max: 14))),
-      const SizedBox(height: 24),
-      _buildFooterSection('Quick Links', cs, [
-        _buildFooterLink('Browse Vendors',     cs, onTap: () => Navigator.pushNamed(context, '/home')),
-        _buildFooterLink('Job Listings',       cs, onTap: () => Navigator.pushNamed(context, '/jobs')),
-        _buildFooterLink('Register as Vendor', cs, onTap: () => Navigator.pushNamed(context, '/register-vendor')),
-        _buildFooterLink('Contact Us',         cs, onTap: () => Navigator.pushNamed(context, '/contact')),
-      ]),
-      const SizedBox(height: 20),
-      _buildFooterSection('Legal', cs, [
-        _buildFooterLink('Terms of Service',    cs, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsScreen()))),
-        _buildFooterLink('Privacy Policy',      cs, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyScreen()))),
-        _buildFooterLink('Refund Policy',       cs, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RefundPolicy()))),
-        _buildFooterLink('Grievance Redressal', cs, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GrievanceScreen()))),
-      ]),
-      const SizedBox(height: 20),
-      Text('Contact Us',
-          style: TextStyle(
-              color: cs.onSurface,
-              fontSize: _rs(0.04, min: 13, max: 17),
-              fontWeight: FontWeight.bold)),
-      const SizedBox(height: 10),
-      Text('info@konnectkashmir.com',
-          style: TextStyle(
-              color: cs.onSurface.withOpacity(0.5),
-              fontSize: _rs(0.033, min: 11, max: 14))),
-      const SizedBox(height: 4),
-      Text('+91 9055566624',
-          style: TextStyle(
-              color: cs.onSurface.withOpacity(0.5),
-              fontSize: _rs(0.033, min: 11, max: 14))),
-      const SizedBox(height: 28),
-      Divider(color: cs.outline.withOpacity(0.15)),
-      const SizedBox(height: 14),
-      Text('© 2026 Media Mosiac (OPC) Pvt. Ltd. All rights reserved.',
-          style: TextStyle(
-              color: cs.onSurface.withOpacity(0.3), fontSize: 12),
-          textAlign: TextAlign.center),
-      const SizedBox(height: 6),
-      Text(
-          'KonnectKashmir - An intermediary platform under IT Act, 2000 | Made with ❤️ in Kashmir',
-          style: TextStyle(
-              color: cs.onSurface.withOpacity(0.3), fontSize: 12),
-          textAlign: TextAlign.center),
-    ]),
-  );
-
-  Widget _buildFooterSection(String title, ColorScheme cs, List<Widget> links) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title,
-            style: TextStyle(
-                color: cs.onSurface,
-                fontSize: _rs(0.04, min: 13, max: 17),
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        ...links,
-      ]);
-
-  Widget _buildFooterLink(String title, ColorScheme cs, {required VoidCallback onTap}) =>
-      InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Text(title,
-              style: TextStyle(
-                  color: cs.onSurface.withOpacity(0.5),
-                  fontSize: _rs(0.033, min: 11, max: 14))),
+  Widget _guidelineLink(BuildContext context, String text, IconData icon, VoidCallback onTap, ColorScheme cs) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: cs.primary),
+            const SizedBox(width: 6),
+            Text(text,
+                style: TextStyle(
+                    color: cs.primary,
+                    fontSize: _rs(0.033, min: 13, max: 15),
+                    fontWeight: FontWeight.w600)),
+          ],
         ),
-      );
+      ),
+    );
+  }
+
+
 }

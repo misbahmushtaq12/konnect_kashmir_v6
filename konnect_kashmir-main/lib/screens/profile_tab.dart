@@ -136,7 +136,8 @@ class _ProfileTabState extends State<ProfileTab> {
         );
       }),
     );
-    ctrl.dispose();
+    // The sheet is still animating out here; dispose once it is fully gone.
+    Future.delayed(const Duration(milliseconds: 500), ctrl.dispose);
   }
 
   // ── Legal ─────────────────────────────────────────────────────────────────
