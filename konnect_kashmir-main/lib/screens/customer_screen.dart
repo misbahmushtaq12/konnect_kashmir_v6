@@ -1137,6 +1137,7 @@ class _HomeScreenState extends State<CustomerScreen> {
   Widget _searchPill() {
     final cs = Theme.of(context).colorScheme;
     const none = InputBorder.none;
+    final hasText = _searchController.text.isNotEmpty;
 
     return Container(
       height: 56,
@@ -1153,13 +1154,20 @@ class _HomeScreenState extends State<CustomerScreen> {
           child: TextField(
             controller: _searchController,
             textInputAction: TextInputAction.search,
+            onChanged: (val) {
+              setState(() {});
+              if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
+              _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+                _onSearchChanged(val);
+              });
+            },
             onSubmitted: (val) {
               FocusScope.of(context).unfocus();
               _onSearchChanged(val);
             },
             style: TextStyle(color: cs.onSurface, fontSize: 15),
             decoration: InputDecoration(
-              hintText: 'What do you need help with?',
+              hintText: 'Search vendors...',
               hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
               filled: false,
               isDense: true,
@@ -1170,21 +1178,31 @@ class _HomeScreenState extends State<CustomerScreen> {
             ),
           ),
         ),
-        InkWell(
-          onTap: () {
-            FocusScope.of(context).unfocus();
-            _onSearchChanged(_searchController.text);
-          },
-          borderRadius: BorderRadius.circular(999),
-          child: Container(
-            width: 42,
-            height: 42,
-            decoration: const BoxDecoration(
-                color: AppColors.primary, shape: BoxShape.circle),
-            child: const Icon(Icons.arrow_forward_rounded,
-                color: Colors.white, size: 20),
+        if (hasText)
+          IconButton(
+            icon: Icon(Icons.close_rounded, color: cs.onSurface.withValues(alpha: 0.6), size: 22),
+            onPressed: () {
+              _searchController.clear();
+              setState(() {});
+              _onSearchChanged('');
+            },
+          )
+        else
+          InkWell(
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              _onSearchChanged(_searchController.text);
+            },
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                  color: AppColors.primary, shape: BoxShape.circle),
+              child: const Icon(Icons.arrow_forward_rounded,
+                  color: Colors.white, size: 20),
+            ),
           ),
-        ),
       ]),
     );
   }
@@ -1365,8 +1383,10 @@ class _HomeScreenState extends State<CustomerScreen> {
           ),
           const SizedBox(height: 24),
           _searchPill(),
-          const SizedBox(height: 28),
-          _buildCategoriesGrid(),
+          if (_searchController.text.isEmpty) ...[
+            const SizedBox(height: 28),
+            _buildCategoriesGrid(),
+          ],
           const SizedBox(height: 24),
         ],
       ),
