@@ -5,6 +5,7 @@ import 'package:konnect_kashmir/screens/profile2.dart';
 import 'package:konnect_kashmir/screens/vendor_dashboard.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:konnect_kashmir/services/api_service.dart';
 import '../providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/dashboard_screen.dart';
@@ -1945,7 +1946,7 @@ class _HomeScreenState extends State<CustomerScreen> {
       action = Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton.outlined(
           onPressed: () => _openWhatsApp(phone),
-          icon: const Icon(Icons.chat_rounded, size: 18),
+          icon: const Icon(FontAwesomeIcons.whatsapp, size: 20),
           tooltip: 'WhatsApp',
           color: const Color(0xFF25D366),
         ),
