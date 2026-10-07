@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_background.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
 
@@ -35,9 +36,9 @@ class _SplashScreenState extends State<SplashScreen>
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, __, ___) => loggedIn
-            ? const MainShell()
-            : const LoginScreen(),
+        pageBuilder: (_, __, ___) => AppBackground(
+          child: loggedIn ? const MainShell() : const LoginScreen(),
+        ),
         transitionsBuilder: (_, a, __, child) =>
             FadeTransition(opacity: a, child: child),
       ),
@@ -69,14 +70,6 @@ class _SplashScreenState extends State<SplashScreen>
 
     return Scaffold(
       body: Stack(children: [
-        Positioned(
-          top: -40,
-          right: -60,
-          child: Opacity(
-            opacity: isDark ? 0.10 : 0.08,
-            child: Image.asset('assets/images/chinar.png', width: 300),
-          ),
-        ),
         Center(
           child: FadeTransition(
             opacity: CurvedAnimation(parent: _c, curve: Curves.easeOut),

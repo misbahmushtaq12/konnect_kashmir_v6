@@ -1,3 +1,4 @@
+import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -533,7 +534,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
+        color: AppColors.baseBg(theme),
         border: Border(top: BorderSide(color: cs.onSurface.withOpacity(0.08))),
       ),
       child: SafeArea(
@@ -606,15 +607,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       // CHANGE 1: bottomNavigationBar is now static — no AnimatedSlide/AnimatedOpacity
       bottomNavigationBar: _buildBottomNavBar(),
       body: Stack(children: [
-        Positioned.fill(child: Container(color: theme.scaffoldBackgroundColor)),
-        Positioned.fill(
-            child: Center(
-                child: Opacity(
-                    opacity: theme.brightness == Brightness.dark ? 0.18 : 0.06,
-                    child: Image.asset('assets/images/chinar.png',
-                        width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.height,
-                        fit: BoxFit.contain)))),
         Column(children: [
           _buildAppBar(),
           Expanded(
@@ -666,7 +658,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     return Container(
       padding: const EdgeInsets.only(top: 44, left: 16, right: 16, bottom: 12),
       decoration: BoxDecoration(
-          color: theme.scaffoldBackgroundColor,
+          color: AppColors.baseBg(theme),
           border: Border(bottom: BorderSide(color: cs.onSurface.withOpacity(0.1)))),
       child: Row(children: [
         _adaptiveLogo(height: 44),

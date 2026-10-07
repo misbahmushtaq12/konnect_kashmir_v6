@@ -133,24 +133,6 @@ class _LoginScreenState extends State<LoginScreen> {
               color: isDark ? bgDark : theme.scaffoldBackgroundColor,
             ),
           ),
-          // Top right subtle Chinar watermark
-          Positioned(
-            top: -20,
-            right: -40,
-            child: Opacity(
-              opacity: isDark ? 0.12 : 0.08,
-              child: Image.asset('assets/images/chinar.png', width: 280),
-            ),
-          ),
-          // Bottom left subtle Chinar watermark
-          Positioned(
-            bottom: -30,
-            left: -40,
-            child: Opacity(
-              opacity: isDark ? 0.09 : 0.06,
-              child: Image.asset('assets/images/chinar.png', width: 260),
-            ),
-          ),
           SafeArea(
             child: Column(
               children: [

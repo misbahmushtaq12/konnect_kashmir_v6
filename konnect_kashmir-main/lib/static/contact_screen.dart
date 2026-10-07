@@ -28,32 +28,15 @@ class ContactScreen extends StatelessWidget {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final size = MediaQuery.of(context).size;
     final strongText = cs.onSurface;
     final subtleText = cs.onSurface.withOpacity(0.55);
     final teal = cs.primary;
     final dividerColor = cs.onSurface.withOpacity(0.15);
     final cardBorder = cs.onSurface.withOpacity(0.1);
-    final chinarOpacity = isDark ? 0.18 : 0.07;
 
     return Scaffold(
       body: Stack(
         children: [
-          // ── Chinar watermark ─────────────────────────────────────────
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: chinarOpacity,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: size.width,
-                  height: size.height,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
           SafeArea(
             child: Column(
               children: [

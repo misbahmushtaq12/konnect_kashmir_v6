@@ -16,7 +16,6 @@ class RoleSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size       = MediaQuery.of(context).size;
     final isVendor   = role == 'vendor';
     final theme      = Theme.of(context);
     final cs         = theme.colorScheme;
@@ -33,20 +32,6 @@ class RoleSelectionScreen extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: isDark ? 0.18 : 0.08,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: size.width,
-                  height: size.height,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),

@@ -1,3 +1,4 @@
+import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -494,7 +495,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildBottomNavBar() {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final Color bgColor = theme.scaffoldBackgroundColor;
+    final Color bgColor = AppColors.baseBg(theme);
     const Color activeColor = Color(0xFF6BC4B2);
     final Color inactiveColor = cs.onSurface.withOpacity(0.4);
 
@@ -582,18 +583,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       bottomNavigationBar: _buildBottomNavBar(),
       body: Stack(children: [
-        Positioned.fill(child: Container(color: theme.scaffoldBackgroundColor)),
-        Positioned.fill(
-          child: Center(
-            child: Opacity(
-              opacity: 0.18,
-              child: Image.asset('assets/images/chinar.png',
-                  width: _sw,
-                  height: _sh,
-                  fit: BoxFit.contain),
-            ),
-          ),
-        ),
         Column(children: [
           _buildAppBar(theme, cs),
           Expanded(
@@ -639,7 +628,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       left: 16, right: 16, bottom: 14,
     ),
     decoration: BoxDecoration(
-      color: theme.scaffoldBackgroundColor,
+      color: AppColors.baseBg(theme),
       border: Border(bottom: BorderSide(color: cs.outline.withOpacity(0.15))),
     ),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [

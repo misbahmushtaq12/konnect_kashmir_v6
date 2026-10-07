@@ -27,34 +27,16 @@ class PrivacyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
-    final size = MediaQuery.of(context).size;
     final strongText = cs.onSurface;
     final subtleText = cs.onSurface.withOpacity(0.7);
     final teal = cs.primary;
     final dividerColor = cs.onSurface.withOpacity(0.15);
     final bulletColor = teal;
-    final chinarOpacity = isDark ? 0.18 : 0.07;
 
     return Scaffold(
       body: Stack(
         children: [
-          // ── Chinar watermark ─────────────────────────────────────────
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: chinarOpacity,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: size.width,
-                  height: size.height,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
           SafeArea(
             child: Column(
               children: [

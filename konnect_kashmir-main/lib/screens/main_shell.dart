@@ -52,7 +52,7 @@ class _MainShellState extends State<MainShell> {
           child: NavigationBar(
             selectedIndex: _index,
             onDestinationSelected: _select,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            backgroundColor: AppColors.baseBg(Theme.of(context)),
             indicatorColor: AppColors.primary.withValues(alpha: 0.16),
             elevation: 0,
             height: 68,

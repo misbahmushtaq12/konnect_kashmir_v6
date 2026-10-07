@@ -800,7 +800,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
+        color: AppColors.baseBg(theme),
         border:
         Border(top: BorderSide(color: cs.onSurface.withOpacity(0.08))),
       ),

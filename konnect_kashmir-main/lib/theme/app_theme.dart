@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_background.dart';
 
 /// Central place for all brand colors and ThemeData.
 /// Change a color here and it updates across every screen that uses the theme.
@@ -16,6 +17,12 @@ class AppColors {
   static const Color darkBg = Color(0xFF132A2A);
   static const Color darkSurface = Color(0xFF1A3333);
   static const Color darkText = Color(0xFFEAF4F2);
+
+  /// Opaque app background for widgets that must cover what scrolls under them
+  /// (sticky headers, bottom bars). Scaffolds themselves are transparent so the
+  /// global AppBackground (with the Chinar leaf) shows through.
+  static Color baseBg(ThemeData t) =>
+      t.brightness == Brightness.dark ? darkBg : lightBg;
 
   static const Color success = Color(0xFF2E9E6B);
   static const Color danger = Color(0xFFD64545);
@@ -37,8 +44,10 @@ class AppTheme {
 
   static ThemeData _build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
-    final bg = isDark ? AppColors.darkBg : AppColors.lightBg;
-    final surface = isDark ? AppColors.darkSurface : Colors.white;
+    final solidSurface = isDark ? AppColors.darkSurface : Colors.white;
+    // Cards/tiles use a soft translucent surface so the background leaf shows
+    // through gently; overlays (sheets, dialogs, menus) stay solid.
+    final surface = solidSurface.withValues(alpha: isDark ? 0.55 : 0.7);
     final onSurface = isDark ? AppColors.darkText : AppColors.lightText;
 
     final scheme = (isDark ? const ColorScheme.dark() : const ColorScheme.light())
@@ -48,6 +57,11 @@ class AppTheme {
       secondary: AppColors.accent,
       onSecondary: Colors.white,
       surface: surface,
+      surfaceContainerLowest: solidSurface,
+      surfaceContainerLow: solidSurface,
+      surfaceContainer: solidSurface,
+      surfaceContainerHigh: solidSurface,
+      surfaceContainerHighest: solidSurface,
       onSurface: onSurface,
       error: AppColors.danger,
     );
@@ -58,7 +72,9 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: bg,
+      scaffoldBackgroundColor: Colors.transparent,
+      canvasColor: solidSurface,
+      pageTransitionsTheme: _pageTransitions,
       colorScheme: scheme,
 
       appBarTheme: AppBarTheme(
@@ -146,7 +162,7 @@ class AppTheme {
       ),
 
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: surface,
+        backgroundColor: solidSurface,
         showDragHandle: true,
         shape: const RoundedRectangleBorder(
           borderRadius:
@@ -165,3 +181,40 @@ class AppTheme {
     );
   }
 }
+
+/// Wraps every page route in [AppBackground] and then plays the platform's
+/// normal transition, so the background (and Chinar leaf) travel with the page
+/// and screens never show each other through their transparent Scaffolds.
+class _AppBackgroundTransitions extends PageTransitionsBuilder {
+  final PageTransitionsBuilder inner;
+  const _AppBackgroundTransitions(this.inner);
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return inner.buildTransitions<T>(
+        route, context, animation, secondaryAnimation, AppBackground(child: child));
+  }
+}
+
+const PageTransitionsTheme _pageTransitions = PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android:
+        _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
+    TargetPlatform.iOS:
+        _AppBackgroundTransitions(CupertinoPageTransitionsBuilder()),
+    TargetPlatform.macOS:
+        _AppBackgroundTransitions(CupertinoPageTransitionsBuilder()),
+    TargetPlatform.windows:
+        _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
+    TargetPlatform.linux:
+        _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
+    TargetPlatform.fuchsia:
+        _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
+  },
+);

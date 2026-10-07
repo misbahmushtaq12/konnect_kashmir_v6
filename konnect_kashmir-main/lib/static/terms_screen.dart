@@ -26,7 +26,6 @@ class TermsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size  = MediaQuery.of(context).size;
     final theme = Theme.of(context);
     final cs    = theme.colorScheme;
 
@@ -35,27 +34,6 @@ class TermsScreen extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ── Background fill
-          Positioned.fill(
-            child: Container(color: theme.scaffoldBackgroundColor),
-          ),
-
-          // ── Chinar watermark
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: 0.18,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: size.width,
-                  height: size.height,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
-          // ── Content
           SafeArea(
             child: Column(
               children: [

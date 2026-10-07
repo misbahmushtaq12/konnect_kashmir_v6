@@ -253,28 +253,6 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Background fill
-          Positioned.fill(
-            child: Container(color: theme.scaffoldBackgroundColor),
-          ),
-          // Top right Chinar watermark
-          Positioned(
-            top: -30,
-            right: -50,
-            child: Opacity(
-              opacity: isDark ? 0.12 : 0.08,
-              child: Image.asset('assets/images/chinar.png', width: 280),
-            ),
-          ),
-          // Bottom left Chinar watermark
-          Positioned(
-            bottom: -40,
-            left: -50,
-            child: Opacity(
-              opacity: isDark ? 0.10 : 0.06,
-              child: Image.asset('assets/images/chinar.png', width: 260),
-            ),
-          ),
           SafeArea(
             child: Column(
               children: [

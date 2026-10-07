@@ -1,3 +1,4 @@
+import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'grevience_screen.dart';
 
@@ -35,26 +36,11 @@ class RefundPolicy extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ── Chinar watermark
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: 0.18,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
           CustomScrollView(
             slivers: [
               SliverAppBar(
                 // ── CHANGE: appbar uses scaffold bg
-                backgroundColor: theme.scaffoldBackgroundColor,
+                backgroundColor: AppColors.baseBg(theme),
                 elevation: 0,
                 pinned: true,
                 leading: IconButton(

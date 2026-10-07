@@ -238,7 +238,6 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
 
     // ── CHANGE 4: Horizontal padding scales with screen width ────────────────
     // Was a fixed 24 px on every screen. Now it breathes on tablets and stays
@@ -249,21 +248,6 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ── Background chinar watermark ──────────────────────────────────
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: _isDark ? 0.18 : 0.08,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: size.width,
-                  height: size.height,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
           CustomScrollView(
             physics: const ClampingScrollPhysics(),
             slivers: [

@@ -116,7 +116,6 @@ class GrievanceScreen extends StatelessWidget {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final size = MediaQuery.of(context).size;
     final strongText = cs.onSurface;
     final subtleText = cs.onSurface.withOpacity(0.6);
     final faintText = cs.onSurface.withOpacity(0.4);
@@ -124,26 +123,10 @@ class GrievanceScreen extends StatelessWidget {
     final borderColor = cs.onSurface.withOpacity(0.15);
     final dividerColor = cs.onSurface.withOpacity(0.15);
     final rowBg = cs.onSurface.withOpacity(isDark ? 0.08 : 0.04);
-    final chinarOpacity = isDark ? 0.18 : 0.07;
 
     return Scaffold(
       body: Stack(
         children: [
-          // ── Chinar watermark ─────────────────────────────────────────
-          Positioned.fill(
-            child: Center(
-              child: Opacity(
-                opacity: chinarOpacity,
-                child: Image.asset(
-                  'assets/images/chinar.png',
-                  width: size.width,
-                  height: size.height,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
-          ),
-
           SafeArea(
             child: Column(
               children: [

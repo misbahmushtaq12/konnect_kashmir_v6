@@ -1,3 +1,4 @@
+import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -441,7 +442,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final size = MediaQuery.of(context).size;
 
     final String userName = auth.user?.name ?? 'User';
 
@@ -459,16 +459,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Stack(children: [
-        // Subtle chinar watermark
-        Positioned.fill(
-            child: Center(
-                child: Opacity(
-                    opacity: 0.08,
-                    child: Image.asset('assets/images/chinar.png',
-                        width: size.width,
-                        height: size.height,
-                        fit: BoxFit.contain)))),
-
         SafeArea(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -547,7 +537,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: const Color(0xFF6BC4B2),
                           shape: BoxShape.circle,
                           border: Border.all(
-                              color: theme.scaffoldBackgroundColor,
+                              color: AppColors.baseBg(theme),
                               width: 2),
                         ),
                         child: const Icon(Icons.edit_rounded,

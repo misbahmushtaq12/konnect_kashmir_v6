@@ -129,24 +129,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Container(color: theme.scaffoldBackgroundColor),
-            ),
-
-            Positioned.fill(
-              child: Center(
-                child: Opacity(
-                  opacity: 0.18,
-                  child: Image.asset(
-                    'assets/images/chinar.png',
-                    width: size.width,
-                    height: size.height,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
-
             SafeArea(
               child: Center(
                 child: SingleChildScrollView(
