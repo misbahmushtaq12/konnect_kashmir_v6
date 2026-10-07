@@ -311,7 +311,7 @@ class ApiService {
         if (data['leads'] != null) return _ok(data);
         return _err('Failed to load leads');
       }
-      return _err('Lead fetch failed (${res.statusCode})');
+      return _err('Lead fetch failed (${res.statusCode}): ${res.body}');
     } catch (e) {
       return _err('Network error: $e');
     }

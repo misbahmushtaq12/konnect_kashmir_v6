@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/lead_loader.dart';
 import 'ad_watch_dialog.dart';
 import 'vendor_screen.dart';
 import '../static/privacy_screen.dart';
@@ -175,7 +176,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     }
 
     final vendorIds = bizList.map((b) => b['id'].toString()).toList();
-    final leadsResult = await _api.getLeadNames(vendorIds);
+    final leadsResult = await fetchLeadNames(context.read<AuthProvider>(), vendorIds);
+    if (!mounted) return;
 
     final Map<String, List<Map<String, dynamic>>> byVendor = {};
     if (leadsResult['success'] == true && leadsResult['leads'] != null) {
@@ -185,12 +187,19 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             .putIfAbsent(vId, () => [])
             .add(Map<String, dynamic>.from(lead as Map));
       }
+      // Fresh data replaces what was cached (new leads must show up).
+      _leadsByVendor
+        ..clear()
+        ..addAll(byVendor);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Couldn't load leads. ${leadsResult['error'] ?? ''}",
+              maxLines: 3, overflow: TextOverflow.ellipsis)));
     }
 
     setState(() {
       _businesses = bizList;
-      _leadsByVendor.addAll(byVendor);
-      
+
       if (widget.initialBusinessId != null && _selectedBiz == null) {
         try {
           _selectedBiz = _businesses.firstWhere((b) => b['id'].toString() == widget.initialBusinessId);
@@ -216,16 +225,22 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       return;
     }
 
-    final result = await _api.getLeadNames([vendorId]);
+    final result = await fetchLeadNames(context.read<AuthProvider>(), [vendorId]);
+    if (!mounted) return;
     final leads = <Map<String, dynamic>>[];
-    if (result['success'] == true && result['leads'] != null) {
+    final ok = result['success'] == true && result['leads'] != null;
+    if (ok) {
       for (final l in result['leads'] as List) {
         leads.add(Map<String, dynamic>.from(l as Map));
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Couldn't load leads. ${result['error'] ?? ''}",
+              maxLines: 3, overflow: TextOverflow.ellipsis)));
     }
     setState(() {
       _leads = leads;
-      _leadsByVendor[vendorId] = leads;
+      if (ok) _leadsByVendor[vendorId] = leads; // never cache a failed load as 0
       _isLoadingLeads = false;
     });
   }
@@ -291,7 +306,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     _snack('Lead contact revealed!', _kTealDark);
     showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: AppColors.solid(cs),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
@@ -1181,6 +1196,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               style: ElevatedButton.styleFrom(
                   backgroundColor: _tealContainer(context),
                   foregroundColor: _kTeal,
+                  // Theme minimumSize is full-width; inside a Row that is infinite.
+                  minimumSize: const Size(0, 40),
                   padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   shape: RoundedRectangleBorder(
@@ -1703,7 +1720,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: cs.surface,
+        backgroundColor: AppColors.solid(cs),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
             side: BorderSide(color: cs.onSurface.withOpacity(0.1))),

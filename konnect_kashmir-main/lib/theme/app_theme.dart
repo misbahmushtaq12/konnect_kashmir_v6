@@ -24,6 +24,11 @@ class AppColors {
   static Color baseBg(ThemeData t) =>
       t.brightness == Brightness.dark ? darkBg : lightBg;
 
+  /// Opaque surface for sheets/dialogs (ColorScheme.surface is a soft translucent
+  /// card tint, which must not be used behind overlay content).
+  static Color solid(ColorScheme cs) =>
+      cs.brightness == Brightness.dark ? darkSurface : Colors.white;
+
   static const Color success = Color(0xFF2E9E6B);
   static const Color danger = Color(0xFFD64545);
 }

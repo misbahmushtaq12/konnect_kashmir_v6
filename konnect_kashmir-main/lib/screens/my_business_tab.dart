@@ -1,21 +1,29 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/lead_loader.dart';
+import '../widgets/lead_contact_sheet.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
 
-import 'vendor_dashboard.dart';
+import 'login_screen.dart';
 import 'vendor_screen.dart';
 
 /// My Business tab: shows the user's registered businesses, or a
 /// "List my business" prompt if they have none.
 class MyBusinessTab extends StatefulWidget {
-  const MyBusinessTab({super.key});
+  /// False while another bottom-nav tab is showing (this tab stays alive in an
+  /// IndexedStack); returning to it refreshes businesses and leads.
+  final bool isActive;
+  const MyBusinessTab({super.key, this.isActive = true});
 
   @override
   State<MyBusinessTab> createState() => _MyBusinessTabState();
@@ -30,20 +38,239 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   String? _errorMsg;
   String? _expandedBizId;
 
+  // Revealed lead phones stay for this session so re-opening never re-charges.
+  final Map<String, String> _revealedPhones = {};
+  final Set<String> _revealing = {};
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg, maxLines: 3)));
+  }
+
+  /// The stored session can no longer be refreshed (server rejects it), so the
+  /// only fix is a fresh sign-in. Same flow as Profile > Sign out.
+  Future<void> _signInAgain() async {
+    final nav = Navigator.of(context, rootNavigator: true);
+    await context.read<AuthProvider>().logout();
+    nav.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
+  // ── Remembering revealed leads ────────────────────────────────────────────
+  // Only lead IDs are stored (never phone numbers). The number is fetched again
+  // when needed; that call returns the phone without charging a credit.
+  String _revealKey(AuthProvider a) => 'revealed_leads_${a.userId}';
+
+  Future<Map<String, dynamic>> _revealWithRetry(
+      AuthProvider auth, String leadUserId, String vendorId) async {
+    ApiService api() =>
+        ApiService(token: auth.accessToken, userId: auth.userId);
+    var r = await api().revealLeadPhone(leadUserId, vendorId);
+    // A rejected token is refused before anything is charged: refresh, retry.
+    if (r['success'] != true &&
+        '${r['error']}'.contains('(401)') &&
+        await auth.refreshToken()) {
+      r = await api().revealLeadPhone(leadUserId, vendorId);
+    }
+    return r;
+  }
+
+  Future<void> _rememberRevealed(AuthProvider auth, String leadId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ids = prefs.getStringList(_revealKey(auth)) ?? <String>[];
+      if (!ids.contains(leadId)) {
+        ids.add(leadId);
+        await prefs.setStringList(_revealKey(auth), ids);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _restoreRevealed() async {
+    try {
+      final auth = context.read<AuthProvider>();
+      final prefs = await SharedPreferences.getInstance();
+      final ids = (prefs.getStringList(_revealKey(auth)) ?? <String>[]).toSet();
+      if (ids.isEmpty) return;
+
+      final jobs = <Future<void>>[];
+      _leadsByVendor.forEach((vendorId, leads) {
+        for (final lead in leads) {
+          final id = lead['id'].toString();
+          if (!ids.contains(id) || _revealedPhones.containsKey(id)) continue;
+          jobs.add(() async {
+            final r = await _revealWithRetry(
+                auth, lead['user_id'].toString(), vendorId);
+            if (r['success'] == true && r['phone'] != null && mounted) {
+              setState(() => _revealedPhones[id] = r['phone'].toString());
+            }
+          }());
+        }
+      });
+      await Future.wait(jobs);
+    } catch (_) {}
+  }
+
+  String _digits(String phone) => phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+  String _displayPhone(String phone) {
+    final d = _digits(phone);
+    if (d.length == 10) return '+91  $d';
+    if (d.length == 12 && d.startsWith('91')) return '+91  ${d.substring(2)}';
+    return phone;
+  }
+
+  Future<void> _callPhone(String phone) async {
+    final uri = Uri(scheme: 'tel', path: _digits(phone));
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  Future<void> _openWhatsApp(String phone) async {
+    final d = _digits(phone);
+    final number = d.length == 10 ? '91$d' : d;
+    try {
+      await launchUrl(Uri.parse('https://wa.me/$number'),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      _snack("Couldn't open WhatsApp");
+    }
+  }
+
+  /// Shown instead of "Get Lead" once the contact is revealed: number + chat.
+  Widget _revealedContact(String phone) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.only(left: 14, right: 4),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(children: [
+        Expanded(
+          child: InkWell(
+            onTap: () => _callPhone(phone),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Row(children: [
+                const Icon(Icons.phone_outlined,
+                    color: AppColors.primary, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(_displayPhone(phone),
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: cs.onSurface,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5)),
+                ),
+              ]),
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () => _openWhatsApp(phone),
+          tooltip: 'Chat on WhatsApp',
+          icon: const FaIcon(FontAwesomeIcons.whatsapp,
+              color: Color(0xFF25D366), size: 26),
+        ),
+      ]),
+    );
+  }
+
+  /// `reveal-lead-phone` returns the number but does not always charge. If the
+  /// balance did not drop after the reveal, spend the 1 credit here (once), then
+  /// verify it really changed.
+  Future<void> _ensureCreditSpent(AuthProvider auth, int? before) async {
+    if (before == null || before <= 0) return;
+    ApiService api() =>
+        ApiService(token: auth.accessToken, userId: auth.userId);
+    try {
+      final after = await api().getUserCredits();
+      if (after == null || after < before) return; // server already charged
+      await api().updateUserCredits(auth.userId, -1);
+      final verify = await api().getUserCredits();
+      if (verify != null && verify >= before) {
+        _snack('Contact revealed, but your credit balance could not be updated.');
+      }
+    } catch (_) {}
+  }
+
+  /// Reveals the lead's contact (1 credit) and shows it in a sheet, in place.
+  Future<void> _getLead(dynamic lead, String vendorId) async {
+    final leadId = lead['id'].toString();
+    final name = lead['user_name']?.toString() ?? 'Customer';
+
+    final cached = _revealedPhones[leadId];
+    if (cached != null) {
+      showLeadContactSheet(context, name, cached);
+      return;
+    }
+
+    final auth = context.read<AuthProvider>();
+    setState(() => _revealing.add(leadId));
+    try {
+      ApiService api() =>
+          ApiService(token: auth.accessToken, userId: auth.userId);
+
+      final credits = await api().getUserCredits();
+      if (credits != null && credits <= 0) {
+        _snack('Not enough credits. Watch an ad to earn credits.');
+        return;
+      }
+
+      final leadUserId = lead['user_id'].toString();
+      final result = await _revealWithRetry(auth, leadUserId, vendorId);
+      if (!mounted) return;
+
+      if (result['success'] == true && result['phone'] != null) {
+        final phone = result['phone'].toString();
+        final shownName = result['name']?.toString() ?? name;
+        await _ensureCreditSpent(auth, credits);
+        await _rememberRevealed(auth, leadId);
+        // Stop the button spinner BEFORE the sheet opens, not after it closes.
+        setState(() {
+          _revealedPhones[leadId] = phone;
+          _revealing.remove(leadId);
+        });
+        await showLeadContactSheet(context, shownName, phone);
+      } else {
+        _snack(result['error']?.toString() ??
+            'Could not reveal contact. Try again.');
+      }
+    } catch (_) {
+      _snack('Network error. Please try again.');
+    } finally {
+      if (mounted && _revealing.contains(leadId)) {
+        setState(() => _revealing.remove(leadId));
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _load();
   }
 
-  Future<void> _load() async {
+  @override
+  void didUpdateWidget(MyBusinessTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Back on this tab: pick up new leads without showing the skeleton again.
+    if (!oldWidget.isActive && widget.isActive) _load(silent: true);
+  }
+
+  Future<void> _load({bool silent = false}) async {
     final auth = context.read<AuthProvider>();
     final userId = auth.userId;
     if (userId == null) {
       setState(() => _loading = false);
       return;
     }
-    if (mounted) setState(() => _loading = true);
+    if (mounted && !silent) setState(() => _loading = true);
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors').replace(
         queryParameters: {
@@ -59,38 +286,62 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
       if (res.statusCode == 200) {
         final bizList = List<Map<String, dynamic>>.from(jsonDecode(res.body));
         
-        final api = ApiService(token: auth.accessToken, userId: userId);
         final vendorIds = bizList.map((b) => b['id'].toString()).toList();
-        
+
         Map<String, List<dynamic>> leadsByVendor = {};
+        bool leadsFailed = false;
+        String? leadsError;
         if (vendorIds.isNotEmpty) {
-          final leadsResult = await api.getLeadNames(vendorIds);
+          final leadsResult = await fetchLeadNames(auth, vendorIds);
           if (leadsResult['success'] == true && leadsResult['leads'] != null) {
             for (final lead in leadsResult['leads'] as List) {
               final vId = lead['vendor_id'].toString();
               leadsByVendor.putIfAbsent(vId, () => []).add(lead);
             }
+          } else {
+            leadsFailed = true;
+            leadsError = leadsResult['error']?.toString();
           }
         }
 
         if (!mounted) return;
+        if (leadsFailed) {
+          // Don't wipe leads we already have with a false "0".
+          final expired = (leadsError ?? '').contains('(401)');
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(
+              duration: Duration(seconds: expired ? 12 : 4),
+              content: Text(
+                  expired
+                      ? 'Your session has expired, so leads cannot load. '
+                          'Please sign in again.'
+                      : "Couldn't refresh leads. ${leadsError ?? ''}",
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis),
+              action: expired
+                  ? SnackBarAction(label: 'Sign in', onPressed: _signInAgain)
+                  : null,
+            ));
+        }
         setState(() {
           _businesses = bizList;
-          _leadsByVendor = leadsByVendor;
+          if (!leadsFailed) _leadsByVendor = leadsByVendor;
           _errorMsg = null;
           _loading = false;
         });
+        _restoreRevealed(); // leads revealed earlier show their number again
         return;
       }
-      
-      if (!mounted) return;
+
+      if (!mounted || silent) return; // a failed background refresh keeps old data
       setState(() {
         _errorMsg = 'Server returned status code: ${res.statusCode}\nResponse: ${res.body}';
         _loading = false;
       });
       return;
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || silent) return;
       setState(() {
         _errorMsg = e.toString();
         _loading = false;
@@ -485,8 +736,13 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                               ])),
                     ]),
                     const SizedBox(height: 12),
+                    if (_revealedPhones.containsKey(lead['id'].toString()))
+                      _revealedContact(_revealedPhones[lead['id'].toString()]!)
+                    else ...[
                     ElevatedButton.icon(
-                      onPressed: () => _push(VendorDashboardScreen(initialBusinessId: bizId)),
+                      onPressed: _revealing.contains(lead['id'].toString())
+                          ? null
+                          : () => _getLead(lead, bizId ?? ""),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: tealContainer,
                         foregroundColor: kTeal,
@@ -496,7 +752,12 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                             borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
-                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      icon: _revealing.contains(lead['id'].toString())
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.visibility_outlined, size: 18),
                       label: Row(mainAxisSize: MainAxisSize.min, children: [
                         const Text('Get Lead',
                             style: TextStyle(
@@ -521,6 +782,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                               color: cs.onSurface.withValues(alpha: 0.4),
                               fontSize: 11)),
                     ),
+                    ],
                   ]),
                 );
               }),

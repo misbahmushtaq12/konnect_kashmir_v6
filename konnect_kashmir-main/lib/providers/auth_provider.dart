@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -40,6 +41,51 @@ class AuthUser {
 }
 
 class AuthProvider extends ChangeNotifier {
+  // ── Session upkeep ────────────────────────────────────────────────────────
+  // Access tokens last ~1h. Refresh them BEFORE they expire (not only at app
+  // start), and never run two refreshes at once: refresh tokens are single-use,
+  // and a second concurrent use can get the whole session revoked.
+  bool _sessionExpired = false;
+  /// True when the server permanently rejected the stored session; the UI asks
+  /// the user to sign in again (a fresh login is the only way to recover).
+  bool get sessionExpired => _sessionExpired;
+
+  Timer? _refreshTimer;
+  Future<bool>? _refreshInFlight;
+
+  void _scheduleRefresh(int expiresAtMs) {
+    _refreshTimer?.cancel();
+    final due = DateTime.fromMillisecondsSinceEpoch(expiresAtMs)
+        .subtract(const Duration(minutes: 5));
+    var delay = due.difference(DateTime.now());
+    if (delay < const Duration(seconds: 5)) delay = const Duration(seconds: 5);
+    _refreshTimer = Timer(delay, () {
+      refreshToken();
+    });
+  }
+
+  /// Clears the saved session but keeps device-level preferences: the user's
+  /// Light/Dark choice and the per-user list of revealed lead IDs (IDs only, no
+  /// phone numbers), so a logout/login on this phone doesn't lose them.
+  Future<void> _clearSession(SharedPreferences prefs) async {
+    final theme = prefs.getString('theme_mode');
+    final keptLeadIds = <String, List<String>>{
+      for (final k in prefs.getKeys().where((k) => k.startsWith('revealed_leads_')))
+        k: prefs.getStringList(k) ?? <String>[],
+    };
+    await prefs.clear();
+    if (theme != null) await prefs.setString('theme_mode', theme);
+    for (final e in keptLeadIds.entries) {
+      await prefs.setStringList(e.key, e.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
   AuthUser? _user;
   bool _isLoading = false;
   String? _error;
@@ -260,7 +306,9 @@ class AuthProvider extends ChangeNotifier {
           .add(const Duration(seconds: 3600))
           .millisecondsSinceEpoch;
       await prefs.setInt('token_expires_at', expiresAt);
+      _scheduleRefresh(expiresAt);
 
+      _sessionExpired = false;
       _user = AuthUser(
         phoneNumber: phoneNumber,
         name: displayName,
@@ -404,9 +452,12 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('user_phone',    phoneNumber);
       await prefs.setString('user_email',    email);
       await prefs.setString('user_name',     displayName);
-      await prefs.setInt('token_expires_at',
-          DateTime.now().add(const Duration(seconds: 3600)).millisecondsSinceEpoch);
+      final expiresAtMs =
+          DateTime.now().add(const Duration(seconds: 3600)).millisecondsSinceEpoch;
+      await prefs.setInt('token_expires_at', expiresAtMs);
+      _scheduleRefresh(expiresAtMs);
 
+      _sessionExpired = false;
       _user = AuthUser(
         phoneNumber: phoneNumber,
         name: displayName,
@@ -427,7 +478,10 @@ class AuthProvider extends ChangeNotifier {
   }
 
 
-  Future<bool> refreshToken() async {
+  Future<bool> refreshToken() => _refreshInFlight ??=
+      _refreshTokenOnce().whenComplete(() => _refreshInFlight = null);
+
+  Future<bool> _refreshTokenOnce() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final storedRefreshToken = prefs.getString('refresh_token');
@@ -463,6 +517,7 @@ class AuthProvider extends ChangeNotifier {
             .add(const Duration(seconds: 3600))
             .millisecondsSinceEpoch;
         await prefs.setInt('token_expires_at', expiresAt);
+        _scheduleRefresh(expiresAt);
 
         if (_user != null) {
           _user = _user!.copyWith(token: newAccessToken);
@@ -474,6 +529,12 @@ class AuthProvider extends ChangeNotifier {
       }
 
       debugPrint('[AuthProvider] refreshToken — failed: ${response.statusCode}');
+      // 400/401 = the server rejected this session for good (not a network blip).
+      if ((response.statusCode == 400 || response.statusCode == 401) &&
+          _user != null) {
+        _sessionExpired = true;
+        notifyListeners();
+      }
       return false;
     } catch (e) {
       debugPrint('[AuthProvider] refreshToken exception: $e');
@@ -485,16 +546,18 @@ class AuthProvider extends ChangeNotifier {
     try {
       if (_user?.token != null) {
         await http.post(
-          Uri.parse('$_baseUrl/auth/v1/logout'),
+          Uri.parse('$_baseUrl/auth/v1/logout?scope=local'),
           headers: authHeaders,
         ).timeout(const Duration(seconds: 10));
       }
     } catch (_) {}
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    _refreshTimer?.cancel();
+    await _clearSession(prefs);
 
     _user = null;
+    _sessionExpired = false;
     notifyListeners();
   }
 
@@ -521,6 +584,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (isExpiredOrSoon) {
         debugPrint('[AuthProvider] restoreSession — token expired/near-expiry, refreshing');
+        _sessionExpired = false;
         _user = AuthUser(
           phoneNumber: phone,
           name: name,
@@ -532,8 +596,9 @@ class AuthProvider extends ChangeNotifier {
         final refreshed = await refreshToken();
         if (!refreshed) {
           debugPrint('[AuthProvider] restoreSession — refresh failed, clearing session');
-          await prefs.clear();
+          await _clearSession(prefs);
           _user = null;
+          _sessionExpired = false;
           notifyListeners();
           return;
         }
@@ -541,6 +606,7 @@ class AuthProvider extends ChangeNotifier {
         return;
       }
 
+      _sessionExpired = false;
       _user = AuthUser(
         phoneNumber: phone,
         name: name,
@@ -549,6 +615,7 @@ class AuthProvider extends ChangeNotifier {
         id: userId,
       );
       notifyListeners();
+      _scheduleRefresh(expiresAt);
       debugPrint('[AuthProvider] restoreSession — restored userId=$userId role=$role');
     } catch (e) {
       debugPrint('[AuthProvider] restoreSession error: $e');
@@ -574,6 +641,7 @@ class AuthProvider extends ChangeNotifier {
         .millisecondsSinceEpoch;
     await prefs.setInt('token_expires_at', expiresAt);
 
+    _sessionExpired = false;
     _user = AuthUser(
       phoneNumber: phone,
       name: name,

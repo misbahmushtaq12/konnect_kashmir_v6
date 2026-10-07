@@ -34,7 +34,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: cs.surface,
+      backgroundColor: AppColors.solid(cs),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) => Padding(
@@ -194,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: cs.surface,
+        backgroundColor: AppColors.solid(cs),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
           side: BorderSide(color: cs.onSurface.withValues(alpha: 0.1)),
@@ -242,7 +242,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: AppColors.solid(cs),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius:

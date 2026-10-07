@@ -35,6 +35,9 @@ class CustomerScreen extends StatefulWidget {
   /// IndexedStack); leaving Home collapses the "Our services" grid.
   final bool isActive;
 
+  /// Avatar tap on the Home tab: switch to the Profile tab instead of pushing.
+  final VoidCallback? onOpenProfile;
+
   const CustomerScreen({
     Key? key,
     this.initialCategory,
@@ -42,6 +45,7 @@ class CustomerScreen extends StatefulWidget {
     this.initialFavoritesOnly = false,
     this.openAdsOnStart = false,
     this.isActive = true,
+    this.onOpenProfile,
   }) : super(key: key);
   @override
   State<CustomerScreen> createState() => _HomeScreenState();
@@ -59,6 +63,8 @@ class _HomeScreenState extends State<CustomerScreen>
   void didUpdateWidget(CustomerScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive && !widget.isActive) _showAllCategories = false;
+    // Credits change elsewhere (e.g. revealing a lead); refresh on return.
+    if (!oldWidget.isActive && widget.isActive) _loadUserCredits();
   }
 
   @override
@@ -636,7 +642,7 @@ class _HomeScreenState extends State<CustomerScreen>
     }
     await showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: AppColors.solid(cs),
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -1597,7 +1603,8 @@ class _HomeScreenState extends State<CustomerScreen>
               const SizedBox(width: 8),
               InkWell(
                 borderRadius: BorderRadius.circular(999),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+                onTap: widget.onOpenProfile ??
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
                 child: CircleAvatar(
                   radius: 17,
                   backgroundColor: AppColors.primary,
@@ -2643,7 +2650,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: cs.surface,
+      backgroundColor: AppColors.solid(cs),
       shape: const RoundedRectangleBorder(
           borderRadius:
           BorderRadius.vertical(top: Radius.circular(24))),
@@ -2905,7 +2912,7 @@ class _HomeScreenState extends State<CustomerScreen>
       builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
         final charCount = reportControllers[vendorId]!.text.length;
         return Dialog(
-          backgroundColor: cs.surface,
+          backgroundColor: AppColors.solid(cs),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20)),
           insetPadding: const EdgeInsets.symmetric(

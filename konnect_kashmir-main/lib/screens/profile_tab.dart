@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../widgets/theme_reveal.dart';
 import '../services/api_service.dart';
 import '../static/contact_screen.dart';
 import '../static/grevience_screen.dart';
@@ -17,7 +18,10 @@ import 'transaction_history_screen.dart';
 /// Profile tab: edit profile, ad credits, transaction history, legal,
 /// contact us and sign out.
 class ProfileTab extends StatefulWidget {
-  const ProfileTab({super.key});
+  /// False while another bottom-nav tab is showing; returning refreshes credits
+  /// (they change elsewhere, e.g. after revealing a lead).
+  final bool isActive;
+  const ProfileTab({super.key, this.isActive = true});
 
   @override
   State<ProfileTab> createState() => _ProfileTabState();
@@ -30,6 +34,12 @@ class _ProfileTabState extends State<ProfileTab> {
   void initState() {
     super.initState();
     _loadCredits();
+  }
+
+  @override
+  void didUpdateWidget(ProfileTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive) _loadCredits();
   }
 
   Future<void> _loadCredits() async {
@@ -294,6 +304,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 ]),
                 const SizedBox(height: 14),
                 _group([
+                  _themeRow(),
                   _row(Icons.gavel_rounded, 'Legal', onTap: _showLegal),
                   _row(Icons.mail_outline_rounded, 'Contact us',
                       onTap: () => _push(const ContactScreen())),
@@ -330,6 +341,48 @@ class _ProfileTabState extends State<ProfileTab> {
           rows[i],
         ]
       ]),
+    );
+  }
+
+  // Light/Dark switch. ON = Dark. Reflects the theme currently in effect, so it
+  // is correct even while the app is still following the device setting.
+  Widget _themeRow() {
+    final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return SizedBox(
+      height: 54,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 16, right: 10),
+        child: Row(children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Icon(
+              isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
+              key: ValueKey(isDark),
+              color: AppColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text('Theme',
+                style: TextStyle(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface)),
+          ),
+          Text(isDark ? 'Dark' : 'Light',
+              style: TextStyle(
+                  fontSize: 13.5, color: cs.onSurface.withValues(alpha: 0.6))),
+          const SizedBox(width: 6),
+          Builder(
+            builder: (switchContext) => Switch(
+              value: isDark,
+              onChanged: (v) => ThemeReveal.setDark(switchContext, v),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 

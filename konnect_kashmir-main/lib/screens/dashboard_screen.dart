@@ -464,7 +464,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: cs.surface,
+        backgroundColor: AppColors.solid(cs),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
           side: BorderSide(color: cs.outline.withOpacity(0.3)),
