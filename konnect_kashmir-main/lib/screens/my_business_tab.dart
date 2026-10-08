@@ -72,16 +72,17 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   // stay revealed after a cache clear, a reinstall or on another device. The
   // lead list says which ones are revealed and carries their number.
   Future<Map<String, dynamic>> _revealWithRetry(
-      AuthProvider auth, String leadUserId) async {
+      AuthProvider auth, String leadUserId,
+      [String? vendorId]) async {
     ApiService api() =>
         ApiService(token: auth.accessToken, userId: auth.userId);
-    var r = await api().revealLeadPhone(leadUserId);
+    var r = await api().revealLeadPhone(leadUserId, vendorId);
     // A rejected session is refused before anything is charged: refresh, retry.
     final err = '${r['error']}';
     if (r['success'] != true &&
         (err.contains('(401)') || err.contains('Session expired')) &&
         await auth.refreshToken()) {
-      r = await api().revealLeadPhone(leadUserId);
+      r = await api().revealLeadPhone(leadUserId, vendorId);
     }
     return r;
   }
@@ -128,7 +129,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
       // The backend checks the credits, charges once, saves the reveal and
       // returns the number. A lead revealed before is returned without a charge.
       final result =
-          await _revealWithRetry(auth, lead['user_id'].toString());
+          await _revealWithRetry(auth, lead['user_id'].toString(), vendorId);
       if (!mounted) return;
 
       if (result['success'] == true && result['phone'] != null) {

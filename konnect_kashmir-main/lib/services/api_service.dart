@@ -359,14 +359,27 @@ class ApiService {
       final res = await http.post(
         Uri.parse('$_baseUrl/functions/v1/reveal-lead-phone'),
         headers: _headers,
-        body: jsonEncode({'lead_user_id': leadUserId}),
+        // Both spellings, so it works with the new and the earlier function.
+        body: jsonEncode({
+          'lead_user_id': leadUserId,
+          'leadUserId': leadUserId,
+          if (vendorId != null) 'vendorId': vendorId,
+        }),
       );
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        if (data['success'] == true && data['phone'] != null) return _ok(data);
+      Map<String, dynamic>? data;
+      try {
+        final d = jsonDecode(res.body);
+        if (d is Map<String, dynamic>) data = d;
+      } catch (_) {}
+      if (res.statusCode == 200 && data != null) {
+        if (data['success'] != false && data['phone'] != null) return _ok(data);
         return _err((data['error'] ?? 'Failed to reveal phone').toString());
       }
-      return _err('Phone reveal failed (${res.statusCode})');
+      // Show the server's own reason (e.g. not enough credits) when it gives one.
+      final reason = data?['error'];
+      return _err(reason != null
+          ? reason.toString()
+          : 'Phone reveal failed (${res.statusCode})');
     } catch (e) {
       return _err('Network error: $e');
     }
