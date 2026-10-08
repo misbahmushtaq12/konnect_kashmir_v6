@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 
 import '../theme/app_theme.dart';
 
@@ -65,15 +66,15 @@ class ErrorRetry extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             title ??
-                (offline ? 'No internet connection' : 'Something went wrong'),
+                (offline ? context.l10n.noInternet : context.l10n.somethingWrong),
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
             offline
-                ? 'Check your connection and try again.'
-                : 'Please try again in a moment.',
+                ? context.l10n.checkConnection
+                : context.l10n.tryAgainMoment,
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: cs.onSurface.withValues(alpha: 0.7),
@@ -84,7 +85,7 @@ class ErrorRetry extends StatelessWidget {
           FilledButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded, size: 20),
-            label: const Text('Retry'),
+            label: Text(context.l10n.retry),
             style: AppButtons.primary,
           ),
         ]),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 
 import '../theme/app_theme.dart';
 
@@ -47,8 +48,8 @@ Future<bool> showAppConfirm(
   BuildContext context, {
   required String title,
   required String message,
-  String confirmLabel = 'Confirm',
-  String cancelLabel = 'Cancel',
+  String? confirmLabel,
+  String? cancelLabel,
   bool danger = false,
 }) async {
   final ok = await showAppDialog<bool>(
@@ -61,7 +62,7 @@ Future<bool> showAppConfirm(
           child: ElevatedButton(
             style: AppButtons.secondary,
             onPressed: () => Navigator.pop(context, false),
-            child: Text(cancelLabel),
+            child: Text(cancelLabel ?? context.l10n.cancel),
           ),
         ),
         const SizedBox(width: 10),
@@ -69,7 +70,7 @@ Future<bool> showAppConfirm(
           child: ElevatedButton(
             style: danger ? AppButtons.danger : AppButtons.primary,
             onPressed: () => Navigator.pop(context, true),
-            child: Text(confirmLabel),
+            child: Text(confirmLabel ?? context.l10n.confirm),
           ),
         ),
       ]),

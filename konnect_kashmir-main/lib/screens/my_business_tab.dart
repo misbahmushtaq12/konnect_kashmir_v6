@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,7 +25,7 @@ import 'login_screen.dart';
 import 'vendor_screen.dart';
 
 /// My Business tab: shows the user's registered businesses, or a
-/// "List my business" prompt if they have none.
+/// context.l10n.listMyBusiness prompt if they have none.
 class MyBusinessTab extends StatefulWidget {
   /// False while another bottom-nav tab is showing (this tab stays alive in an
   /// IndexedStack); returning to it refreshes businesses and leads.
@@ -141,7 +142,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
       await launchUrl(Uri.parse('https://wa.me/$number'),
           mode: LaunchMode.externalApplication);
     } catch (_) {
-      _snack("Couldn't open WhatsApp", type: SnackType.error);
+      _snack(context.l10n.couldntOpenWhatsapp, type: SnackType.error);
     }
   }
 
@@ -158,7 +159,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
       await api().updateUserCredits(auth.userId, -1);
       final verify = await api().getUserCredits();
       if (verify != null && verify >= before) {
-        _snack('Contact revealed, but your credit balance could not be updated.',
+        _snack(context.l10n.snackRevealedNoBalance,
             type: SnackType.warning);
       }
     } catch (_) {}
@@ -167,7 +168,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   /// Reveals the lead's contact (1 credit) and shows it in a sheet, in place.
   Future<void> _getLead(dynamic lead, String vendorId) async {
     final leadId = lead['id'].toString();
-    final name = lead['user_name']?.toString() ?? 'Customer';
+    final name = lead['user_name']?.toString() ?? context.l10n.customer;
 
     final cached = _revealedPhones[leadId];
     if (cached != null) {
@@ -183,7 +184,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
 
       final credits = await api().getUserCredits();
       if (credits != null && credits <= 0) {
-        _snack('Not enough credits. Watch an ad to earn credits.',
+        _snack(context.l10n.snackNotEnoughCredits,
             type: SnackType.warning);
         return;
       }
@@ -207,10 +208,10 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         await showLeadContactSheet(context, shownName, phone);
       } else {
         _snack(result['error']?.toString() ??
-            'Could not reveal contact. Try again.', type: SnackType.error);
+            context.l10n.snackCouldNotReveal, type: SnackType.error);
       }
     } catch (_) {
-      _snack('Network error. Please try again.', type: SnackType.error);
+      _snack(context.l10n.snackNetworkError, type: SnackType.error);
     } finally {
       if (mounted && _revealing.contains(leadId)) {
         setState(() => _revealing.remove(leadId));
@@ -280,12 +281,12 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           showAppSnack(
             context,
             expired
-                ? 'Your session has expired, so leads cannot load. Please sign in again.'
-                : "Couldn't refresh leads. ${leadsError ?? ''}",
+                ? context.l10n.snackSessionExpiredLeads
+                : context.l10n.snackCouldntRefreshLeads(leadsError ?? ''),
             type: expired ? SnackType.warning : SnackType.error,
             duration: Duration(seconds: expired ? 12 : 4),
             action: expired
-                ? SnackBarAction(label: 'Sign in', onPressed: _signInAgain)
+                ? SnackBarAction(label: context.l10n.signIn, onPressed: _signInAgain)
                 : null,
           );
         }
@@ -341,7 +342,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
               padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
               children: [
                 AppHeader(
-                  title: 'My Business',
+                  title: context.l10n.navMyBusiness,
                   actions: [
                     if (_credits != null) CreditChip(_credits!),
                     if (!_loading && _errorMsg == null && _businesses.isNotEmpty)
@@ -403,7 +404,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
             size: 20, color: AppColors.accent),
         const SizedBox(width: 10),
         Expanded(
-          child: Text('No credits left. Watch an ad to reveal leads.',
+          child: Text(context.l10n.noCreditsBanner,
               style: TextStyle(
                   color: cs.onSurface.withValues(alpha: 0.85),
                   fontSize: AppText.secondary,
@@ -412,7 +413,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         FilledButton.icon(
           onPressed: _openAds,
           icon: const Icon(Icons.play_arrow_rounded, size: 20),
-          label: const Text('Watch ad'),
+          label: Text(context.l10n.watchAd),
           style: AppButtons.compact(AppButtons.primary),
         ),
       ]),
@@ -422,19 +423,13 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   // "just now", "5 min ago", "2 hours ago", "3 days ago", else the date.
   String _timeAgo(DateTime dt) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
-    if (diff.inHours < 24) {
-      final h = diff.inHours;
-      return '$h ${h == 1 ? 'hour' : 'hours'} ago';
-    }
-    if (diff.inDays < 7) {
-      final d = diff.inDays;
-      return '$d ${d == 1 ? 'day' : 'days'} ago';
-    }
-    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    if (diff.inSeconds < 60) return context.l10n.timeJustNow;
+    if (diff.inMinutes < 60) return context.l10n.minutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return context.l10n.hoursAgo(diff.inHours);
+    if (diff.inDays < 7) return context.l10n.daysAgo(diff.inDays);
+    // Older than a week: a plain day/month/year date that reads the same in any language.
     final l = dt.toLocal();
-    return '${l.day} ${m[l.month - 1]} ${l.year}';
+    return '${l.day}/${l.month}/${l.year}';
   }
 
   // Circular loader centered in the space below the title.
@@ -488,14 +483,14 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                   size: 56, color: AppColors.primary),
             ),
             const SizedBox(height: 28),
-            const Text("You haven't listed a business yet",
+            Text(context.l10n.noBusinessYet,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text(
-                'List your services and get discovered by customers across Kashmir.',
+                context.l10n.listBusinessIntro,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: AppText.body,
@@ -508,7 +503,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
               onPressed: () => _push(const ListBusinessScreen()),
               style: AppButtons.primary,
               icon: const Icon(Icons.add_business_rounded),
-              label: const Text('List my business',
+              label: Text(context.l10n.listMyBusiness,
                   style: TextStyle(fontSize: AppText.body, fontWeight: FontWeight.bold)),
             ),
           ]),
@@ -521,7 +516,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         _errorMsg,
         title: ErrorRetry.isOfflineError(_errorMsg)
             ? null
-            : "Couldn't load your business",
+            : context.l10n.couldntLoadBusiness,
         onRetry: () => _load(),
       );
 
@@ -601,7 +596,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                     ]),
               ),
               const SizedBox(width: 8),
-              AppChip(isApproved ? 'Active' : 'Pending',
+              AppChip(isApproved ? context.l10n.statusActive : context.l10n.statusPending,
                   tone: isApproved ? ChipTone.success : ChipTone.warning),
             ]),
           ),
@@ -616,7 +611,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                 onPressed: () => _push(ListBusinessScreen(existingVendor: b)),
                 style: AppButtons.secondary,
                 icon: const Icon(Icons.edit_outlined, size: 16),
-                label: const Text('Edit',
+                label: Text(context.l10n.edit,
                     style: TextStyle(
                         fontSize: AppText.secondary,
                         fontWeight: FontWeight.bold)),
@@ -630,7 +625,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                 icon: Icon(expanded ? Icons.expand_less : Icons.expand_more,
                     size: 18),
                 label: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Text('Leads',
+                  Text(context.l10n.leads,
                       style: TextStyle(
                           fontSize: AppText.secondary,
                           fontWeight: FontWeight.bold)),
@@ -685,11 +680,11 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
               Icon(Icons.people_outline_rounded,
                   size: 32, color: cs.onSurface.withValues(alpha: 0.5)),
               const SizedBox(height: 8),
-              const Text('No leads yet',
+              Text(context.l10n.noLeadsYet,
                   style: TextStyle(
                       fontSize: AppText.body, fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
-              Text('Customers who show interest will appear here.',
+              Text(context.l10n.noLeadsHint,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: AppText.secondary,
@@ -706,7 +701,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                   size: 16, color: cs.onSurface.withValues(alpha: 0.66)),
               const SizedBox(width: 6),
               Expanded(
-                child: Text('Revealing a contact costs 1 credit.',
+                child: Text(context.l10n.revealCostsCredit,
                     style: TextStyle(
                         fontSize: AppText.caption,
                         color: cs.onSurface.withValues(alpha: 0.7))),
@@ -732,7 +727,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   Widget _leadRow(dynamic lead, String? bizId) {
     final cs = Theme.of(context).colorScheme;
     final id = lead['id'].toString();
-    final leadName = lead['user_name']?.toString() ?? 'Customer';
+    final leadName = lead['user_name']?.toString() ?? context.l10n.customer;
     final initial =
         leadName.trim().isEmpty ? '?' : leadName.trim()[0].toUpperCase();
     final dt = DateTime.tryParse(lead['created_at']?.toString() ?? '') ??
@@ -798,13 +793,13 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           Row(mainAxisSize: MainAxisSize.min, children: [
             IconButton(
               onPressed: () => _callPhone(phone),
-              tooltip: 'Call',
+              tooltip: context.l10n.call,
               icon: const Icon(Icons.call_rounded,
                   color: AppColors.primary, size: 22),
             ),
             IconButton(
               onPressed: () => _openWhatsApp(phone),
-              tooltip: 'Chat on WhatsApp',
+              tooltip: context.l10n.chatOnWhatsapp,
               icon: const FaIcon(FontAwesomeIcons.whatsapp,
                   color: Color(0xFF25D366), size: 25),
             ),
@@ -822,7 +817,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.lock_open_rounded, size: 17),
-              label: const Text('Get Lead'),
+              label: Text(context.l10n.getLead),
             ),
           ),
       ]),

@@ -41,6 +41,9 @@ dependencies:
   firebase_messaging: ^16.4.3
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
   firebase_core: ^4.12.1
   firebase_auth: ^6.5.6
   supabase_flutter: ^2.8.0
@@ -54,6 +57,9 @@ dev_dependencies:
   build_runner: ^2.4.7
   json_serializable: ^6.7.1
   flutter_launcher_icons: ^0.14.4
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
 
 flutter_launcher_icons:
   android: true
@@ -64,21 +70,12 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/icon/app_icon.png"
 
-  flutter_test:
-    sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
-  flutter_lints: ^5.0.0
-
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true # builds the Hindi/Urdu/English strings (lib/l10n)
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -69,12 +69,16 @@ class AuthProvider extends ChangeNotifier {
   /// phone numbers), so a logout/login on this phone doesn't lose them.
   Future<void> _clearSession(SharedPreferences prefs) async {
     final theme = prefs.getString('theme_mode');
+    final lang = prefs.getString('app_locale');
+    final langChosen = prefs.getBool('app_locale_chosen');
     final keptLeadIds = <String, List<String>>{
       for (final k in prefs.getKeys().where((k) => k.startsWith('revealed_leads_')))
         k: prefs.getStringList(k) ?? <String>[],
     };
     await prefs.clear();
     if (theme != null) await prefs.setString('theme_mode', theme);
+    if (lang != null) await prefs.setString('app_locale', lang);
+    if (langChosen != null) await prefs.setBool('app_locale_chosen', langChosen);
     for (final e in keptLeadIds.entries) {
       await prefs.setStringList(e.key, e.value);
     }

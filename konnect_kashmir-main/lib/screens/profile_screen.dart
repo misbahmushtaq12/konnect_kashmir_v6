@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -44,11 +45,11 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   Future<void> _saveName() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Please enter your full name');
+      setState(() => _error = context.l10n.errNameRequired);
       return;
     }
     if (name.length < 2) {
-      setState(() => _error = 'Name must be at least 2 characters');
+      setState(() => _error = context.l10n.errNameShort);
       return;
     }
 
@@ -75,7 +76,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         body: jsonEncode({'full_name': name}),
       ).timeout(
         const Duration(seconds: 15),
-        onTimeout: () => throw Exception('Request timed out. Please try again.'),
+        onTimeout: () => throw Exception(context.l10n.errRequestTimeout),
       );
 
       if (res.statusCode != 200 && res.statusCode != 204) {
@@ -249,7 +250,7 @@ class _ProfileCard extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 Text(
-                  'Complete Your Profile',
+                  context.l10n.completeYourProfile,
                   style: TextStyle(
                     fontSize: titleSize,
                     fontWeight: FontWeight.bold,
@@ -262,7 +263,7 @@ class _ProfileCard extends StatelessWidget {
                 const SizedBox(height: 10),
 
                 Text(
-                  'Please enter your name to continue using KonnectKashmir',
+                  context.l10n.enterNameToContinue,
                   style: TextStyle(
                     fontSize: subtitleSize,
                     color: cs.onSurface.withOpacity(0.55),
@@ -279,7 +280,7 @@ class _ProfileCard extends StatelessWidget {
                     text: TextSpan(
                       children: [
                         TextSpan(
-                          text: 'Your Full Name ',
+                          text: context.l10n.yourFullName,
                           style: TextStyle(
                             color: cs.onSurface,
                             fontSize: AppText.body,
@@ -314,7 +315,7 @@ class _ProfileCard extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'Enter your full name',
+                    hintText: context.l10n.enterFullName,
                     hintStyle: TextStyle(
                       color: cs.onSurface.withOpacity(0.35),
                       fontSize: AppText.body,
@@ -358,7 +359,7 @@ class _ProfileCard extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'This will be visible to vendors when you contact them',
+                    context.l10n.visibleToVendors,
                     style: TextStyle(
                       fontSize: AppText.caption,
                       color: cs.onSurface.withOpacity(0.4),
@@ -408,7 +409,7 @@ class _ProfileCard extends StatelessWidget {
                             size: 18, color: cs.primary),
                         const SizedBox(width: 8),
                         Text(
-                          'Continue',
+                          context.l10n.continueLabel,
                           style: TextStyle(
                             fontSize: AppText.body,
                             fontWeight: FontWeight.w700,

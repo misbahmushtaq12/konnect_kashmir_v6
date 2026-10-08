@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:konnect_kashmir/screens/login_screen.dart';
 import 'package:konnect_kashmir/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/locale_provider.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/customer_screen.dart';
@@ -41,8 +44,11 @@ void main() async {
   );
   AuthService.initialize();
   final themeProvider = await ThemeProvider.load();
+  final localeProvider = await LocaleProvider.load();
   runApp(KonnectKashmirApp(
-      authProvider: authProvider, themeProvider: themeProvider));
+      authProvider: authProvider,
+      themeProvider: themeProvider,
+      localeProvider: localeProvider));
 }
 
 final supabase = Supabase.instance.client;
@@ -50,8 +56,13 @@ final supabase = Supabase.instance.client;
 class KonnectKashmirApp extends StatelessWidget {
   final AuthProvider authProvider;
   final ThemeProvider themeProvider;
-  const KonnectKashmirApp(
-      {super.key, required this.authProvider, required this.themeProvider});
+  final LocaleProvider localeProvider;
+  const KonnectKashmirApp({
+    super.key,
+    required this.authProvider,
+    required this.themeProvider,
+    required this.localeProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +71,22 @@ class KonnectKashmirApp extends StatelessWidget {
         // ── 2. Use the already-initialised provider (not a fresh one) ──────
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: themeProvider),
+        ChangeNotifierProvider.value(value: localeProvider),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeState, _) => MaterialApp(
+      child: Consumer2<ThemeProvider, LocaleProvider>(
+        builder: (context, themeState, localeState, _) => MaterialApp(
         title: 'KonnectKashmir',
         debugShowCheckedModeBanner: false,
+
+        // Language (English / Hindi / Urdu). Urdu automatically flips the layout RTL.
+        locale: localeState.locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
 
         // ── Light/dark follow the device; styling lives in theme/app_theme.dart
         themeMode: themeState.mode,

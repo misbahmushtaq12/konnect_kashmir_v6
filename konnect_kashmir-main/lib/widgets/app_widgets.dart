@@ -76,13 +76,24 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
-/// Pulsing placeholder shown while data loads (better than a spinner).
+/// Shimmer placeholder shown while data loads: a soft highlight sweeps across
+/// the shape (better than a spinner or a plain grey box).
 class Skeleton extends StatefulWidget {
   final double? width;
   final double height;
   final double radius;
 
-  const Skeleton({super.key, this.width, required this.height, this.radius = 14});
+  /// Colour the shimmer is made from. Defaults to the text colour; use white on
+  /// dark / coloured backgrounds.
+  final Color? baseColor;
+
+  const Skeleton({
+    super.key,
+    this.width,
+    required this.height,
+    this.radius = 14,
+    this.baseColor,
+  });
 
   @override
   State<Skeleton> createState() => _SkeletonState();
@@ -92,8 +103,8 @@ class _SkeletonState extends State<Skeleton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  )..repeat(reverse: true);
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
 
   @override
   void dispose() {
@@ -103,17 +114,30 @@ class _SkeletonState extends State<Skeleton>
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.onSurface;
+    final base = widget.baseColor ?? Theme.of(context).colorScheme.onSurface;
+    final onWhite = widget.baseColor != null;
+    final low = base.withValues(alpha: onWhite ? 0.20 : 0.06);
+    final high = base.withValues(alpha: onWhite ? 0.42 : 0.15);
+
     return AnimatedBuilder(
       animation: _c,
-      builder: (_, __) => Container(
-        width: widget.width,
-        height: widget.height,
-        decoration: BoxDecoration(
-          color: base.withValues(alpha: 0.05 + 0.06 * _c.value),
-          borderRadius: BorderRadius.circular(widget.radius),
-        ),
-      ),
+      builder: (_, __) {
+        final t = _c.value;
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.radius),
+            gradient: LinearGradient(
+              // A bright band travelling left -> right across the box.
+              begin: Alignment(-2.2 + 4.4 * t, 0),
+              end: Alignment(-0.8 + 4.4 * t, 0),
+              colors: [low, high, low],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
 import '../theme/app_theme.dart';
+import '../l10n/l10n.dart';
 import '../widgets/app_overlays.dart';
 import 'customer_screen.dart';
 import 'login_screen.dart';
@@ -36,16 +37,15 @@ class _MainShellState extends State<MainShell> {
     _expiredDialogOpen = true;
     await showAppDialog<void>(
       context,
-      title: 'Session expired',
-      message: 'For your security you need to sign in again to load your '
-          'leads and credits.',
+      title: context.l10n.sessionExpiredTitle,
+      message: context.l10n.sessionExpiredMsg,
       barrierDismissible: false,
       actions: [
         Builder(
           builder: (ctx) => ElevatedButton(
             style: AppButtons.primary,
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Sign in'),
+            child: Text(context.l10n.signIn),
           ),
         ),
       ],
@@ -102,23 +102,23 @@ class _MainShellState extends State<MainShell> {
             indicatorColor: AppColors.primary.withValues(alpha: 0.16),
             elevation: 0,
             height: 68,
-            destinations: const [
+            destinations: [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
                 selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-                label: 'Home',
+                label: context.l10n.navHome,
               ),
               NavigationDestination(
                 icon: Icon(Icons.storefront_outlined),
                 selectedIcon:
                     Icon(Icons.storefront_rounded, color: AppColors.primary),
-                label: 'My Business',
+                label: context.l10n.navMyBusiness,
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_outline_rounded),
                 selectedIcon:
                     Icon(Icons.person_rounded, color: AppColors.primary),
-                label: 'Profile',
+                label: context.l10n.navProfile,
               ),
             ],
           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -48,50 +49,50 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     switch (type) {
       case 'unlock_contact':
         return (
-          title: 'Contact unlocked',
-          subtitle: 'Vendor contact revealed',
+          title: context.l10n.txnContactUnlocked,
+          subtitle: context.l10n.txnVendorRevealed,
           icon: Icons.lock_open_rounded,
           color: AppColors.accent
         );
       case 'initial_bonus':
         return (
-          title: 'Welcome bonus',
-          subtitle: 'New account reward',
+          title: context.l10n.txnWelcomeBonus,
+          subtitle: context.l10n.txnNewAccountReward,
           icon: Icons.card_giftcard_rounded,
           color: AppColors.success
         );
       case 'referral_bonus':
         return (
-          title: 'Referral bonus',
-          subtitle: 'Referral credit reward',
+          title: context.l10n.txnReferralBonus,
+          subtitle: context.l10n.txnReferralReward,
           icon: Icons.group_add_rounded,
           color: AppColors.success
         );
       case 'purchase':
         return (
-          title: 'Credit purchase',
-          subtitle: 'Credits added',
+          title: context.l10n.txnCreditPurchase,
+          subtitle: context.l10n.txnCreditsAdded,
           icon: Icons.shopping_bag_rounded,
           color: AppColors.primary
         );
       case 'refund':
         return (
-          title: 'Refund',
-          subtitle: 'Credits refunded',
+          title: context.l10n.txnRefund,
+          subtitle: context.l10n.txnCreditsRefunded,
           icon: Icons.undo_rounded,
           color: AppColors.primary
         );
       default:
         return amount > 0
             ? (
-                title: 'Ad reward',
-                subtitle: 'Watched an ad',
+                title: context.l10n.txnAdReward,
+                subtitle: context.l10n.txnWatchedAd,
                 icon: Icons.play_circle_rounded,
                 color: AppColors.success
               )
             : (
-                title: 'Credits spent',
-                subtitle: 'Credit used',
+                title: context.l10n.txnCreditsSpent,
+                subtitle: context.l10n.txnCreditUsed,
                 icon: Icons.remove_circle_outline_rounded,
                 color: AppColors.accent
               );
@@ -111,7 +112,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Transaction history')),
+      appBar: AppBar(title: Text(context.l10n.transactionHistory)),
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: _load,
@@ -131,14 +132,14 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     Icon(Icons.receipt_long_outlined,
                         size: 56, color: cs.onSurface.withValues(alpha: 0.35)),
                     const SizedBox(height: 14),
-                    const Center(
-                        child: Text('No transactions yet',
+                    Center(
+                        child: Text(context.l10n.noTransactionsYet,
                             style: TextStyle(
                                 fontSize: AppText.heading, fontWeight: FontWeight.w700))),
                     const SizedBox(height: 6),
                     Center(
                       child: Text(
-                          'Credits you earn or spend will show up here.',
+                          context.l10n.noTransactionsHint,
                           style: TextStyle(
                               color: cs.onSurface.withValues(alpha: 0.6))),
                     ),

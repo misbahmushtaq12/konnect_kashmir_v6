@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
+import '../l10n/category_names.dart';
 import '../widgets/app_snack.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
@@ -285,7 +287,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            _isEditing ? 'Edit Business' : 'List Your Business',
+                            _isEditing ? context.l10n.editBusinessTitle : context.l10n.listYourBusiness,
                             style: TextStyle(
                               color: _onSurface,
                               fontSize: _rs(0.08, min: 22, max: 36),
@@ -297,8 +299,8 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                         const SizedBox(height: 4),
                         Text(
                           _isEditing
-                              ? 'Update your business information'
-                              : 'Get your business listed on KonnectKashmir',
+                              ? context.l10n.updateBusinessInfo
+                              : context.l10n.getBusinessListed,
                           style: TextStyle(
                             color: _onSurfaceMuted,
                             fontSize: _rs(0.04, min: 13, max: 17),
@@ -316,7 +318,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    'Business Details',
+                                    context.l10n.businessDetails,
                                     style: TextStyle(
                                       color: _onSurface,
                                       fontSize: _rs(0.05, min: 16, max: 22),
@@ -326,23 +328,23 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 ),
                               ]),
                               Divider(color: _subtleBorder, height: 20),
-                              _buildLabel('Business Name *'),
+                              _buildLabel(context.l10n.businessName),
                               const SizedBox(height: 6),
                               _buildTextField(
                                 controller: _businessNameController,
-                                hintText: "e.g., Ahmed's Plumbing Service",
+                                hintText: context.l10n.businessNameHint,
                                 isRequired: true,
                               ),
                               const SizedBox(height: 14),
-                              _buildLabel('Service Categories * (select up to 3)'),
+                              _buildLabel(context.l10n.serviceCategoriesLabel),
                               const SizedBox(height: 6),
                               _buildServiceCategorySelector(),
                               const SizedBox(height: 14),
-                              _buildLabel('District *'),
+                              _buildLabel(context.l10n.districtLabel),
                               const SizedBox(height: 6),
                               _buildDropdown(
                                 value: _selectedDistrict,
-                                hint: 'Select district',
+                                hint: context.l10n.selectDistrict,
                                 items: _districtLocalities.keys.toList(),
                                 onChanged: (value) => setState(() {
                                   _selectedDistrict = value;
@@ -351,13 +353,13 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 isRequired: true,
                               ),
                               const SizedBox(height: 14),
-                              _buildLabel('Locality *'),
+                              _buildLabel(context.l10n.localityLabel),
                               const SizedBox(height: 6),
                               _buildDropdown(
                                 value: _selectedLocality,
                                 hint: _selectedDistrict == null
-                                    ? 'Select district first'
-                                    : 'Select locality',
+                                    ? context.l10n.selectDistrictFirst
+                                    : context.l10n.selectLocality,
                                 items: _selectedDistrict != null
                                     ? _districtLocalities[_selectedDistrict]!
                                     : [],
@@ -367,11 +369,11 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 isRequired: true,
                               ),
                               const SizedBox(height: 14),
-                              _buildLabel('Business Description (optional)'),
+                              _buildLabel(context.l10n.businessDescriptionOptional),
                               const SizedBox(height: 6),
                               _buildTextField(
                                 controller: _businessDescriptionController,
-                                hintText: 'Tell customers about your services...',
+                                hintText: context.l10n.descriptionHint,
                                 maxLines: 3,
                               ),
                             ],
@@ -388,7 +390,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    'Contact Info',
+                                    context.l10n.contactInfo,
                                     style: TextStyle(
                                       color: _onSurface,
                                       fontSize: _rs(0.05, min: 16, max: 22),
@@ -399,7 +401,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                               ]),
                               Divider(color: _subtleBorder, height: 20),
 
-                              _buildLabel('Business Phone Number *'),
+                              _buildLabel(context.l10n.businessPhoneLabel),
                               const SizedBox(height: 6),
                               _buildPhoneRow(
                                 controller: _phoneController,
@@ -410,18 +412,18 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                               Row(children: [
                                 Icon(Icons.chat_bubble_outline, color: _onSurfaceMuted),
                                 const SizedBox(width: 8),
-                                Text('WhatsApp', style: TextStyle(color: _onSurfaceMuted)),
+                                Text(context.l10n.whatsapp, style: TextStyle(color: _onSurfaceMuted)),
                               ]),
                               const SizedBox(height: 6),
                               _buildPhoneRow(
                                 controller: _whatsappController,
-                                hintText: 'Same or different',
+                                hintText: context.l10n.sameOrDifferent,
                               ),
                               const SizedBox(height: 14),
                               Row(children: [
                                 Icon(Icons.email_outlined, color: _onSurfaceMuted),
                                 const SizedBox(width: 8),
-                                Text('Email', style: TextStyle(color: _onSurfaceMuted)),
+                                Text(context.l10n.email, style: TextStyle(color: _onSurfaceMuted)),
                               ]),
                               const SizedBox(height: 6),
                               _buildTextField(
@@ -433,24 +435,24 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                               Row(children: [
                                 Icon(Icons.location_on_outlined, color: _onSurfaceMuted),
                                 const SizedBox(width: 8),
-                                Text('Address', style: TextStyle(color: _onSurfaceMuted)),
+                                Text(context.l10n.address, style: TextStyle(color: _onSurfaceMuted)),
                               ]),
                               const SizedBox(height: 6),
                               _buildTextField(
                                 controller: _addressController,
-                                hintText: 'Shop/Office address',
+                                hintText: context.l10n.shopOfficeAddress,
                               ),
                               const SizedBox(height: 14),
                               _buildSwitchTile(
                                 icon: Icons.home_outlined,
-                                label: 'Home Service Available',
+                                label: context.l10n.homeServiceAvailable,
                                 value: _homeServiceAvailable,
                                 onChanged: (v) => setState(() => _homeServiceAvailable = v),
                               ),
                               const SizedBox(height: 10),
                               _buildSwitchTile(
                                 icon: Icons.payment_outlined,
-                                label: 'Accept Online Payment',
+                                label: context.l10n.acceptOnlinePayment,
                                 value: _acceptOnlinePayment,
                                 onChanged: (v) => setState(() => _acceptOnlinePayment = v),
                               ),
@@ -464,7 +466,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                   const SizedBox(width: 8),
                                   Flexible(
                                     child: Text(
-                                      'Your listing will be reviewed within 24-48 hours',
+                                      context.l10n.listingReviewNote,
                                       style: TextStyle(
                                         color: _onSurfaceMuted,
                                         fontSize: _rs(0.035, min: 12, max: 15),
@@ -485,7 +487,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 final cancelBtn = OutlinedButton(
                                   onPressed: () => Navigator.pop(context),
                                   style: buttonStyle_outlined,
-                                  child: Text('Cancel',
+                                  child: Text(context.l10n.cancel,
                                       style: TextStyle(
                                           fontSize: _rs(0.04, min: 13, max: 17))),
                                 );
@@ -508,7 +510,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                     ),
                                   )
                                       : Text(
-                                    _isEditing ? 'Save Changes' : 'Submit',
+                                    _isEditing ? context.l10n.saveChanges : context.l10n.submit,
                                     style: TextStyle(
                                         fontSize: _rs(0.04, min: 13, max: 17)),
                                   ),
@@ -617,8 +619,10 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
               Expanded(
                 child: Text(
                   _selectedServiceTypes.isEmpty
-                      ? 'Select up to 3 categories'
-                      : _selectedServiceTypes.join(', '),
+                      ? context.l10n.selectUpTo3
+                      : _selectedServiceTypes
+                          .map((n) => categoryName(context, _slugForService(n), n))
+                          .join(', '),
                   style: TextStyle(
                     color: _selectedServiceTypes.isEmpty ? _onSurfaceMuted : _onSurface,
                     fontSize: _rs(0.037, min: 13, max: 16),
@@ -650,7 +654,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                   style: TextStyle(color: _onSurface, fontSize: AppText.body),
                   onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
-                    hintText: 'Search categories...',
+                    hintText: context.l10n.searchCategories,
                     hintStyle: TextStyle(color: _onSurfaceMuted, fontSize: AppText.body),
                     prefixIcon: Icon(Icons.search, color: _onSurfaceMuted, size: 20),
                     filled: true,
@@ -733,7 +737,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              option.name,
+                              categoryName(context, option.slug, option.name),
                               style: TextStyle(
                                 color: isDisabled
                                     ? _onSurface.withOpacity(0.35)
@@ -752,16 +756,16 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
           ),
         const SizedBox(height: 6),
         Text(
-          '${_selectedServiceTypes.length}/3 categories selected',
+          context.l10n.categoriesSelected(_selectedServiceTypes.length),
           style: TextStyle(
             color: _serviceTypeError ? AppColors.danger : _onSurfaceMuted,
             fontSize: AppText.caption,
           ),
         ),
         if (_serviceTypeError)
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 2),
-            child: Text('Please select at least one service',
+            child: Text(context.l10n.selectAtLeastOneService,
                 style: TextStyle(color: AppColors.danger, fontSize: AppText.caption)),
           ),
       ],
@@ -807,7 +811,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       style: TextStyle(color: _onSurface, fontSize: _rs(0.038, min: 13, max: 16)),
       validator: isRequired
           ? (value) {
-        if (value == null || value.trim().isEmpty) return 'This field is required';
+        if (value == null || value.trim().isEmpty) return context.l10n.fieldRequired;
         return null;
       }
           : null,
@@ -863,7 +867,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
               fontSize: _rs(0.038, min: 13, max: 16))),
       validator: isRequired
           ? (value) {
-        if (value == null || value.isEmpty) return 'Please select an option';
+        if (value == null || value.isEmpty) return context.l10n.pleaseSelectOption;
         return null;
       }
           : null,
@@ -944,12 +948,12 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   void _submitForm() async {
     if (_selectedServiceTypes.isEmpty) {
       setState(() => _serviceTypeError = true);
-      showAppSnack(context, 'Please select at least one service type', type: SnackType.error, duration: const Duration(seconds: 3));
+      showAppSnack(context, context.l10n.selectAtLeastOneService, type: SnackType.error, duration: const Duration(seconds: 3));
       return;
     }
 
     if (!_formKey.currentState!.validate()) {
-      showAppSnack(context, 'Please fill in all required fields', type: SnackType.error, duration: const Duration(seconds: 3));
+      showAppSnack(context, context.l10n.fillRequiredFields, type: SnackType.error, duration: const Duration(seconds: 3));
       return;
     }
 
@@ -1064,7 +1068,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       }
     } catch (e) {
       setState(() => _isSubmitting = false);
-      _showErrorDialog('Network error. Please check your connection.');
+      _showErrorDialog(context.l10n.networkCheckConnection);
       debugPrint('Error submitting vendor: $e');
     }
   }
@@ -1074,14 +1078,14 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text('Success',
+        title: Text(context.l10n.successTitle,
             style: TextStyle(
                 color: Theme.of(ctx).colorScheme.onSurface,
                 fontWeight: FontWeight.bold)),
         content: Text(
           isEdit
-              ? 'Your business has been updated successfully!'
-              : 'Your business listing has been submitted for review!',
+              ? context.l10n.businessUpdatedMsg
+              : context.l10n.businessSubmittedMsg,
           style: TextStyle(
               color: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.7)),
         ),
@@ -1091,7 +1095,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('OK', style: TextStyle(color: _kTeal)),
+            child: Text(context.l10n.ok, style: TextStyle(color: _kTeal)),
           ),
         ]),
     );
@@ -1101,7 +1105,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Error',
+        title: Text(context.l10n.errorTitle,
             style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
         content: Text(message,
             style: TextStyle(
@@ -1109,7 +1113,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK', style: TextStyle(color: _kTeal)),
+            child: Text(context.l10n.ok, style: TextStyle(color: _kTeal)),
           ),
         ]),
     );

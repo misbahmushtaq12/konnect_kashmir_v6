@@ -1,5 +1,6 @@
 import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import '../widgets/force_ltr.dart';
 import '../widgets/app_overlays.dart';
 import '../widgets/app_snack.dart';
 import 'package:provider/provider.dart';
@@ -385,7 +386,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Build
   // ──────────────────────────────────────────────────────────
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      ForceLtr(child: _buildScreen(context));
+
+  Widget _buildScreen(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final theme = Theme.of(context);
     final cs = theme.colorScheme;

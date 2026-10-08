@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../widgets/english_only.dart';
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
@@ -7,20 +9,33 @@ import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
 import '../services/auth_service.dart';
+import '../providers/locale_provider.dart';
+import 'language_screen.dart';
 import 'main_shell.dart';
 
 const Color _kTeal = Color(0xFF6BC4B2);
 
-class OTPVerificationScreen extends StatefulWidget {
+/// OTP entry is always English (and left-to-right), like the sign-in screen.
+class OTPVerificationScreen extends StatelessWidget {
   final String phoneNumber;
 
   const OTPVerificationScreen({super.key, required this.phoneNumber});
 
   @override
-  State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
+  Widget build(BuildContext context) =>
+      EnglishOnly(child: _OtpBody(phoneNumber: phoneNumber));
 }
 
-class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
+class _OtpBody extends StatefulWidget {
+  final String phoneNumber;
+
+  const _OtpBody({required this.phoneNumber});
+
+  @override
+  State<_OtpBody> createState() => _OTPVerificationScreenState();
+}
+
+class _OTPVerificationScreenState extends State<_OtpBody> {
   // Single controller — the OS autofills this reliably
   final TextEditingController _otpController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -85,7 +100,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
   Future<void> _verifyOTP() async {
     final otp = _otpController.text.trim();
     if (otp.length != 6) {
-      setState(() => _error = 'Please enter the complete 6-digit OTP');
+      setState(() => _error = context.l10n.otpEnterComplete);
       return;
     }
     if (_isLoading) return;
@@ -96,7 +111,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
     if (sdkResult['success'] != true) {
       setState(() {
         _isLoading = false;
-        _error = sdkResult['error'] ?? 'Invalid OTP';
+        _error = sdkResult['error'] ?? context.l10n.otpInvalid;
       });
       return;
     }
@@ -116,25 +131,26 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       final String userId = result['userId'] ?? '';
       final bool isNewUser = result['isNewUser'] == true;
 
-      if (isNewUser || name.trim().isEmpty) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CompleteProfileScreen(
-              role: role, phone: widget.phoneNumber, userId: userId,
-            ),
-          ),
-              (route) => false,
-        );
-      } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const MainShell()),
-          (route) => false,
-        );
-      }
+      final Widget destination = (isNewUser || name.trim().isEmpty)
+          ? CompleteProfileScreen(
+              role: role, phone: widget.phoneNumber, userId: userId)
+          : const MainShell();
+
+      final nav = Navigator.of(context);
+      void openDestination() => nav.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => destination),
+            (route) => false,
+          );
+
+      // Sign-in is always English; after it the user picks the app language
+      // (their last choice is pre-selected) and the rest of the app follows it.
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(
+            builder: (_) => LanguageScreen(onContinue: openDestination)),
+        (route) => false,
+      );
     } else {
-      setState(() => _error = result['error'] ?? 'Authentication failed');
+      setState(() => _error = result['error'] ?? context.l10n.errAuthFailed);
     }
   }
 
@@ -150,10 +166,10 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       _otpController.clear();
       _focusNode.requestFocus();
       _startTimer();
-      showAppSnack(context, 'OTP resent successfully',
+      showAppSnack(context, context.l10n.otpResent,
           type: SnackType.success);
     } else {
-      setState(() => _error = result['error'] ?? 'Failed to resend OTP');
+      setState(() => _error = result['error'] ?? context.l10n.otpResendFailed);
     }
   }
 
@@ -278,7 +294,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         _adaptiveLogo(height: 75),
                         const SizedBox(height: 24),
                         Text(
-                          "Verify your phone number",
+                          context.l10n.verifyYourPhone,
                           style: TextStyle(
                             fontSize: AppText.body,
                             color: cs.onSurface.withValues(alpha: 0.60),
@@ -318,8 +334,8 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                     child: Icon(Icons.verified_user_rounded, color: cs.primary, size: 20),
                                   ),
                                   const SizedBox(width: 14),
-                                  const Text(
-                                    'OTP Verification',
+                                  Text(
+                                    context.l10n.otpVerification,
                                     style: TextStyle(
                                       fontSize: AppText.heading,
                                       fontWeight: FontWeight.bold,
@@ -329,7 +345,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Enter the 6-digit code sent to\n+91 ${widget.phoneNumber}',
+                                '${context.l10n.otpCodeSentTo}\n+91 ${widget.phoneNumber}',
                                 style: TextStyle(
                                   fontSize: AppText.secondary,
                                   color: cs.onSurface.withValues(alpha: 0.55),
@@ -403,11 +419,11 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                           width: 24,
                                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                         )
-                                      : const Row(
+                                      : Row(
                                           mainAxisAlignment: MainAxisAlignment.center,
                                           children: [
                                             Text(
-                                              'Verify & Proceed',
+                                              context.l10n.verifyAndProceed,
                                               style: TextStyle(
                                                 fontSize: AppText.body,
                                                 fontWeight: FontWeight.bold,
@@ -425,7 +441,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                     ? TextButton(
                                         onPressed: _resendOTP,
                                         child: Text(
-                                          'Resend OTP',
+                                          context.l10n.resendOtp,
                                           style: TextStyle(
                                             color: cs.primary,
                                             fontSize: AppText.body,
@@ -434,7 +450,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                         ),
                                       )
                                     : Text(
-                                        'Resend OTP in ${_resendTimer}s',
+                                        context.l10n.resendOtpIn(_resendTimer.toString()),
                                         style: TextStyle(
                                             color: cs.onSurface.withValues(alpha: 0.4),
                                             fontSize: AppText.body),

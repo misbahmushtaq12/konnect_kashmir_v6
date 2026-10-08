@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import '../widgets/app_overlays.dart';
 import '../widgets/app_snack.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
+import 'language_screen.dart';
 import '../widgets/theme_reveal.dart';
 import '../services/api_service.dart';
 import '../static/contact_screen.dart';
@@ -77,10 +80,10 @@ class _ProfileTabState extends State<ProfileTab> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Edit profile',
+              Text(context.l10n.editProfile,
                   style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
               const SizedBox(height: 18),
-              Text('Full name',
+              Text(context.l10n.fullName,
                   style: TextStyle(
                       fontSize: AppText.secondary,
                       fontWeight: FontWeight.w600,
@@ -90,13 +93,13 @@ class _ProfileTabState extends State<ProfileTab> {
                 controller: ctrl,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your name',
+                decoration: InputDecoration(
+                  hintText: context.l10n.enterYourName,
                   prefixIcon: Icon(Icons.person_outline_rounded),
                 ),
               ),
               const SizedBox(height: 14),
-              Text('Phone: ${auth.user?.phoneNumber ?? ''}',
+              Text(context.l10n.phoneLabel(auth.user?.phoneNumber ?? ''),
                   style: TextStyle(
                       fontSize: AppText.secondary,
                       color: cs.onSurface.withValues(alpha: 0.7))),
@@ -107,7 +110,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     : () async {
                         final name = ctrl.text.trim();
                         if (name.length < 2) {
-                          showAppSnack(ctx, 'Please enter a valid name', type: SnackType.info);
+                          showAppSnack(ctx, context.l10n.validNameError, type: SnackType.info);
                           return;
                         }
                         setSheet(() => saving = true);
@@ -124,11 +127,11 @@ class _ProfileTabState extends State<ProfileTab> {
                         if (r['success'] == true) {
                           Navigator.pop(ctx);
                           if (mounted) {
-                            showAppSnack(context, 'Profile updated', type: SnackType.info);
+                            showAppSnack(context, context.l10n.profileUpdated, type: SnackType.info);
                           }
                         } else {
                           setSheet(() => saving = false);
-                          showAppSnack(ctx, "Couldn't save. Try again.", type: SnackType.info);
+                          showAppSnack(ctx, context.l10n.couldntSave, type: SnackType.info);
                         }
                       },
                 child: saving
@@ -137,7 +140,7 @@ class _ProfileTabState extends State<ProfileTab> {
                         height: 22,
                         child: CircularProgressIndicator(
                             strokeWidth: 2.4, color: Colors.white))
-                    : const Text('Save changes'),
+                    : Text(context.l10n.saveChanges),
               ),
             ],
           ),
@@ -165,21 +168,21 @@ class _ProfileTabState extends State<ProfileTab> {
       builder: (ctx) => Padding(
         padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Legal',
+              child: Text(context.l10n.legal,
                   style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
             ),
           ),
-          item(Icons.description_outlined, 'Terms of Service',
+          item(Icons.description_outlined, context.l10n.termsOfService,
               const TermsScreen(), ctx),
-          item(Icons.privacy_tip_outlined, 'Privacy Policy',
+          item(Icons.privacy_tip_outlined, context.l10n.privacyPolicy,
               const PrivacyScreen(), ctx),
-          item(Icons.currency_rupee_rounded, 'Refund Policy',
+          item(Icons.currency_rupee_rounded, context.l10n.refundPolicy,
               const RefundPolicy(), ctx),
-          item(Icons.support_agent_outlined, 'Grievance Redressal',
+          item(Icons.support_agent_outlined, context.l10n.grievanceRedressal,
               const GrievanceScreen(), ctx),
         ]),
       ));
@@ -189,9 +192,9 @@ class _ProfileTabState extends State<ProfileTab> {
   Future<void> _signOut() async {
     final ok = await showAppConfirm(
       context,
-      title: 'Sign out',
-      message: 'Are you sure you want to sign out?',
-      confirmLabel: 'Sign out',
+      title: context.l10n.signOut,
+      message: context.l10n.signOutConfirm,
+      confirmLabel: context.l10n.signOut,
       danger: true,
     );
     if (!ok || !mounted) return;
@@ -225,7 +228,7 @@ class _ProfileTabState extends State<ProfileTab> {
               padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
               children: [
                 AppHeader(
-                  title: 'Profile',
+                  title: context.l10n.navProfile,
                   actions: [if (_credits != null) CreditChip(_credits!)],
                 ),
                 const SizedBox(height: 16),
@@ -248,7 +251,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(name.isEmpty ? 'Your name' : name,
+                            Text(name.isEmpty ? context.l10n.yourName : name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -264,23 +267,24 @@ class _ProfileTabState extends State<ProfileTab> {
                 ),
                 const SizedBox(height: 18),
                 _group([
-                  _row(Icons.person_outline_rounded, 'Edit profile',
+                  _row(Icons.person_outline_rounded, context.l10n.editProfile,
                       onTap: _editProfile),
-                  _row(Icons.stars_outlined, 'Ad credits',
+                  _row(Icons.stars_outlined, context.l10n.adCredits,
                       onTap: () => _push(const AdCreditsScreen())),
-                  _row(Icons.receipt_long_outlined, 'Transaction history',
+                  _row(Icons.receipt_long_outlined, context.l10n.transactionHistory,
                       onTap: () => _push(const TransactionHistoryScreen())),
                 ]),
                 const SizedBox(height: 14),
                 _group([
                   _themeRow(),
-                  _row(Icons.gavel_rounded, 'Legal', onTap: _showLegal),
-                  _row(Icons.mail_outline_rounded, 'Contact us',
+                  _languageRow(),
+                  _row(Icons.gavel_rounded, context.l10n.legal, onTap: _showLegal),
+                  _row(Icons.mail_outline_rounded, context.l10n.contactUs,
                       onTap: () => _push(const ContactScreen())),
                 ]),
                 const SizedBox(height: 14),
                 _group([
-                  _row(Icons.logout_rounded, 'Sign out',
+                  _row(Icons.logout_rounded, context.l10n.signOut,
                       color: AppColors.danger,
                       chevron: false,
                       onTap: _signOut),
@@ -334,13 +338,13 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text('Theme',
+            child: Text(context.l10n.theme,
                 style: TextStyle(
                     fontSize: AppText.body,
                     fontWeight: FontWeight.w600,
                     color: cs.onSurface)),
           ),
-          Text(isDark ? 'Dark' : 'Light',
+          Text(isDark ? context.l10n.themeDark : context.l10n.themeLight,
               style: TextStyle(
                   fontSize: AppText.secondary, color: cs.onSurface.withValues(alpha: 0.7))),
           const SizedBox(width: 6),
@@ -351,6 +355,42 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
           ),
         ]),
+      ),
+    );
+  }
+
+  // Language: shows the current language and opens the picker.
+  Widget _languageRow() {
+    final cs = Theme.of(context).colorScheme;
+    final current = context.watch<LocaleProvider>().nativeName;
+    return InkWell(
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => const LanguageScreen(isSettings: true))),
+      child: SizedBox(
+        height: 54,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 16, end: 12),
+          child: Row(children: [
+            const Icon(Icons.translate_rounded, color: AppColors.primary, size: 22),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(context.l10n.language,
+                  style: TextStyle(
+                      fontSize: AppText.body,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface)),
+            ),
+            Text(current,
+                style: TextStyle(
+                    fontSize: AppText.secondary,
+                    color: cs.onSurface.withValues(alpha: 0.7))),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right_rounded,
+                color: cs.onSurface.withValues(alpha: 0.35)),
+          ]),
+        ),
       ),
     );
   }

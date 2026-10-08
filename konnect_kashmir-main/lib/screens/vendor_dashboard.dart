@@ -1,6 +1,7 @@
 import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../widgets/force_ltr.dart';
 import '../widgets/app_overlays.dart';
 import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
@@ -603,7 +604,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
 
   // ══════════════════════════════════════════════════════════════════════════
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      ForceLtr(child: _buildScreen(context));
+
+  Widget _buildScreen(BuildContext context) {
     final theme = Theme.of(context);
     final auth = context.watch<AuthProvider>();
     return Scaffold(

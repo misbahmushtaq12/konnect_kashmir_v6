@@ -2,6 +2,7 @@ import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../widgets/force_ltr.dart';
 import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -556,7 +557,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ══════════════════════════════════════════════════════════════════════════
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      ForceLtr(child: _buildScreen(context));
+
+  Widget _buildScreen(BuildContext context) {
     final auth  = context.watch<AuthProvider>();
     final theme = Theme.of(context);
     final cs    = theme.colorScheme;

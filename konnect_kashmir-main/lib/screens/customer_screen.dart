@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
+import '../l10n/category_names.dart';
 import '../widgets/app_overlays.dart';
 import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
@@ -31,14 +33,14 @@ class CustomerScreen extends StatefulWidget {
   /// Pre-fills the search box (e.g. tapping a provider on Home).
   final String? initialSearch;
 
-  /// Opens with the "Saved providers only" filter on.
+  /// Opens with the context.l10n.savedProvidersOnly filter on.
   final bool initialFavoritesOnly;
 
   /// Opens the "watch an ad for credits" sheet once data has loaded.
   final bool openAdsOnStart;
 
   /// False while another bottom-nav tab is showing (Home stays alive in an
-  /// IndexedStack); leaving Home collapses the "Our services" grid.
+  /// IndexedStack); leaving Home collapses the context.l10n.ourServices grid.
   final bool isActive;
 
   /// Avatar tap on the Home tab: switch to the Profile tab instead of pushing.
@@ -61,7 +63,7 @@ class _HomeScreenState extends State<CustomerScreen>
     with SingleTickerProviderStateMixin {
   bool _showAllCategories = false;
 
-  // Temporary UI state only: collapse "Our services" whenever Home is left,
+  // Temporary UI state only: collapse context.l10n.ourServices whenever Home is left,
   // either by switching bottom-nav tab or by another route covering Home.
   Animation<double>? _coveringRoute;
 
@@ -218,7 +220,7 @@ class _HomeScreenState extends State<CustomerScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            query.isEmpty ? 'Search vendors...' : query,
+                            query.isEmpty ? context.l10n.searchVendors : query,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -233,11 +235,11 @@ class _HomeScreenState extends State<CustomerScreen>
                   const SizedBox(height: 8),
                   Row(children: [
                     chip(Icons.location_city_outlined,
-                        selectedDistrictName ?? 'All districts',
+                        selectedDistrictName ?? context.l10n.allDistricts,
                         selectedDistrictId != null, _showDistrictSheet),
                     const SizedBox(width: 8),
                     chip(Icons.place_outlined,
-                        selectedLocalityName ?? 'All localities',
+                        selectedLocalityName ?? context.l10n.allLocalities,
                         selectedLocalityId != null, _showLocalitySheet),
                   ]),
                 ]),
@@ -778,7 +780,7 @@ class _HomeScreenState extends State<CustomerScreen>
     final watchable = _watchableAds;
     final cs = Theme.of(context).colorScheme;
     if (watchable.isEmpty) {
-      showAppSnack(context, 'No ads available right now.', type: SnackType.success);
+      showAppSnack(context, context.l10n.snackNoAds, type: SnackType.success);
       return;
     }
     await showAppSheet(
@@ -1127,11 +1129,11 @@ class _HomeScreenState extends State<CustomerScreen>
   String _sortLabel() {
     switch (_sort) {
       case 'experience':
-        return 'Most experienced';
+        return context.l10n.sortExperienced;
       case 'price_low':
         return 'Price: low to high';
       default:
-        return 'Newest';
+        return context.l10n.sortNewest;
     }
   }
 
@@ -1184,8 +1186,8 @@ class _HomeScreenState extends State<CustomerScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  const Expanded(
-                    child: Text('Filters',
+                  Expanded(
+                    child: Text(context.l10n.filters,
                         style: TextStyle(
                             fontSize: AppText.title, fontWeight: FontWeight.w800)),
                   ),
@@ -1197,10 +1199,10 @@ class _HomeScreenState extends State<CustomerScreen>
                       fav = false;
                       sort = 'newest';
                     }),
-                    child: const Text('Reset'),
+                    child: Text(context.l10n.reset),
                   ),
                 ]),
-                label('District'),
+                label(context.l10n.district),
                 DropdownButtonFormField<String?>(
                   key: ValueKey('district-$districtValue'),
                   initialValue: districtValue,
@@ -1209,8 +1211,8 @@ class _HomeScreenState extends State<CustomerScreen>
                     prefixIcon: Icon(Icons.location_city_outlined),
                   ),
                   items: [
-                    const DropdownMenuItem<String?>(
-                        value: null, child: Text('All districts')),
+                    DropdownMenuItem<String?>(
+                        value: null, child: Text(context.l10n.allDistricts)),
                     ..._districts.map((d) => DropdownMenuItem<String?>(
                           value: d['id']?.toString(),
                           child: Text(d['name']?.toString() ?? '',
@@ -1230,7 +1232,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     if (ctx.mounted) setSheet(() {});
                   },
                 ),
-                label('Locality'),
+                label(context.l10n.locality),
                 DropdownButtonFormField<String?>(
                   key: ValueKey('locality-$dId-$localityValue-${_localities.length}'),
                   initialValue: localityValue,
@@ -1238,16 +1240,16 @@ class _HomeScreenState extends State<CustomerScreen>
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.place_outlined),
                     hintText: dId == null
-                        ? 'Select a district first'
+                        ? context.l10n.selectDistrictFirst
                         : (isLoadingLocalities
-                            ? 'Loading…'
-                            : 'All localities'),
+                            ? context.l10n.loading
+                            : context.l10n.allLocalities),
                   ),
                   items: dId == null
                       ? <DropdownMenuItem<String?>>[]
                       : [
-                          const DropdownMenuItem<String?>(
-                              value: null, child: Text('All localities')),
+                          DropdownMenuItem<String?>(
+                              value: null, child: Text(context.l10n.allLocalities)),
                           ..._localities.map((l) => DropdownMenuItem<String?>(
                                 value: l['id']?.toString(),
                                 child: Text(l['name']?.toString() ?? '',
@@ -1263,7 +1265,7 @@ class _HomeScreenState extends State<CustomerScreen>
                   contentPadding: EdgeInsets.zero,
                   value: ver,
                   onChanged: (v) => setSheet(() => ver = v),
-                  title: const Text('Verified providers only'),
+                  title: Text(context.l10n.verifiedProvidersOnly),
                   secondary: const Icon(Icons.verified_outlined,
                       color: AppColors.primary),
                 ),
@@ -1271,15 +1273,15 @@ class _HomeScreenState extends State<CustomerScreen>
                   contentPadding: EdgeInsets.zero,
                   value: fav,
                   onChanged: (v) => setSheet(() => fav = v),
-                  title: const Text('Saved providers only'),
+                  title: Text(context.l10n.savedProvidersOnly),
                   secondary: const Icon(Icons.favorite_border_rounded,
                       color: AppColors.primary),
                 ),
-                label('Sort by'),
+                label(context.l10n.sortBy),
                 Wrap(spacing: 8, runSpacing: 8, children: [
-                  for (final o in const [
-                    ['newest', 'Newest'],
-                    ['experience', 'Most experienced'],
+                  for (final o in [
+                    ['newest', context.l10n.sortNewest],
+                    ['experience', context.l10n.sortExperienced],
                     ['price_low', 'Price: low to high'],
                   ])
                     ChoiceChip(
@@ -1291,7 +1293,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Show results'),
+                  child: Text(context.l10n.showResults),
                 ),
               ],
             ),
@@ -1344,7 +1346,7 @@ class _HomeScreenState extends State<CustomerScreen>
           mode: LaunchMode.externalApplication);
     } catch (_) {
       if (!mounted) return;
-      showAppSnack(context, "Couldn't open WhatsApp", type: SnackType.info);
+      showAppSnack(context, context.l10n.couldntOpenWhatsapp, type: SnackType.info);
     }
   }
 
@@ -1380,7 +1382,7 @@ class _HomeScreenState extends State<CustomerScreen>
             },
             style: TextStyle(color: cs.onSurface, fontSize: AppText.body),
             decoration: InputDecoration(
-              hintText: 'Search vendors...',
+              hintText: context.l10n.searchVendors,
               hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.62)),
               filled: false,
               isDense: true,
@@ -1407,11 +1409,11 @@ class _HomeScreenState extends State<CustomerScreen>
   Widget _buildDistrictChip() {
     return Wrap(spacing: 10, runSpacing: 10, children: [
       _filterChip(Icons.location_city_outlined,
-          selectedDistrictName ?? 'All districts', selectedDistrictId != null,
+          selectedDistrictName ?? context.l10n.allDistricts, selectedDistrictId != null,
           _showDistrictSheet),
       _filterChip(
           Icons.place_outlined,
-          selectedLocalityName ?? 'All localities',
+          selectedLocalityName ?? context.l10n.allLocalities,
           selectedLocalityId != null,
           _showLocalitySheet),
     ]);
@@ -1487,13 +1489,13 @@ class _HomeScreenState extends State<CustomerScreen>
               shrinkWrap: true,
               padding: const EdgeInsets.symmetric(vertical: 12),
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
-                  child: Text('Filter by district',
+                  child: Text(context.l10n.filterByDistrict,
                       style:
                           TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.w800)),
                 ),
-                option('All districts', selectedDistrictId == null, null),
+                option(context.l10n.allDistricts, selectedDistrictId == null, null),
                 for (final d in _districts)
                   option(d['name']?.toString() ?? '',
                       selectedDistrictId == d['id']?.toString(), d),
@@ -1517,7 +1519,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
   Future<void> _showLocalitySheet() async {
     if (selectedDistrictId == null) {
-      showAppSnack(context, 'Select a district first', type: SnackType.info);
+      showAppSnack(context, context.l10n.selectDistrictFirst, type: SnackType.info);
       return;
     }
     if (_localities.isEmpty && !isLoadingLocalities) {
@@ -1552,11 +1554,11 @@ class _HomeScreenState extends State<CustomerScreen>
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                  child: Text('Localities in $selectedDistrictName',
+                  child: Text(context.l10n.localitiesIn(selectedDistrictName ?? ''),
                       style: const TextStyle(
                           fontSize: AppText.heading, fontWeight: FontWeight.w800)),
                 ),
-                option('All localities', selectedLocalityId == null, null),
+                option(context.l10n.allLocalities, selectedLocalityId == null, null),
                 for (final l in _localities)
                   option(l['name']?.toString() ?? '',
                       selectedLocalityId == l['id']?.toString(), l),
@@ -1597,8 +1599,8 @@ class _HomeScreenState extends State<CustomerScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-          title: 'Our services',
-          actionLabel: _showAllCategories ? 'Show less' : 'Show all',
+          title: context.l10n.ourServices,
+          actionLabel: _showAllCategories ? context.l10n.showLess : context.l10n.showAll,
           onAction: () =>
               setState(() => _showAllCategories = !_showAllCategories),
         ),
@@ -1627,6 +1629,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAll = slug == 'all';
+    final label = isAll ? context.l10n.categoryAll : categoryName(context, slug, name);
     final isSelected = isAll 
         ? selectedBrowseCategory == null 
         : selectedBrowseCategory == slug;
@@ -1662,7 +1665,7 @@ class _HomeScreenState extends State<CustomerScreen>
             const SizedBox(height: 6),
             Expanded(
               child: Text(
-                name,
+                label,
                 maxLines: 2,
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
@@ -1721,16 +1724,16 @@ class _HomeScreenState extends State<CustomerScreen>
             ],
           ),
           const SizedBox(height: 12),
-          Text(first.isNotEmpty ? 'Salam, $first' : 'Salam',
+          Text(first.isNotEmpty ? context.l10n.greeting(first) : context.l10n.salam,
               style: TextStyle(
                   fontSize: AppText.body, color: cs.onSurface.withValues(alpha: 0.7))),
           const SizedBox(height: 6),
           Text.rich(
-            const TextSpan(children: [
-              TextSpan(text: 'Trusted local pros,\n'),
+            TextSpan(children: [
+              TextSpan(text: '${context.l10n.heroLine1}\n'),
               TextSpan(
-                  text: 'one tap away.',
-                  style: TextStyle(color: AppColors.primary)),
+                  text: context.l10n.heroLine2,
+                  style: const TextStyle(color: AppColors.primary)),
             ]),
             style: TextStyle(
               fontSize: isSmall ? 28 : 34,
@@ -1761,7 +1764,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text('Cancel',
+                  child: Text(context.l10n.cancel,
                       style:
                           TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.body)),
                 ),
@@ -1875,7 +1878,7 @@ class _HomeScreenState extends State<CustomerScreen>
       trailing = FilledButton.tonal(
         onPressed: () => Navigator.pushNamed(context, '/login'),
         style: AppButtons.compact(AppButtons.secondary),
-        child: const Text('Sign In'),
+        child: Text(context.l10n.signIn),
       );
     } else {
       trailing = InkWell(
@@ -2176,7 +2179,7 @@ class _HomeScreenState extends State<CustomerScreen>
     return Row(children: [
       Expanded(
         child: Text(
-          isLoading ? 'Finding providers…' : '$n ${n == 1 ? 'provider' : 'providers'}',
+          isLoading ? context.l10n.findingProviders : context.l10n.providerCount(n),
           style: const TextStyle(fontSize: AppText.body, fontWeight: FontWeight.w700),
         ),
       ),
@@ -2245,13 +2248,13 @@ class _HomeScreenState extends State<CustomerScreen>
                 size: 40, color: AppColors.primary),
           ),
           const SizedBox(height: 18),
-          const Text('No providers found',
+          Text(context.l10n.noProvidersFound,
               style: TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Text(
             _favoritesOnly
-                ? "You haven't saved any providers here yet."
-                : 'Try a different search or change your filters.',
+                ? context.l10n.noSavedProviders
+                : context.l10n.tryDifferentSearch,
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: cs.onSurface.withValues(alpha: 0.7), height: 1.4),
@@ -2261,7 +2264,7 @@ class _HomeScreenState extends State<CustomerScreen>
             OutlinedButton(
               onPressed: _clearAllFilters,
               style: AppButtons.secondary,
-              child: const Text('Clear all filters'),
+              child: Text(context.l10n.clearAllFilters),
             ),
           ],
         ]),
@@ -2277,7 +2280,7 @@ class _HomeScreenState extends State<CustomerScreen>
         OutlinedButton.icon(
           onPressed: () => setState(() => _visibleVendorCount += _pageSize),
           icon: const Icon(Icons.expand_more_rounded),
-          label: const Text('Show more'),
+          label: Text(context.l10n.showMore),
         ),
     ]);
   }
@@ -2300,14 +2303,17 @@ class _HomeScreenState extends State<CustomerScreen>
     final localityDisplay = vendor['localities'] is Map
         ? vendor['localities']['name']?.toString() ?? ''
         : vendor['locality']?.toString() ?? '';
-    final String serviceTypeDisplay = _serviceCategories.isNotEmpty
+    final String serviceTypeDisplay = categoryName(
+        context,
+        slug,
+        _serviceCategories.isNotEmpty
         ? _serviceCategories
                 .firstWhere(
                     (s) => (s['slug']?.toString() ?? s['id']?.toString()) == slug,
                     orElse: () => <String, dynamic>{'name': slug})['name']
                 ?.toString() ??
             slug
-        : slug;
+        : slug);
 
     final logoUrl = vendor['logo_url']?.toString();
     final isRevealed = revealedVendors[vendorId] == true;
@@ -2336,9 +2342,9 @@ class _HomeScreenState extends State<CustomerScreen>
     final tags = <Widget>[
       if (price != null) tag(Icons.currency_rupee_rounded, price.substring(1)),
       if (exp != null && exp > 0)
-        tag(Icons.work_outline_rounded, '${exp.round()} yrs'),
-      if (homeService) tag(Icons.home_outlined, 'Home visit'),
-      if (onlinePay) tag(Icons.account_balance_wallet_outlined, 'Online pay'),
+        tag(Icons.work_outline_rounded, context.l10n.yrs(exp.round().toString())),
+      if (homeService) tag(Icons.home_outlined, context.l10n.homeVisit),
+      if (onlinePay) tag(Icons.account_balance_wallet_outlined, context.l10n.onlinePay),
     ];
 
     Widget action;
@@ -2355,7 +2361,7 @@ class _HomeScreenState extends State<CustomerScreen>
         IconButton(
           onPressed: () => _openWhatsApp(phone),
           icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 28),
-          tooltip: 'WhatsApp',
+          tooltip: context.l10n.whatsapp,
           color: const Color(0xFF25D366),
         ),
         const SizedBox(width: 8),
@@ -2363,7 +2369,7 @@ class _HomeScreenState extends State<CustomerScreen>
           onPressed: () => _dialNumber(phone),
           style: AppButtons.compact(AppButtons.primary),
           icon: const Icon(Icons.phone_rounded, size: 18),
-          label: const Text('Call'),
+          label: Text(context.l10n.call),
         ),
       ]);
     } else {
@@ -2448,7 +2454,7 @@ class _HomeScreenState extends State<CustomerScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(isRevealed ? 'Unlocked' : 'Contact',
+                Text(isRevealed ? context.l10n.unlocked : context.l10n.contact,
                     style: TextStyle(
                         fontSize: AppText.caption,
                         color: cs.onSurface.withValues(alpha: 0.66))),
@@ -2487,7 +2493,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     size: 20,
                     color: cs.onSurface.withValues(alpha: 0.7)),
                 const SizedBox(width: 4),
-                Text(expanded ? 'Hide' : 'Rate, review or report',
+                Text(expanded ? context.l10n.hide : context.l10n.rateReviewReport,
                     style: TextStyle(
                         fontSize: AppText.secondary,
                         color: cs.onSurface.withValues(alpha: 0.7))),
@@ -2526,7 +2532,7 @@ class _HomeScreenState extends State<CustomerScreen>
         onPressed: () => Navigator.pushNamed(context, '/login'),
         style: AppButtons.compact(AppButtons.secondary),
         icon: const Icon(Icons.lock_outline, size: 17),
-        label: const Text('Sign in to unlock',
+        label: Text(context.l10n.signInToUnlock,
             style: TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.secondary)),
       );
 
@@ -2540,7 +2546,7 @@ class _HomeScreenState extends State<CustomerScreen>
       icon: Icon(
           hasCredit ? Icons.lock_open_outlined : Icons.play_circle_outline,
           size: 18),
-      label: Text(hasCredit ? 'Unlock · 1 credit' : 'Watch ad to unlock',
+      label: Text(hasCredit ? context.l10n.unlockOneCredit : context.l10n.watchAdToUnlock,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.secondary)),
     );
   }
@@ -2574,7 +2580,7 @@ class _HomeScreenState extends State<CustomerScreen>
     }
     final watchable = _watchableAds;
     if (watchable.isEmpty) {
-      showAppSnack(context, 'No credits & no ads available. Check back later.', type: SnackType.success);
+      showAppSnack(context, context.l10n.snackNoCreditsNoAds, type: SnackType.success);
       return;
     }
     final ad = watchable.first;
@@ -2603,7 +2609,7 @@ class _HomeScreenState extends State<CustomerScreen>
       await _doUnlockContact(vendor);
     } else {
       if (!mounted) return;
-      showAppSnack(context, 'Not enough credits after ad. Please try again.', type: SnackType.success);
+      showAppSnack(context, context.l10n.snackNotEnoughAfterAd, type: SnackType.success);
     }
   }
 
@@ -2653,7 +2659,7 @@ class _HomeScreenState extends State<CustomerScreen>
         } else {
           setState(() => _isRevealingVendor[vendorId] = false);
           showAppSnack(context, result['error']?.toString() ??
-                  'Could not unlock contact. Please try again.', type: SnackType.error);
+                  context.l10n.snackCouldNotUnlock, type: SnackType.error);
         }
       }
     } catch (e) {
@@ -2669,7 +2675,7 @@ class _HomeScreenState extends State<CustomerScreen>
         _showContactSheet(vendor, localPhone);
       } else {
         setState(() => _isRevealingVendor[vendorId] = false);
-        showAppSnack(context, 'Network error. Please try again.', type: SnackType.error);
+        showAppSnack(context, context.l10n.snackNetworkError, type: SnackType.error);
       }
     }
   }
@@ -2681,7 +2687,7 @@ class _HomeScreenState extends State<CustomerScreen>
     final double phoneFontSize =
     MediaQuery.of(context).size.width < 360 ? 20 : 28;
 
-    showAppSnack(context, 'Contact Unlocked!',
+    showAppSnack(context, context.l10n.contactUnlocked,
         type: SnackType.success, duration: const Duration(seconds: 2));
 
     showAppSheet(
@@ -2698,12 +2704,12 @@ class _HomeScreenState extends State<CustomerScreen>
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Contact Details',
+                      Text(context.l10n.contactDetails,
                           style: TextStyle(
                               color: cs.onSurface,
                               fontSize: AppText.title,
                               fontWeight: FontWeight.bold)),
-                      Text('Contact information for $name',
+                      Text(context.l10n.contactInfoFor(name.toString()),
                           style: TextStyle(
                               color: cs.onSurface.withOpacity(0.6), fontSize: AppText.secondary),
                           overflow: TextOverflow.ellipsis),
@@ -2739,7 +2745,7 @@ class _HomeScreenState extends State<CustomerScreen>
                       fontSize: phoneFontSize,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5)))
-              : Text('Phone not available',
+              : Text(context.l10n.phoneNotAvailable,
               style: TextStyle(
                   color: cs.onSurface.withOpacity(0.5), fontSize: AppText.body)),
           const SizedBox(height: 28),
@@ -2753,7 +2759,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 },
                 style: AppButtons.danger,
                 icon: const Icon(Icons.phone_in_talk, size: 22),
-                label: const Text('Call Now',
+                label: Text(context.l10n.callNow,
                     style: TextStyle(
                         fontSize: AppText.heading, fontWeight: FontWeight.bold)),
               ),
@@ -3083,7 +3089,7 @@ class _HomeScreenState extends State<CustomerScreen>
                         child: ElevatedButton(
                           onPressed: () => Navigator.pop(ctx),
                           style: AppButtons.secondary,
-                          child: Text('Cancel',
+                          child: Text(context.l10n.cancel,
                               style: TextStyle(
                                   fontSize: AppText.body,
                                   fontWeight: FontWeight.bold,

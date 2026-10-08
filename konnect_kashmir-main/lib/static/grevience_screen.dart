@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/force_ltr.dart';
 import '../theme/app_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -111,7 +112,10 @@ class GrievanceScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      ForceLtr(child: _buildScreen(context));
+
+  Widget _buildScreen(BuildContext context) {
     // ── Theme helpers ──────────────────────────────────────────────────
     final theme = Theme.of(context);
     final cs = theme.colorScheme;

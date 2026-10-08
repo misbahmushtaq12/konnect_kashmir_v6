@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import 'app_overlays.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -7,7 +8,7 @@ import '../theme/app_theme.dart';
 // App accent (same teal as the rest of the UI).
 const Color _kAccent = AppColors.primary;
 
-/// "Contact Details" sheet shown after a lead's phone number is revealed.
+/// context.l10n.contactDetails sheet shown after a lead's phone number is revealed.
 /// Uses the app theme (solid bottom-sheet surface), so it matches Light/Dark.
 Future<void> showLeadContactSheet(
     BuildContext context, String name, String phone) {
@@ -26,7 +27,7 @@ Future<void> showLeadContactSheet(
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Contact Details',
+                      Text(context.l10n.contactDetails,
                           style: TextStyle(
                               color: cs.onSurface,
                               fontSize: AppText.title,
@@ -68,7 +69,7 @@ Future<void> showLeadContactSheet(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.5))
-                : Text('Phone not available',
+                : Text(context.l10n.phoneNotAvailable,
                     style: TextStyle(
                         color: cs.onSurface.withValues(alpha: 0.66),
                         fontSize: AppText.body)),
@@ -84,7 +85,7 @@ Future<void> showLeadContactSheet(
                   },
                   style: AppButtons.primary,
                   icon: const Icon(Icons.phone_in_talk, size: 22),
-                  label: const Text('Call Now',
+                  label: Text(context.l10n.callNow,
                       style:
                           TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.bold)),
                 ),

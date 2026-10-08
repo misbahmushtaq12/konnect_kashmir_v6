@@ -1,5 +1,6 @@
 import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import '../widgets/force_ltr.dart';
 import 'legal_accordion.dart';
 import 'grevience_screen.dart';
 
@@ -28,7 +29,10 @@ class RefundPolicy extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      ForceLtr(child: _buildScreen(context));
+
+  Widget _buildScreen(BuildContext context) {
     final theme = Theme.of(context);
     final cs    = theme.colorScheme;
 

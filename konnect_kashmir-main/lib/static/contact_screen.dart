@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -68,7 +69,7 @@ class ContactScreen extends StatelessWidget {
                           Icon(Icons.arrow_back, color: strongText, size: 24),
                           const SizedBox(width: 16),
                           Text(
-                            'Back to Home',
+                            context.l10n.backToHome,
                             style: TextStyle(
                               color: strongText,
                               fontSize: AppText.heading,
@@ -90,7 +91,7 @@ class ContactScreen extends StatelessWidget {
                         const SizedBox(height: 24),
 
                         Text(
-                          'Contact Us',
+                          context.l10n.contactUs,
                           style: TextStyle(
                             fontSize: 36,
                             fontWeight: FontWeight.bold,
@@ -106,7 +107,7 @@ class ContactScreen extends StatelessWidget {
 
                         _buildContactCard(
                           icon: Icons.location_on,
-                          title: 'Our Office',
+                          title: context.l10n.ourOffice,
                           content:
                           '101, Iram Tower, Opp Police HQS,\nKaran Nagar, Srinagar 190010',
                           teal: teal,
@@ -117,7 +118,7 @@ class ContactScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         _buildContactCard(
                           icon: Icons.email_outlined,
-                          title: 'Email',
+                          title: context.l10n.email,
                           content: 'info@konnectkashmir.com',
                           teal: teal,
                           strongText: strongText,
@@ -128,7 +129,7 @@ class ContactScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         _buildContactCard(
                           icon: Icons.phone_outlined,
-                          title: 'Call Us',
+                          title: context.l10n.callUs,
                           content: '+91 9055566624',
                           teal: teal,
                           strongText: strongText,
@@ -138,8 +139,8 @@ class ContactScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         _buildContactCard(
                           icon: Icons.chat_bubble_outline,
-                          title: 'WhatsApp',
-                          content: 'Chat with us on WhatsApp',
+                          title: context.l10n.whatsapp,
+                          content: context.l10n.chatWithUsWhatsapp,
                           teal: teal,
                           strongText: strongText,
                           cardBorder: cardBorder,
@@ -147,6 +148,7 @@ class ContactScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         _buildBusinessHoursCard(
+                          context,
                           strongText: strongText,
                           subtleText: subtleText,
                           cardBorder: cardBorder,
@@ -214,7 +216,8 @@ class ContactScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBusinessHoursCard({
+  Widget _buildBusinessHoursCard(
+    BuildContext context, {
     required Color strongText,
     required Color subtleText,
     required Color cardBorder,
@@ -231,7 +234,7 @@ class ContactScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Business Hours',
+            context.l10n.businessHours,
             style: TextStyle(
               fontSize: AppText.heading,
               fontWeight: FontWeight.bold,
@@ -247,13 +250,13 @@ class ContactScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Monday - Saturday',
+                    Text(context.l10n.mondaySaturday,
                         style: TextStyle(
                             fontSize: AppText.body,
                             color: subtleText,
                             fontWeight: FontWeight.w500)),
                     const SizedBox(height: 12),
-                    Text('Sunday',
+                    Text(context.l10n.sunday,
                         style: TextStyle(
                             fontSize: AppText.body,
                             color: subtleText,
@@ -271,7 +274,7 @@ class ContactScreen extends StatelessWidget {
                             color: subtleText,
                             fontWeight: FontWeight.w600)),
                     const SizedBox(height: 12),
-                    Text('Closed',
+                    Text(context.l10n.closed,
                         style: TextStyle(
                             fontSize: AppText.body,
                             color: subtleText,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import '../widgets/app_snack.dart';
 import 'package:provider/provider.dart';
 
@@ -96,7 +97,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ad credits')),
+      appBar: AppBar(title: Text(context.l10n.adCredits)),
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: _load,
@@ -121,18 +122,28 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Your balance',
+                        Text(context.l10n.yourBalance,
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: AppText.secondary)),
                         const SizedBox(height: 2),
-                        Text(
-                          _credits == null ? '—' : '$_credits credits',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800),
-                        ),
+                        if (_credits == null)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 4),
+                            child: Skeleton(
+                                width: 130,
+                                height: 28,
+                                radius: 8,
+                                baseColor: Colors.white),
+                          )
+                        else
+                          Text(
+                            '$_credits credits',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800),
+                          ),
                       ]),
                 ),
               ]),
@@ -143,37 +154,70 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
                     fontSize: AppText.caption,
                     color: cs.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 22),
-            const Text('Watch & earn',
+            Text(context.l10n.watchAndEarn,
                 style: TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             if (_loading)
-              for (var i = 0; i < 2; i++) ...[
-                const Skeleton(height: 84, radius: AppRadius.lg),
-                const SizedBox(height: 10),
-              ]
+              for (var i = 0; i < 3; i++) _adSkeletonCard()
             else if (_ads.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 36),
                 child: Column(children: [
-                  Icon(Icons.ondemand_video_outlined,
-                      size: 48, color: cs.onSurface.withValues(alpha: 0.35)),
-                  const SizedBox(height: 12),
-                  const Text('No ads available right now',
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.ondemand_video_outlined,
+                        size: 40, color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(context.l10n.noAdsNow,
                       style:
                           TextStyle(fontSize: AppText.body, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text('Check back later for new ways to earn credits.',
+                  Text(context.l10n.noAdsHint,
                       style: TextStyle(
                           color: cs.onSurface.withValues(alpha: 0.6))),
                 ]),
               )
             else
-              for (final ad in _ads) _adCard(ad),
+              for (var i = 0; i < _ads.length; i++)
+                FadeSlideIn(
+                  delay: Duration(milliseconds: 70 * i),
+                  child: _adCard(_ads[i]),
+                ),
           ],
         ),
       ),
     );
   }
+
+  // Looks like a real ad card (thumbnail, two text lines, button) so the layout
+  // does not jump when the data arrives.
+  Widget _adSkeletonCard() => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: AppCard(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            const Skeleton(width: 48, height: 48, radius: AppRadius.md),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Skeleton(height: 14, radius: 6),
+                    SizedBox(height: 8),
+                    Skeleton(width: 110, height: 12, radius: 6),
+                  ]),
+            ),
+            const SizedBox(width: 12),
+            const Skeleton(width: 74, height: 38, radius: 999),
+          ]),
+        ),
+      );
 
   Widget _adCard(Map<String, dynamic> ad) {
     final cs = Theme.of(context).colorScheme;
@@ -202,7 +246,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text((ad['title'] ?? 'Sponsored video').toString(),
+              Text((ad['title'] ?? context.l10n.sponsoredVideo).toString(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -226,7 +270,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
                   : ElevatedButton(
                       onPressed: () => _watch(ad),
                       style: AppButtons.compact(AppButtons.primary),
-                      child: const Text('Watch'),
+                      child: Text(context.l10n.watchBtn),
                     ),
         ]),
       ),
