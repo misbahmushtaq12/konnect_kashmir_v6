@@ -288,10 +288,14 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String providerCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count فراہم کنندگان',
+      other: '$countString فراہم کنندگان',
       one: '1 فراہم کنندہ',
     );
     return '$_temp0';
@@ -344,6 +348,9 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get unlockOneCredit => 'ان لاک · 1 کریڈٹ';
+
+  @override
+  String get unlockContact => 'رابطہ ان لاک کریں';
 
   @override
   String get watchAdToUnlock => 'ان لاک کے لیے اشتہار دیکھیں';
@@ -452,10 +459,13 @@ class AppLocalizationsUr extends AppLocalizations {
   String get errSendOtp => 'OTP بھیجنے میں ناکامی';
 
   @override
-  String get otpEnterComplete => 'براہِ کرم پورا 6 ہندسوں کا OTP درج کریں';
+  String get otpEnterComplete => 'براہِ کرم پورا 4 ہندسوں کا OTP درج کریں';
 
   @override
   String get otpInvalid => 'غلط OTP';
+
+  @override
+  String get otpExpired => 'یہ OTP ختم ہو چکا ہے۔ براہِ کرم نیا OTP منگوائیں۔';
 
   @override
   String get otpResendFailed => 'OTP دوبارہ بھیجنے میں ناکامی';
@@ -467,7 +477,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get otpVerification => 'OTP کی تصدیق';
 
   @override
-  String get otpCodeSentTo => 'اس نمبر پر بھیجا گیا 6 ہندسوں کا کوڈ درج کریں';
+  String get otpCodeSentTo => 'اس نمبر پر بھیجا گیا 4 ہندسوں کا کوڈ درج کریں';
 
   @override
   String get verifyAndProceed => 'تصدیق کریں اور آگے بڑھیں';
@@ -722,4 +732,131 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get categoryAll => 'سب';
+
+  @override
+  String get navDeen => 'دین';
+
+  @override
+  String get addCredit => 'کریڈٹ شامل کریں';
+
+  @override
+  String get deenPrayerTimes => 'نماز کے اوقات';
+
+  @override
+  String get prayerFajr => 'فجر';
+
+  @override
+  String get prayerDhuhr => 'ظہر';
+
+  @override
+  String get prayerAsr => 'عصر';
+
+  @override
+  String get prayerMaghrib => 'مغرب';
+
+  @override
+  String get prayerIsha => 'عشاء';
+
+  @override
+  String get deenCurrentLocation => 'موجودہ مقام';
+
+  @override
+  String get deenLocating => 'آپ کا مقام تلاش کیا جا رہا ہے…';
+
+  @override
+  String deenNextPrayer(String name, String time) {
+    return 'اگلی: $name، $time میں';
+  }
+
+  @override
+  String get deenQibla => 'قبلہ';
+
+  @override
+  String deenQiblaAngle(String deg) {
+    return 'قبلہ زاویہ: شمال سے $deg°';
+  }
+
+  @override
+  String get deenQiblaAligned => 'آپ کا رخ قبلے کی طرف ہے';
+
+  @override
+  String get deenQiblaHint =>
+      'فون کو سیدھا پکڑیں اور تیر کے اوپر کی طرف آنے تک گھمائیں';
+
+  @override
+  String get deenCompassMissing =>
+      'اس فون میں کمپاس دستیاب نہیں۔ اوپر دیا گیا زاویہ کمپاس کے ساتھ استعمال کریں۔';
+
+  @override
+  String get deenLocationOff =>
+      'نماز کے اوقات اور قبلے کی سمت دیکھنے کے لیے لوکیشن آن کریں';
+
+  @override
+  String get deenLocationDenied =>
+      'نماز کے اوقات اور قبلے کی سمت کے لیے لوکیشن کی اجازت درکار ہے';
+
+  @override
+  String get deenLocationBlocked =>
+      'لوکیشن بند ہے۔ ایپ کی سیٹنگز سے اجازت دیں۔';
+
+  @override
+  String get deenAllowLocation => 'لوکیشن کی اجازت دیں';
+
+  @override
+  String get deenOpenSettings => 'سیٹنگز کھولیں';
+
+  @override
+  String get deenQuran => 'قرآن';
+
+  @override
+  String get deenAudio => 'آڈیو';
+
+  @override
+  String get deenDuas => 'دعائیں';
+
+  @override
+  String get deenIslamicAudio => 'اسلامی آڈیو';
+
+  @override
+  String get deenContinueReading => 'پڑھنا جاری رکھیں';
+
+  @override
+  String get deenStartReading => 'قرآن پڑھنا شروع کریں';
+
+  @override
+  String deenLastRead(String surah, String verse) {
+    return '$surah · آیت $verse';
+  }
+
+  @override
+  String get deenSearchSurah => 'سورہ تلاش کریں';
+
+  @override
+  String deenVerses(String count) {
+    return '$count آیات';
+  }
+
+  @override
+  String get deenShowEarlier => 'پچھلی آیات دکھائیں';
+
+  @override
+  String get deenReciter => 'قاری';
+
+  @override
+  String get deenAudioError => 'یہ تلاوت نہیں چل سکی۔ انٹرنیٹ چیک کریں۔';
+
+  @override
+  String deenDuaSource(String source) {
+    return 'ماخذ: $source';
+  }
+
+  @override
+  String txnReference(String id) {
+    return 'حوالہ #$id';
+  }
+
+  @override
+  String txnStatusIs(String status) {
+    return 'حالت: $status';
+  }
 }

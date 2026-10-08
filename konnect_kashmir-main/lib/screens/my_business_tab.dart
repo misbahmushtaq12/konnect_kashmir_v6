@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/live_sync.dart';
 import '../widgets/app_chip.dart';
 import '../widgets/category_meta.dart';
 import '../widgets/app_header.dart';
@@ -44,7 +45,9 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   bool _loading = true;
   String? _errorMsg;
   String? _expandedBizId;
-  int? _credits; // shown in the header; null until first loaded
+  // The one shared balance (live from the backend); null until first loaded.
+  int? get _credits => context.read<LiveSync>().credits;
+  int? _leadsTick;
 
   // Revealed lead phones stay for this session so re-opening never re-charges.
   final Map<String, String> _revealedPhones = {};
@@ -199,7 +202,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         await _ensureCreditSpent(auth, credits);
         await _rememberRevealed(auth, leadId);
         HapticFeedback.lightImpact(); // gentle buzz: contact revealed
-        _loadCredits();
+        _loadCredits(force: true);
+        context.read<LiveSync>().transactionHappened();
         // Stop the button spinner BEFORE the sheet opens, not after it closes.
         setState(() {
           _revealedPhones[leadId] = phone;
@@ -223,6 +227,15 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  // New lead activity reported by the backend refreshes the leads at once.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final tick = context.watch<LiveSync>().leadsTick;
+    if (_leadsTick != null && tick != _leadsTick) _load(silent: true);
+    _leadsTick = tick;
   }
 
   @override
@@ -324,6 +337,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<LiveSync>(); // rebuild when the shared balance changes
     final size = MediaQuery.of(context).size;
     final hPad = size.width > 600 ? size.width * 0.12 : 20.0;
 
@@ -374,19 +388,14 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   }
 
   // ── Credits ───────────────────────────────────────────────────────────────
-  Future<void> _loadCredits() async {
-    try {
-      final auth = context.read<AuthProvider>();
-      final c = await ApiService(token: auth.accessToken, userId: auth.userId)
-          .getUserCredits();
-      if (mounted && c != null) setState(() => _credits = c);
-    } catch (_) {}
+  Future<void> _loadCredits({bool force = false}) async {
+    await context.read<LiveSync>().refreshCredits(force: force);
   }
 
   Future<void> _openAds() async {
     await Navigator.push(
         context, MaterialPageRoute(builder: (_) => const AdCreditsScreen()));
-    if (mounted) _loadCredits();
+    if (mounted) _loadCredits(force: true);
   }
 
   Widget _outOfCreditsBanner() {
@@ -708,16 +717,18 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
               ),
             ]),
           ),
-        for (var i = 0; i < leads.length; i++) ...[
-          if (i > 0)
-            Divider(
-                height: 1,
-                indent: 69,
-                endIndent: 16,
-                color: cs.onSurface.withValues(alpha: 0.06)),
-          _leadRow(leads[i], bizId),
-        ],
-        const SizedBox(height: 4),
+        // Each lead is its own card with a light border.
+        for (var i = 0; i < leads.length; i++)
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+            decoration: BoxDecoration(
+              color: AppColors.solid(cs),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: cs.onSurface.withValues(alpha: 0.12)),
+            ),
+            child: _leadRow(leads[i], bizId),
+          ),
+        const SizedBox(height: 12),
       ],
     ]),
     );

@@ -9,7 +9,6 @@ import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
 import '../services/auth_service.dart';
-import '../providers/locale_provider.dart';
 import 'language_screen.dart';
 import 'main_shell.dart';
 
@@ -42,7 +41,8 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
 
   bool _isLoading = false;
   String? _error;
-  int _resendTimer = 60;
+  int _resendTimer = AuthService.resendWait.inSeconds;
+  DateTime _otpSentAt = DateTime.now();
   bool _canResend = false;
   Timer? _timer;
 
@@ -55,7 +55,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
 
   void _onOtpChanged() {
     final val = _otpController.text;
-    if (val.length == 6 && !_isLoading) {
+    if (val.length == AuthService.otpLength && !_isLoading) {
       // Small delay so the UI renders the filled boxes before verifying
       Future.delayed(const Duration(milliseconds: 120), _verifyOTP);
     }
@@ -64,8 +64,9 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
 
   void _startTimer() {
     setState(() {
-      _resendTimer = 60;
+      _resendTimer = AuthService.resendWait.inSeconds;
       _canResend = false;
+      _otpSentAt = DateTime.now();
     });
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -85,7 +86,6 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
     _otpController.removeListener(_onOtpChanged);
     _otpController.dispose();
     _focusNode.dispose();
-    AuthService.clearSession();
     super.dispose();
   }
 
@@ -99,7 +99,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
   // ── OTP verify ─────────────────────────────────────────────────────────────
   Future<void> _verifyOTP() async {
     final otp = _otpController.text.trim();
-    if (otp.length != 6) {
+    if (otp.length != AuthService.otpLength) {
       setState(() => _error = context.l10n.otpEnterComplete);
       return;
     }
@@ -107,20 +107,17 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
 
     setState(() { _isLoading = true; _error = null; });
 
-    final sdkResult = await AuthService.verifyOTP(otp);
-    if (sdkResult['success'] != true) {
+    // An OTP is valid for 5 minutes; an older one is never submitted.
+    if (DateTime.now().difference(_otpSentAt) > AuthService.otpValidity) {
       setState(() {
         _isLoading = false;
-        _error = sdkResult['error'] ?? context.l10n.otpInvalid;
+        _error = context.l10n.otpExpired;
       });
       return;
     }
 
     final authProvider = context.read<AuthProvider>();
-    final result = await authProvider.verifyOTPFromSDK(
-      sdkResult['accessToken'] as String,
-      widget.phoneNumber,
-    );
+    final result = await authProvider.verifyOTP(widget.phoneNumber, otp);
 
     setState(() => _isLoading = false);
     if (!mounted) return;
@@ -173,7 +170,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
     }
   }
 
-  // ── Custom 6-box display (purely visual, tapping opens the hidden field) ──
+  // ── Custom 4-box display (purely visual, tapping opens the hidden field) ──
   Widget _buildOtpBoxes(double boxSize, double fontSize) {
     final String current = _otpController.text;
     final bool isFocused = _focusNode.hasFocus;
@@ -182,10 +179,10 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
       onTap: () => _focusNode.requestFocus(),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List.generate(6, (index) {
+        children: List.generate(AuthService.otpLength, (index) {
           final bool hasDigit = index < current.length;
           final bool isActive = isFocused &&
-              (index == current.length || (index == 5 && current.length == 6));
+              (index == current.length || (index == AuthService.otpLength - 1 && current.length == AuthService.otpLength));
 
           return AnimatedContainer(
             duration: const Duration(milliseconds: 150),
@@ -238,7 +235,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
     );
   }
 
-  Widget _adaptiveLogo({double height = 75}) {
+  Widget _adaptiveLogo({double height = 120}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     Widget logo = Image.asset('assets/images/konnectkashmir.png', height: height);
     if (isDark) {
@@ -283,7 +280,6 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
                           alignment: Alignment.centerLeft,
                           child: IconButton(
                             onPressed: () {
-                              AuthService.clearSession();
                               Navigator.pop(context);
                             },
                             icon: Icon(Icons.arrow_back, color: cs.onSurface),
@@ -291,7 +287,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
                         ),
                         const SizedBox(height: 10),
                         // Adaptive Logo
-                        _adaptiveLogo(height: 75),
+                        _adaptiveLogo(height: 120),
                         const SizedBox(height: 24),
                         Text(
                           context.l10n.verifyYourPhone,
@@ -354,7 +350,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
                               ),
                               const SizedBox(height: 28),
                               
-                              // Visual 6 boxes + hidden real input
+                              // Visual 4 boxes + hidden real input
                               Stack(
                                 children: [
                                   _buildOtpBoxes(otpBoxSize, otpFontSize),
@@ -366,13 +362,13 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
                                           controller: _otpController,
                                           focusNode: _focusNode,
                                           keyboardType: TextInputType.number,
-                                          maxLength: 6,
+                                          maxLength: AuthService.otpLength,
                                           autofillHints: const [AutofillHints.oneTimeCode],
                                           enableSuggestions: true,
                                           autocorrect: false,
                                           inputFormatters: [
                                             FilteringTextInputFormatter.digitsOnly,
-                                            LengthLimitingTextInputFormatter(6),
+                                            LengthLimitingTextInputFormatter(AuthService.otpLength),
                                           ],
                                           decoration: const InputDecoration(
                                             counterText: '',

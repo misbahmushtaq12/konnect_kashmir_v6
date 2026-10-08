@@ -284,10 +284,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String providerCount(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count providers',
+      other: '$countString providers',
       one: '1 provider',
     );
     return '$_temp0';
@@ -340,6 +344,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unlockOneCredit => 'Unlock · 1 credit';
+
+  @override
+  String get unlockContact => 'Unlock Contact';
 
   @override
   String get watchAdToUnlock => 'Watch ad to unlock';
@@ -449,10 +456,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errSendOtp => 'Failed to send OTP';
 
   @override
-  String get otpEnterComplete => 'Please enter the complete 6-digit OTP';
+  String get otpEnterComplete => 'Please enter the complete 4-digit OTP';
 
   @override
   String get otpInvalid => 'Invalid OTP';
+
+  @override
+  String get otpExpired => 'This OTP has expired. Please request a new one.';
 
   @override
   String get otpResendFailed => 'Failed to resend OTP';
@@ -464,7 +474,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get otpVerification => 'OTP Verification';
 
   @override
-  String get otpCodeSentTo => 'Enter the 6-digit code sent to';
+  String get otpCodeSentTo => 'Enter the 4-digit code sent to';
 
   @override
   String get verifyAndProceed => 'Verify & Proceed';
@@ -716,4 +726,132 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get categoryAll => 'All';
+
+  @override
+  String get navDeen => 'Deen';
+
+  @override
+  String get addCredit => 'Add Credit';
+
+  @override
+  String get deenPrayerTimes => 'Prayer Times';
+
+  @override
+  String get prayerFajr => 'Fajr';
+
+  @override
+  String get prayerDhuhr => 'Dhuhr';
+
+  @override
+  String get prayerAsr => 'Asr';
+
+  @override
+  String get prayerMaghrib => 'Maghrib';
+
+  @override
+  String get prayerIsha => 'Isha';
+
+  @override
+  String get deenCurrentLocation => 'Current location';
+
+  @override
+  String get deenLocating => 'Finding your location…';
+
+  @override
+  String deenNextPrayer(String name, String time) {
+    return 'Next: $name in $time';
+  }
+
+  @override
+  String get deenQibla => 'Qibla';
+
+  @override
+  String deenQiblaAngle(String deg) {
+    return 'Qibla angle: $deg° from North';
+  }
+
+  @override
+  String get deenQiblaAligned => 'You are facing the Qibla';
+
+  @override
+  String get deenQiblaHint =>
+      'Hold your phone flat and turn until the arrow points up';
+
+  @override
+  String get deenCompassMissing =>
+      'Compass is not available on this device. Use the angle above with a compass.';
+
+  @override
+  String get deenLocationOff =>
+      'Turn on location to see prayer times and the Qibla direction';
+
+  @override
+  String get deenLocationDenied =>
+      'Location permission is needed for prayer times and the Qibla direction';
+
+  @override
+  String get deenLocationBlocked =>
+      'Location is blocked. Allow it from the app settings.';
+
+  @override
+  String get deenAllowLocation => 'Allow location';
+
+  @override
+  String get deenOpenSettings => 'Open settings';
+
+  @override
+  String get deenQuran => 'Quran';
+
+  @override
+  String get deenAudio => 'Audio';
+
+  @override
+  String get deenDuas => 'Duas';
+
+  @override
+  String get deenIslamicAudio => 'Islamic Audio';
+
+  @override
+  String get deenContinueReading => 'Continue Reading';
+
+  @override
+  String get deenStartReading => 'Start reading the Quran';
+
+  @override
+  String deenLastRead(String surah, String verse) {
+    return '$surah · Verse $verse';
+  }
+
+  @override
+  String get deenSearchSurah => 'Search surah';
+
+  @override
+  String deenVerses(String count) {
+    return '$count verses';
+  }
+
+  @override
+  String get deenShowEarlier => 'Show earlier verses';
+
+  @override
+  String get deenReciter => 'Reciter';
+
+  @override
+  String get deenAudioError =>
+      'Couldn\'t play this recitation. Check your internet.';
+
+  @override
+  String deenDuaSource(String source) {
+    return 'Source: $source';
+  }
+
+  @override
+  String txnReference(String id) {
+    return 'Ref #$id';
+  }
+
+  @override
+  String txnStatusIs(String status) {
+    return 'Status: $status';
+  }
 }

@@ -119,7 +119,7 @@
   "providerCount": "{count, plural, =1{1 provider} other{{count} providers}}",
   "@providerCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {"type": "int", "format": "decimalPattern"}
     }
   },
   "findingProviders": "Finding providers…",
@@ -142,6 +142,7 @@
   "rateReviewReport": "Rate, review or report",
   "signInToUnlock": "Sign in to unlock",
   "unlockOneCredit": "Unlock · 1 credit",
+  "unlockContact": "Unlock Contact",
   "watchAdToUnlock": "Watch ad to unlock",
   "filters": "Filters",
   "reset": "Reset",
@@ -181,12 +182,13 @@
   "errPhoneInvalid": "Enter a valid 10-digit Indian mobile number",
   "errAuthFailed": "Auth failed",
   "errSendOtp": "Failed to send OTP",
-  "otpEnterComplete": "Please enter the complete 6-digit OTP",
+  "otpEnterComplete": "Please enter the complete 4-digit OTP",
   "otpInvalid": "Invalid OTP",
+  "otpExpired": "This OTP has expired. Please request a new one.",
   "otpResendFailed": "Failed to resend OTP",
   "verifyYourPhone": "Verify your phone number",
   "otpVerification": "OTP Verification",
-  "otpCodeSentTo": "Enter the 6-digit code sent to",
+  "otpCodeSentTo": "Enter the 4-digit code sent to",
   "verifyAndProceed": "Verify & Proceed",
   "resendOtp": "Resend OTP",
   "resendOtpIn": "Resend OTP in {seconds}s",
@@ -276,5 +278,78 @@
   "mondaySaturday": "Monday - Saturday",
   "sunday": "Sunday",
   "closed": "Closed",
-  "categoryAll": "All"
+  "categoryAll": "All",
+  "navDeen": "Deen",
+  "addCredit": "Add Credit",
+  "deenPrayerTimes": "Prayer Times",
+  "prayerFajr": "Fajr",
+  "prayerDhuhr": "Dhuhr",
+  "prayerAsr": "Asr",
+  "prayerMaghrib": "Maghrib",
+  "prayerIsha": "Isha",
+  "deenCurrentLocation": "Current location",
+  "deenLocating": "Finding your location…",
+  "deenNextPrayer": "Next: {name} in {time}",
+  "@deenNextPrayer": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "time": {"type": "String"}
+    }
+  },
+  "deenQibla": "Qibla",
+  "deenQiblaAngle": "Qibla angle: {deg}° from North",
+  "@deenQiblaAngle": {
+    "placeholders": {
+      "deg": {"type": "String"}
+    }
+  },
+  "deenQiblaAligned": "You are facing the Qibla",
+  "deenQiblaHint": "Hold your phone flat and turn until the arrow points up",
+  "deenCompassMissing": "Compass is not available on this device. Use the angle above with a compass.",
+  "deenLocationOff": "Turn on location to see prayer times and the Qibla direction",
+  "deenLocationDenied": "Location permission is needed for prayer times and the Qibla direction",
+  "deenLocationBlocked": "Location is blocked. Allow it from the app settings.",
+  "deenAllowLocation": "Allow location",
+  "deenOpenSettings": "Open settings",
+  "deenQuran": "Quran",
+  "deenAudio": "Audio",
+  "deenDuas": "Duas",
+  "deenIslamicAudio": "Islamic Audio",
+  "deenContinueReading": "Continue Reading",
+  "deenStartReading": "Start reading the Quran",
+  "deenLastRead": "{surah} · Verse {verse}",
+  "@deenLastRead": {
+    "placeholders": {
+      "surah": {"type": "String"},
+      "verse": {"type": "String"}
+    }
+  },
+  "deenSearchSurah": "Search surah",
+  "deenVerses": "{count} verses",
+  "@deenVerses": {
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "deenShowEarlier": "Show earlier verses",
+  "deenReciter": "Reciter",
+  "deenAudioError": "Couldn't play this recitation. Check your internet.",
+  "deenDuaSource": "Source: {source}",
+  "@deenDuaSource": {
+    "placeholders": {
+      "source": {"type": "String"}
+    }
+  },
+  "txnReference": "Ref #{id}",
+  "@txnReference": {
+    "placeholders": {
+      "id": {"type": "String"}
+    }
+  },
+  "txnStatusIs": "Status: {status}",
+  "@txnStatusIs": {
+    "placeholders": {
+      "status": {"type": "String"}
+    }
+  }
 }

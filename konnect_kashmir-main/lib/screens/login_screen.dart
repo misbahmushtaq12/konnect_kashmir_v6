@@ -3,12 +3,9 @@ import '../widgets/english_only.dart';
 import '../l10n/l10n.dart';
 import 'package:konnect_kashmir/static/privacy_screen.dart';
 import 'package:konnect_kashmir/static/terms_screen.dart';
-import 'package:provider/provider.dart';
 
-import '../providers/locale_provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import 'language_screen.dart';
 import 'otp_ver.dart';
 
 /// Sign-in is always English (and left-to-right), whatever the app language is.
@@ -78,33 +75,6 @@ class _LoginScreenState extends State<_LoginBody> {
       final result = await AuthService.sendOTP(cleanedPhone);
 
       if (result['success'] == true) {
-        if (result['autoVerified'] == true) {
-          final authResult = await AuthService.authenticateWithBackend(
-            result['accessToken'] as String,
-          );
-          if (mounted) {
-            if (authResult['success'] == true) {
-              final nav = Navigator.of(context);
-              void openHome() =>
-                  nav.pushNamedAndRemoveUntil('/home', (route) => false);
-              // First login: pick a language before entering the app.
-              if (context.read<LocaleProvider>().hasChosen) {
-                openHome();
-              } else {
-                nav.pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (_) => LanguageScreen(onContinue: openHome),
-                  ),
-                  (route) => false,
-                );
-              }
-            } else {
-              setState(() => _error = authResult['error'] ?? context.l10n.errAuthFailed);
-            }
-          }
-          return;
-        }
-
         if (mounted) {
           Navigator.push(
             context,

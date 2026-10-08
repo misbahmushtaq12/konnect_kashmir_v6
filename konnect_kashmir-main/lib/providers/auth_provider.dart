@@ -3,11 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../services/auth_service.dart'; // ← NEW: MSG91 SDK service
+import 'package:flutter/widgets.dart';
+import '../services/auth_service.dart';
+import '../services/backend_config.dart';
 
-const String _baseUrl = 'https://fmmpsqnpezjofsluirrv.supabase.co';
-const String _anonKey =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtbXBzcW5wZXpqb2ZzbHVpcnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MzIyNTgsImV4cCI6MjA4NTIwODI1OH0.6FCU_FLaHsKsE7G50A7-_zYf46GZiKpecg4l_de3tn4';
+const String _baseUrl = kSupabaseUrl;
+const String _anonKey = kSupabaseAnonKey;
 
 class AuthUser {
   final String phoneNumber;
@@ -40,7 +41,11 @@ class AuthUser {
   }
 }
 
-class AuthProvider extends ChangeNotifier {
+class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
+  AuthProvider() {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
   // ── Session upkeep ────────────────────────────────────────────────────────
   // Access tokens last ~1h. Refresh them BEFORE they expire (not only at app
   // start), and never run two refreshes at once: refresh tokens are single-use,
@@ -53,7 +58,10 @@ class AuthProvider extends ChangeNotifier {
   Timer? _refreshTimer;
   Future<bool>? _refreshInFlight;
 
+  int _expiresAtMs = 0;
+
   void _scheduleRefresh(int expiresAtMs) {
+    _expiresAtMs = expiresAtMs;
     _refreshTimer?.cancel();
     final due = DateTime.fromMillisecondsSinceEpoch(expiresAtMs)
         .subtract(const Duration(minutes: 5));
@@ -84,8 +92,28 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Coming back to the app (after it sat in the background) refreshes a token
+  /// that expired meanwhile, so the user is never asked to sign in again.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || _user == null) return;
+    final due = DateTime.fromMillisecondsSinceEpoch(_expiresAtMs)
+        .subtract(const Duration(minutes: 5));
+    if (DateTime.now().isAfter(due)) refreshToken();
+  }
+
+  /// A refresh that failed only because the network was down is retried soon;
+  /// the user stays signed in meanwhile.
+  void _retryRefreshLater() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer(const Duration(seconds: 30), () {
+      refreshToken();
+    });
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     super.dispose();
   }
@@ -141,211 +169,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> verifyOTPFromSDK(
-      String msg91AccessToken, String phoneNumber) async {
-    _setLoading(true);
-    _error = null;
-
-    debugPrint('[AuthProvider] verifyOTPFromSDK — exchanging MSG91 token for Supabase session');
-
-    try {
-      final verifyResponse = await http.post(
-        Uri.parse('$_baseUrl/functions/v1/verify-otp'),
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': _anonKey,
-        },
-        body: jsonEncode({
-          'widgetToken': msg91AccessToken,
-          'source': 'app',
-        }),
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => throw Exception('Request timed out.'),
-      );
-
-      debugPrint('[AuthProvider] verifyOTPFromSDK → ${verifyResponse.statusCode}: ${verifyResponse.body}');
-
-      if (verifyResponse.body.isEmpty) {
-        _setLoading(false);
-        _error = 'Empty response from server.';
-        return {'success': false, 'error': _error};
-      }
-
-      final verifyData = jsonDecode(verifyResponse.body);
-
-      if (verifyResponse.statusCode != 200 || verifyData['success'] != true) {
-        _setLoading(false);
-        _error = verifyData['error'] ?? verifyData['message'] ?? 'Token exchange failed';
-        return {'success': false, 'error': _error};
-      }
-
-      final email     = verifyData['email']    as String?;
-      final password  = verifyData['password'] as String?;
-      final userId    = verifyData['userId']   as String?;
-      final isNewUser = verifyData['isNewUser'] ?? false;
-
-      if (email == null || password == null) {
-        _setLoading(false);
-        _error = 'Server did not return credentials.';
-        debugPrint('[AuthProvider] ERROR: verify-otp did not return email/password');
-        return {'success': false, 'error': _error};
-      }
-
-      debugPrint('[AuthProvider] STEP 4 — signInWithPassword: email="$email"');
-
-      final signInResponse = await http.post(
-        Uri.parse('$_baseUrl/auth/v1/token?grant_type=password'),
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': _anonKey,
-        },
-        body: jsonEncode({'email': email, 'password': password}),
-      ).timeout(
-        const Duration(seconds: 15),
-        onTimeout: () => throw Exception('Sign-in timed out.'),
-      );
-
-      debugPrint('[AuthProvider] signIn → ${signInResponse.statusCode}: ${signInResponse.body}');
-
-      if (signInResponse.body.isEmpty) {
-        _setLoading(false);
-        _error = 'Empty sign-in response.';
-        return {'success': false, 'error': _error};
-      }
-
-      final signInData = jsonDecode(signInResponse.body);
-
-      if (signInResponse.statusCode != 200) {
-        _setLoading(false);
-        _error = signInData['error_description'] ??
-            signInData['message'] ??
-            'Sign-in failed (HTTP ${signInResponse.statusCode})';
-        debugPrint('[AuthProvider] signIn ERROR: $_error');
-        return {'success': false, 'error': _error};
-      }
-
-      final accessToken  = signInData['access_token']  as String?;
-      final refreshToken = signInData['refresh_token'] as String?;
-      final authUserId   = signInData['user']?['id']   as String? ?? userId;
-
-
-      debugPrint('[AuthProvider] STEP 5 — fetching role for userId=$authUserId');
-
-      String role = 'customer';
-      try {
-        final rolesResponse = await http.get(
-          Uri.parse('$_baseUrl/rest/v1/user_roles?user_id=eq.$authUserId&select=role'),
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': _anonKey,
-            'Authorization': 'Bearer $accessToken',
-          },
-        ).timeout(const Duration(seconds: 10));
-
-        if (rolesResponse.statusCode == 200 && rolesResponse.body.isNotEmpty) {
-          final rolesList = jsonDecode(rolesResponse.body) as List;
-          if (rolesList.isNotEmpty) {
-            final roles = rolesList.map((r) => r['role'] as String).toList();
-            if (roles.contains('super_admin')) {
-              role = 'super_admin';
-            } else if (roles.contains('admin')) {
-              role = 'admin';
-            } else if (roles.contains('moderator')) {
-              role = 'moderator';
-            } else {
-              role = roles.first;
-            }
-          }
-        }
-        debugPrint('[AuthProvider] STEP 5 — role resolved: $role');
-      } catch (e) {
-        debugPrint('[AuthProvider] STEP 5 — role fetch failed (defaulting to customer): $e');
-      }
-
-
-      debugPrint('[AuthProvider] STEP 6 — fetching profile for userId=$authUserId');
-
-      String displayName = '';
-      String? profileDisplayRole;
-      try {
-        final profileResponse = await http.get(
-          Uri.parse(
-              '$_baseUrl/rest/v1/profiles?id=eq.$authUserId&select=full_name,role,credit_balance'),
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': _anonKey,
-            'Authorization': 'Bearer $accessToken',
-          },
-        ).timeout(const Duration(seconds: 10));
-
-        if (profileResponse.statusCode == 200 && profileResponse.body.isNotEmpty) {
-          final profileList = jsonDecode(profileResponse.body) as List;
-          if (profileList.isNotEmpty) {
-            final profile = profileList.first as Map<String, dynamic>;
-            displayName        = profile['full_name'] as String? ?? '';
-            profileDisplayRole = profile['role']      as String?;
-          }
-        }
-        debugPrint('[AuthProvider] STEP 6 — displayName="$displayName" profileRole=$profileDisplayRole');
-      } catch (e) {
-        debugPrint('[AuthProvider] STEP 6 — profile fetch failed: $e');
-      }
-
-      if (role == 'customer' && profileDisplayRole == 'vendor') {
-        role = 'vendor';
-      }
-
-      debugPrint('[AuthProvider] ✓ Auth complete — userId=$authUserId role=$role name="$displayName"');
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('access_token',  accessToken  ?? '');
-      await prefs.setString('refresh_token', refreshToken ?? '');
-      await prefs.setString('user_id',       authUserId   ?? '');
-      await prefs.setString('user_role',     role);
-      await prefs.setString('user_phone',    phoneNumber);
-      await prefs.setString('user_email',    email);
-      await prefs.setString('user_name',     displayName);
-      final expiresAt = DateTime.now()
-          .add(const Duration(seconds: 3600))
-          .millisecondsSinceEpoch;
-      await prefs.setInt('token_expires_at', expiresAt);
-      _scheduleRefresh(expiresAt);
-
-      _sessionExpired = false;
-      _user = AuthUser(
-        phoneNumber: phoneNumber,
-        name: displayName,
-        serverRole: role,
-        token: accessToken,
-        id: authUserId,
-      );
-
-      _setLoading(false);
-      notifyListeners();
-
-      return {
-        'success': true,
-        'isNewUser': isNewUser,
-        'role': role,
-        'userId': authUserId,
-        'name': displayName,
-      };
-    } on Exception catch (e) {
-      _setLoading(false);
-      _error = e.toString().replaceFirst('Exception: ', '');
-      debugPrint('[AuthProvider] verifyOTPFromSDK exception: $_error');
-      return {'success': false, 'error': _error};
-    }
-  }
-
-  @Deprecated('Use AuthService.verifyOTP() then verifyOTPFromSDK() instead')
+  /// Verifies the 4-digit OTP with the existing `verify-otp` Edge Function and
+  /// signs the user in with the session it returns.
   Future<Map<String, dynamic>> verifyOTP(
       String phoneNumber, String otp) async {
     _setLoading(true);
     _error = null;
 
-    debugPrint('[AuthProvider] LEGACY verifyOTP — phone="$phoneNumber" otp="$otp"');
 
     try {
       final verifyResponse = await http.post(
@@ -539,14 +369,23 @@ class AuthProvider extends ChangeNotifier {
         _sessionExpired = true;
         notifyListeners();
       }
+      if (!_sessionExpired) _retryRefreshLater();
       return false;
     } catch (e) {
       debugPrint('[AuthProvider] refreshToken exception: $e');
+      if (_user != null) _retryRefreshLater();
       return false;
     }
   }
 
+  /// Set by the push-notification service: runs before sign-out so this phone
+  /// stops receiving the user's notifications.
+  Future<void> Function()? onBeforeLogout;
+
   Future<void> logout() async {
+    try {
+      await onBeforeLogout?.call();
+    } catch (_) {}
     try {
       if (_user?.token != null) {
         await http.post(
@@ -597,16 +436,22 @@ class AuthProvider extends ChangeNotifier {
           id: userId,
         );
 
-        final refreshed = await refreshToken();
-        if (!refreshed) {
-          debugPrint('[AuthProvider] restoreSession — refresh failed, clearing session');
+        // Wait briefly so the first requests use a fresh token, but never hold
+        // up the app start when offline; the refresh carries on in the background.
+        final refreshed = await refreshToken()
+            .timeout(const Duration(seconds: 4), onTimeout: () => false);
+        // Only the server rejecting the session ends the login. No internet
+        // keeps the user signed in; the refresh is retried automatically.
+        if (!refreshed && _sessionExpired) {
+          debugPrint('[AuthProvider] restoreSession — session rejected, clearing session');
           await _clearSession(prefs);
           _user = null;
           _sessionExpired = false;
           notifyListeners();
           return;
         }
-        debugPrint('[AuthProvider] restoreSession — refreshed and restored userId=$userId role=$role');
+        notifyListeners();
+        debugPrint('[AuthProvider] restoreSession — restored userId=$userId role=$role (refreshed=$refreshed)');
         return;
       }
 

@@ -12,10 +12,11 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:konnect_kashmir/services/api_service.dart';
+import '../services/live_sync.dart';
+import '../services/customer_location.dart';
 import '../providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/dashboard_screen.dart';
 import 'package:konnect_kashmir/static/grevience_screen.dart';
-import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chip.dart';
@@ -73,11 +74,27 @@ class _HomeScreenState extends State<CustomerScreen>
     if (oldWidget.isActive && !widget.isActive) _showAllCategories = false;
     // Credits change elsewhere (e.g. revealing a lead); refresh on return.
     if (!oldWidget.isActive && widget.isActive) _loadUserCredits();
+    // Back on Home: if the customer has moved to another district, follow them.
+    if (!oldWidget.isActive && widget.isActive) {
+      _applyCustomerArea(Future<void>.value());
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // The balance is shared with every other screen (and kept live from the
+    // backend), so a change anywhere shows up here at once.
+    final shared = context.watch<LiveSync>().credits;
+    if (shared != null) userCredits = shared;
+    // A contact unlocked elsewhere (another device) shows as unlocked at once.
+    final live = context.watch<LiveSync>();
+    if (live.unlockedTick != _unlockedTick) {
+      _unlockedTick = live.unlockedTick;
+      for (final id in live.unlockedVendorIds) {
+        revealedVendors[id] = true;
+      }
+    }
     final secondary = ModalRoute.of(context)?.secondaryAnimation;
     if (secondary != _coveringRoute) {
       _coveringRoute?.removeStatusListener(_onRouteCovered);
@@ -128,6 +145,9 @@ class _HomeScreenState extends State<CustomerScreen>
     if (!_scrollController.hasClients) return;
     final show = _scrollController.offset > 280;
     if (show != _showSticky.value) _showSticky.value = show;
+    // Near the end of what is loaded: fetch the next page before they hit it.
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 900) _loadMoreVendors();
   }
 
   Future<void> _focusSearchFromSticky() async {
@@ -301,8 +321,17 @@ class _HomeScreenState extends State<CustomerScreen>
 
   List<dynamic> vendors = [];
 
-  static const int _pageSize = 12;
-  int _visibleVendorCount = _pageSize;
+  // Providers come from the backend a page at a time (infinite scroll).
+  static const int _pageSize = 20;
+  int? _vendorTotal; // real number of providers matching the filters
+  bool _hasMore = false;
+  bool _loadingMore = false;
+  int _nextOffset = 0;
+  DateTime? _moreRetryAt;
+  bool _vendorsStarted = false;
+  bool _areaChecked = false;
+  bool _areaOptOut = false; // the customer cleared the district themselves
+  String? _autoDistrictId; // district chosen from the customer location
 
   List<Map<String, dynamic>> _availableAds = [];
   final Map<dynamic, int> _adWatchCounts = {};
@@ -333,6 +362,9 @@ class _HomeScreenState extends State<CustomerScreen>
   bool isLoadingLocalities = false;
 
   int userCredits = 5;
+  int _unlockedTick = 0;
+  // Vendors whose number is being looked up (it is not free to re-ask).
+  final Set<String> _phoneRequested = {};
   Map<dynamic, bool> revealedVendors = {};
   Map<dynamic, String> _revealedPhones = {};
   Map<dynamic, bool> _isRevealingVendor = {};
@@ -346,6 +378,7 @@ class _HomeScreenState extends State<CustomerScreen>
   void initState() {
     super.initState();
     selectedBrowseCategory = widget.initialCategory;
+    userCredits = context.read<LiveSync>().credits ?? userCredits;
     final initialSearch = (widget.initialSearch ?? '').trim();
     if (initialSearch.isNotEmpty) {
       _searchController.text = initialSearch;
@@ -360,6 +393,13 @@ class _HomeScreenState extends State<CustomerScreen>
         _showWatchAdSheet();
       }
     });
+  }
+
+  /// Publishes a balance the backend just reported, plus the transaction it made.
+  void _syncBalance(int balance) {
+    final live = context.read<LiveSync>();
+    live.setCredits(balance);
+    live.transactionHappened();
   }
 
   @override
@@ -382,15 +422,67 @@ class _HomeScreenState extends State<CustomerScreen>
     super.dispose();
   }
 
+  /// Shows the providers of the district the customer is in right now. The
+  /// position is the customer's own device position (never a fixed city), and
+  /// it is matched to the app's districts list. If the permission is refused,
+  /// location is off, or they are outside every district, nothing changes and
+  /// all providers are shown as before. Anything the customer picked or cleared
+  /// themselves is left alone.
+  Future<void> _applyCustomerArea(Future<void> districtsReady) async {
+    if (_areaOptOut) return;
+    final firstTime = !_areaChecked;
+    _areaChecked = true;
+    try {
+      // Last known spot first (instant), then the fresh fix.
+      final known = await CustomerLocation.lastKnown();
+      if (known != null && firstTime) {
+        await districtsReady;
+        await _useAreaOf(known.lat, known.lng);
+      }
+      final pos = await CustomerLocation.current();
+      if (pos == null) return;
+      await districtsReady;
+      await _useAreaOf(pos.latitude, pos.longitude);
+    } catch (_) {}
+  }
+
+  Future<void> _useAreaOf(double lat, double lng) async {
+    final names = await CustomerLocation.areaNames(lat, lng);
+    final match = CustomerLocation.matchDistrict(names, _districts);
+    if (!mounted || match == null || _areaOptOut) return;
+    final id = match['id']?.toString();
+    if (id == null || id == selectedDistrictId) return;
+    // Only replace our own choice or an empty one, never the customer's.
+    final untouched = selectedDistrictId == null || selectedDistrictId == _autoDistrictId;
+    if (!untouched || selectedLocalityId != null) return;
+    setState(() {
+      selectedDistrictId = id;
+      selectedDistrictName = match['name']?.toString();
+      _autoDistrictId = id;
+    });
+    _loadLocalities(id);
+    // Already listing providers: start again from page 1 for the new area.
+    if (_vendorsStarted) _loadVendors();
+  }
+
   Future<void> _loadData({bool quiet = false}) async {
     if (!mounted) return;
     // Pull-to-refresh is "quiet": its own spinner shows, not a second loader.
     if (!quiet) setState(() => isLoading = true);
+    final districtsReady =
+        _loadDistricts().catchError((e) => debugPrint('loadDistricts: $e'));
+    final areaReady = _applyCustomerArea(districtsReady);
     await Future.wait([
       _loadStats().catchError((e) => debugPrint('loadStats: $e')),
-      _loadVendors().catchError((e) => debugPrint('loadVendors: $e')),
+      // The first list already follows the customer location when it is known
+      // quickly; a slow fix never holds the list back (it re-lists later).
+      Future.any([areaReady, Future<void>.delayed(const Duration(seconds: 3))])
+          .then((_) {
+        _vendorsStarted = true;
+        return _loadVendors();
+      }).catchError((e) => debugPrint('loadVendors: $e')),
       _loadAds().catchError((e) => debugPrint('loadAds: $e')),
-      _loadDistricts().catchError((e) => debugPrint('loadDistricts: $e')),
+      districtsReady,
       _loadServiceCategories()
           .catchError((e) => debugPrint('loadServiceCategories: $e')),
       _loadUserCredits().catchError((e) => debugPrint('loadCredits: $e')),
@@ -502,9 +594,9 @@ class _HomeScreenState extends State<CustomerScreen>
   }
 
   Future<void> _loadUserCredits() async {
-    final credits = await _api.getUserCredits();
+    final credits = await context.read<LiveSync>().refreshCredits();
     if (!mounted) return;
-    setState(() => userCredits = credits ?? 5);
+    setState(() => userCredits = credits ?? userCredits);
   }
 
   Future<void> _loadAds() async {
@@ -570,21 +662,75 @@ class _HomeScreenState extends State<CustomerScreen>
     }
   }
 
+  String get _vendorOrder => switch (_sort) {
+        'experience' => 'experience_years.desc.nullslast',
+        'price_low' => 'min_price.asc.nullslast',
+        _ => 'created_at.desc',
+      };
+
+  /// One page of providers. Every page uses the same filters (search, district
+  /// - which may come from the customer location -, category...), so the
+  /// pages always belong together.
+  Future<List<Map<String, dynamic>>> _vendorPage(int offset,
+          {void Function(int total)? onTotal}) =>
+      _api.getVendors(
+        search: searchQuery,
+        districtId: selectedDistrictId,
+        localityId: selectedLocalityId,
+        serviceSlug: selectedServiceSlug ?? selectedBrowseCategory,
+        verifiedOnly: verifiedOnly,
+        limit: _pageSize,
+        offset: offset,
+        throwOnError: true,
+        order: _vendorOrder,
+        ids: _favoritesOnly ? _favorites.toList() : null,
+        onTotal: onTotal,
+      );
+
+  /// The next page, requested when the customer scrolls near the end.
+  Future<void> _loadMoreVendors() async {
+    if (_loadingMore || !_hasMore || isLoading || _refreshingVendors) return;
+    final retryAt = _moreRetryAt;
+    if (retryAt != null && DateTime.now().isBefore(retryAt)) return;
+    final reqId = _vendorReq;
+    setState(() => _loadingMore = true);
+    try {
+      int? total;
+      final page = await _vendorPage(_nextOffset, onTotal: (t) => total = t);
+      if (!mounted || reqId != _vendorReq) return; // filters changed meanwhile
+      final have = vendors.map((v) => v['id'].toString()).toSet();
+      final fresh =
+          page.where((v) => !have.contains(v['id'].toString())).toList();
+      final t = total;
+      setState(() {
+        vendors = [...vendors, ...fresh];
+        _nextOffset += page.length;
+        if (t != null) _vendorTotal = t;
+        _hasMore = page.length >= _pageSize && (t == null || _nextOffset < t);
+      });
+    } catch (_) {
+      // Try again on a later scroll, not in a tight loop.
+      _moreRetryAt = DateTime.now().add(const Duration(seconds: 4));
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
   Future<void> _fetchVendors(int reqId, [Future<void>? hold]) async {
     if (!mounted) return;
-    final apiVendors = await _api.getVendors(
-      search: searchQuery,
-      districtId: selectedDistrictId,
-      localityId: selectedLocalityId,
-      serviceSlug: selectedServiceSlug ?? selectedBrowseCategory,
-      verifiedOnly: verifiedOnly,
-      limit: 1000,
-      throwOnError: true,
-    );
+    int? total;
+    final apiVendors = await _vendorPage(0, onTotal: (t) => total = t);
 
     if (hold != null) await hold;
     if (!mounted || reqId != _vendorReq) return;
-    setState(() => _visibleVendorCount = _pageSize);
+    final t = total;
+    setState(() {
+      _vendorTotal = t;
+      _nextOffset = apiVendors.length;
+      _hasMore = apiVendors.length >= _pageSize && (t == null || _nextOffset < t);
+      _loadingMore = false;
+      _moreRetryAt = null;
+    });
 
     // Demo vendors are only used while developing (debug builds), so real
     // users never see fake providers with fake phone numbers.
@@ -762,6 +908,14 @@ class _HomeScreenState extends State<CustomerScreen>
     if (claimed != true) return;
 
     final result = await _api.claimAdCredits(adId.toString());
+    if (result['success'] == false) {
+      if (mounted) {
+        showAppSnack(context,
+            (result['error'] ?? "Couldn't add credits. Try again.").toString(),
+            type: SnackType.error);
+      }
+      return;
+    }
     final int newBalance =
         result['newBalance'] as int? ?? (userCredits + credits);
 
@@ -770,6 +924,7 @@ class _HomeScreenState extends State<CustomerScreen>
       _adWatchCounts[adId] = (_adWatchCounts[adId] ?? 0) + 1;
       userCredits = newBalance;
     });
+    _syncBalance(newBalance);
 
     showAppSnack(context,
         '+$credits credit${credits > 1 ? 's' : ''} earned! You now have $newBalance credits.',
@@ -1094,6 +1249,7 @@ class _HomeScreenState extends State<CustomerScreen>
       selectedServiceSlug != null;
 
   void _clearAllFilters() {
+    _areaOptOut = true;
     _searchController.clear();
     setState(() {
       searchQuery = '';
@@ -1116,13 +1272,7 @@ class _HomeScreenState extends State<CustomerScreen>
     if (_favoritesOnly) {
       list = list.where((v) => _favorites.contains(v['id'].toString())).toList();
     }
-    double price(dynamic v) => _asNum(v['min_price']) ?? double.infinity;
-    double exp(dynamic v) => _asNum(v['experience_years']) ?? -1;
-    if (_sort == 'experience') {
-      list.sort((a, b) => exp(b).compareTo(exp(a)));
-    } else if (_sort == 'price_low') {
-      list.sort((a, b) => price(a).compareTo(price(b)));
-    }
+    // The backend already sorted and paged the list.
     return list;
   }
 
@@ -1326,6 +1476,7 @@ class _HomeScreenState extends State<CustomerScreen>
       return null;
     }
 
+    if (dId == null) _areaOptOut = true;
     setState(() {
       selectedDistrictId = dId;
       selectedDistrictName = nameOf(_districts, dId);
@@ -1338,7 +1489,15 @@ class _HomeScreenState extends State<CustomerScreen>
     _loadVendors();
   }
 
-  Future<void> _openWhatsApp(String phone) async {
+  /// Records a Call / WhatsApp tap as a lead for that vendor. Runs in the
+  /// background, so the call or chat opens without waiting for it.
+  void _trackContact(String? vendorId, String action) {
+    if (vendorId == null) return;
+    _api.trackCallClick(vendorId, action);
+  }
+
+  Future<void> _openWhatsApp(String phone, {String? vendorId}) async {
+    _trackContact(vendorId, 'whatsapp');
     final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
     final number = digits.length == 10 ? '91$digits' : digits;
     try {
@@ -1506,6 +1665,8 @@ class _HomeScreenState extends State<CustomerScreen>
       },
     );
     if (picked == null || !mounted) return;
+    // "All districts" is the customer's own choice: location must not undo it.
+    if (picked['id'] == null) _areaOptOut = true;
     setState(() {
       selectedDistrictId = picked['id']?.toString();
       selectedDistrictName = picked['name']?.toString();
@@ -1701,25 +1862,11 @@ class _HomeScreenState extends State<CustomerScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
           AppHeader(
-            leading: _adaptiveLogo(height: 48),
+            leading: _adaptiveLogo(height: 58),
             actions: [
               if (auth.isAuthenticated) ...[
               CreditChip(userCredits,
                   onTap: _hasWatchableAds ? _showWatchAdSheet : null),
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: widget.onOpenProfile ??
-                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
-                child: CircleAvatar(
-                  radius: 17,
-                  backgroundColor: AppColors.primary,
-                  child: Text(
-                    first.isNotEmpty ? first[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: AppText.body),
-                  ),
-                ),
-              ),
               ],
             ],
           ),
@@ -1813,7 +1960,7 @@ class _HomeScreenState extends State<CustomerScreen>
       const SizedBox(height: 16),
       _buildVendorCount(),
       const SizedBox(height: 4),
-      _buildVendorsList(),
+      ..._vendorListChildren(),
     ];
   }
 
@@ -1855,7 +2002,7 @@ class _HomeScreenState extends State<CustomerScreen>
                   const SizedBox(height: 6),
                   _buildVendorCount(),
                   const SizedBox(height: 4),
-                  _buildVendorsList(),
+                  ..._vendorListChildren(),
                   const SizedBox(height: 24),
                   ],
                 ],
@@ -2130,6 +2277,7 @@ class _HomeScreenState extends State<CustomerScreen>
       if (_favoritesOnly)
         _buildFilterChip('Saved', Icons.favorite_border_rounded, () {
           setState(() => _favoritesOnly = false);
+          _loadVendors();
         }),
     ];
     if (chips.isEmpty) return const SizedBox.shrink();
@@ -2174,7 +2322,10 @@ class _HomeScreenState extends State<CustomerScreen>
   }
 
   Widget _buildVendorCount() {
-    final n = _displayVendors.length;
+    // The real number from the backend (all pages), not just what is loaded.
+    final n = _favoritesOnly
+        ? _displayVendors.length
+        : (_vendorTotal ?? _displayVendors.length);
 
     return Row(children: [
       Expanded(
@@ -2271,18 +2422,39 @@ class _HomeScreenState extends State<CustomerScreen>
       );
     }
 
-    final visible = list.take(_visibleVendorCount).toList();
-    final remaining = list.length - visible.length;
-
     return Column(children: [
-      for (final v in visible) _buildVendorCard(v),
-      if (remaining > 0)
-        OutlinedButton.icon(
-          onPressed: () => setState(() => _visibleVendorCount += _pageSize),
-          icon: const Icon(Icons.expand_more_rounded),
-          label: Text(context.l10n.showMore),
-        ),
+      for (final v in list) _buildVendorCard(v),
     ]);
+  }
+
+  /// The provider cards as separate list children, so only the ones on screen
+  /// are built however long infinite scroll makes the list. Loading, error and
+  /// empty states are still drawn by [_buildVendorsList].
+  List<Widget> _vendorListChildren() {
+    final ready = !isLoading && _vendorsError == null;
+    final list = ready ? _displayVendors : const <dynamic>[];
+    if (list.isEmpty) return [_buildVendorsList()];
+    return [
+      for (final v in list)
+        AnimatedOpacity(
+          key: ValueKey(v['id']),
+          duration: const Duration(milliseconds: 200),
+          opacity: _refreshingVendors ? 0.5 : 1.0,
+          child: _buildVendorCard(v),
+        ),
+      if (_loadingMore)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 18),
+          child: Center(
+            child: SizedBox(
+              width: 26,
+              height: 26,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2.6, color: AppColors.primary),
+            ),
+          ),
+        ),
+    ];
   }
 
   Widget _buildVendorCard(dynamic vendor) {
@@ -2319,6 +2491,11 @@ class _HomeScreenState extends State<CustomerScreen>
     final isRevealed = revealedVendors[vendorId] == true;
     final phone =
         (_revealedPhones[vendorId] ?? vendor['phone'] ?? '').toString();
+    if (isRevealed && phone.isEmpty && isLoggedIn &&
+        _phoneRequested.add(vendorId.toString())) {
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _resolveUnlockedPhone(vendorId));
+    }
     final isFav = _favorites.contains(vendorId.toString());
     final expanded = showActionsMap[vendorId] ?? false;
     final price = _priceLabel(vendor);
@@ -2358,18 +2535,18 @@ class _HomeScreenState extends State<CustomerScreen>
       action = _buildSignInButton();
     } else if (isRevealed) {
       action = Row(mainAxisSize: MainAxisSize.min, children: [
-        IconButton(
-          onPressed: () => _openWhatsApp(phone),
-          icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 28),
-          tooltip: context.l10n.whatsapp,
-          color: const Color(0xFF25D366),
-        ),
-        const SizedBox(width: 8),
         ElevatedButton.icon(
-          onPressed: () => _dialNumber(phone),
+          onPressed: () => _dialNumber(phone, vendorId: vendorId?.toString()),
           style: AppButtons.compact(AppButtons.primary),
           icon: const Icon(Icons.phone_rounded, size: 18),
           label: Text(context.l10n.call),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: () => _openWhatsApp(phone, vendorId: vendorId?.toString()),
+          icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 28),
+          tooltip: context.l10n.whatsapp,
+          color: const Color(0xFF25D366),
         ),
       ]);
     } else {
@@ -2546,7 +2723,7 @@ class _HomeScreenState extends State<CustomerScreen>
       icon: Icon(
           hasCredit ? Icons.lock_open_outlined : Icons.play_circle_outline,
           size: 18),
-      label: Text(hasCredit ? context.l10n.unlockOneCredit : context.l10n.watchAdToUnlock,
+      label: Text(hasCredit ? context.l10n.unlockContact : context.l10n.watchAdToUnlock,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.secondary)),
     );
   }
@@ -2556,8 +2733,11 @@ class _HomeScreenState extends State<CustomerScreen>
     return '${phone.substring(0, 2)}•••• ${phone.substring(phone.length - 4)}';
   }
 
-  Future<void> _dialNumber(String phone) async {
-    final uri = Uri(scheme: 'tel', path: phone);
+  Future<void> _dialNumber(String phone, {String? vendorId}) async {
+    _trackContact(vendorId, 'call');
+    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    final number = digits.length == 10 ? '+91$digits' : phone;
+    final uri = Uri(scheme: 'tel', path: number);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
     if (!mounted) return;
     showAppSnack(context, 'Calling +91 $phone…', type: SnackType.info, duration: const Duration(seconds: 2));
@@ -2593,6 +2773,14 @@ class _HomeScreenState extends State<CustomerScreen>
     if (claimed != true) return;
 
     final adResult = await _api.claimAdCredits(adId.toString());
+    if (adResult['success'] == false) {
+      if (mounted) {
+        showAppSnack(context,
+            (adResult['error'] ?? "Couldn't add credits. Try again.").toString(),
+            type: SnackType.error);
+      }
+      return;
+    }
     final int newAdBalance =
         adResult['newBalance'] as int? ?? (userCredits + adCreditReward);
 
@@ -2601,6 +2789,7 @@ class _HomeScreenState extends State<CustomerScreen>
       _adWatchCounts[adId] = (_adWatchCounts[adId] ?? 0) + 1;
       userCredits = newAdBalance;
     });
+    _syncBalance(newAdBalance);
 
     showAppSnack(context, '+$adCreditReward credit${adCreditReward > 1 ? 's' : ''} earned!',
         type: SnackType.success, duration: const Duration(seconds: 2));
@@ -2611,6 +2800,54 @@ class _HomeScreenState extends State<CustomerScreen>
       if (!mounted) return;
       showAppSnack(context, context.l10n.snackNotEnoughAfterAd, type: SnackType.success);
     }
+  }
+
+  /// A contact that is unlocked in the backend but whose number the list did
+  /// not carry: ask the backend for it (an unlocked vendor is never charged
+  /// again).
+  Future<void> _resolveUnlockedPhone(dynamic vendorId) async {
+    try {
+      final r = await _api.unlockVendorContact(vendorId.toString());
+      final phone = r['phone']?.toString() ?? '';
+      if (!mounted || phone.isEmpty) return;
+      setState(() => _revealedPhones[vendorId] = phone);
+    } catch (_) {}
+  }
+
+  /// The unlock call reported a failure, but the backend may still have
+  /// recorded the unlock (the contact is then already the customer's, and is
+  /// never charged again). Ask the backend before telling the customer
+  /// anything, and always show the real balance.
+  Future<void> _reconcileFailedUnlock(dynamic vendor, String? error,
+      {bool network = false}) async {
+    final vendorId = vendor['id'];
+    bool unlocked = false;
+    try {
+      unlocked = await _api.isVendorAlreadyUnlocked(vendorId.toString());
+    } catch (_) {}
+    if (!mounted) return;
+    final live = context.read<LiveSync>();
+    live.refreshCredits(force: true);
+    if (unlocked) {
+      setState(() {
+        revealedVendors[vendorId] = true;
+        _isRevealingVendor[vendorId] = false;
+      });
+      live.transactionHappened();
+      await _resolveUnlockedPhone(vendorId);
+      if (!mounted) return;
+      final phone =
+          _revealedPhones[vendorId] ?? vendor['phone']?.toString() ?? '';
+      if (phone.isNotEmpty) _showContactSheet(vendor, phone);
+      return;
+    }
+    setState(() => _isRevealingVendor[vendorId] = false);
+    showAppSnack(
+        context,
+        network
+            ? context.l10n.snackNetworkError
+            : (error ?? context.l10n.snackCouldNotUnlock),
+        type: SnackType.error);
   }
 
   Future<void> _doUnlockContact(dynamic vendor) async {
@@ -2637,46 +2874,28 @@ class _HomeScreenState extends State<CustomerScreen>
         final phone = result['phone'] as String? ??
             vendor['phone']?.toString() ??
             '';
-        final int newBal =
-            result['newBalance'] as int? ?? (userCredits - 1);
+        final int? newBal = (result['newBalance'] as num?)?.toInt();
         setState(() {
-          userCredits = newBal;
+          if (newBal != null) userCredits = newBal;
           revealedVendors[vendorId] = true;
           if (phone.isNotEmpty) _revealedPhones[vendorId] = phone;
           _isRevealingVendor[vendorId] = false;
         });
+        if (newBal != null) {
+          _syncBalance(newBal);
+        } else {
+          // The server did not report the balance: ask it, never guess.
+          final live = context.read<LiveSync>();
+          live.refreshCredits(force: true);
+          live.transactionHappened();
+        }
         _showContactSheet(vendor, phone);
       } else {
-        final localPhone = vendor['phone']?.toString() ?? '';
-        if (localPhone.isNotEmpty) {
-          setState(() {
-            revealedVendors[vendorId] = true;
-            _revealedPhones[vendorId] = localPhone;
-            userCredits = (userCredits - 1).clamp(0, 99999);
-            _isRevealingVendor[vendorId] = false;
-          });
-          _showContactSheet(vendor, localPhone);
-        } else {
-          setState(() => _isRevealingVendor[vendorId] = false);
-          showAppSnack(context, result['error']?.toString() ??
-                  context.l10n.snackCouldNotUnlock, type: SnackType.error);
-        }
+        await _reconcileFailedUnlock(vendor, result['error']?.toString());
       }
     } catch (e) {
-      final localPhone = vendor['phone']?.toString() ?? '';
       if (!mounted) return;
-      if (localPhone.isNotEmpty) {
-        setState(() {
-          revealedVendors[vendorId] = true;
-          _revealedPhones[vendorId] = localPhone;
-          userCredits = (userCredits - 1).clamp(0, 99999);
-          _isRevealingVendor[vendorId] = false;
-        });
-        _showContactSheet(vendor, localPhone);
-      } else {
-        setState(() => _isRevealingVendor[vendorId] = false);
-        showAppSnack(context, context.l10n.snackNetworkError, type: SnackType.error);
-      }
+      await _reconcileFailedUnlock(vendor, null, network: true);
     }
   }
 
@@ -2755,7 +2974,7 @@ class _HomeScreenState extends State<CustomerScreen>
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
-                  _dialNumber(phone);
+                  _dialNumber(phone, vendorId: vendor['id']?.toString());
                 },
                 style: AppButtons.danger,
                 icon: const Icon(Icons.phone_in_talk, size: 22),

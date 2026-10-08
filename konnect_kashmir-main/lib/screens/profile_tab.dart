@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../widgets/app_overlays.dart';
@@ -9,6 +10,7 @@ import '../providers/locale_provider.dart';
 import 'language_screen.dart';
 import '../widgets/theme_reveal.dart';
 import '../services/api_service.dart';
+import '../services/live_sync.dart';
 import '../static/contact_screen.dart';
 import '../static/grevience_screen.dart';
 import '../static/privacy_screen.dart';
@@ -17,9 +19,9 @@ import '../static/terms_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
 import '../widgets/app_widgets.dart';
-import 'ad_credits_screen.dart';
+import '../widgets/add_credit_section.dart';
+import '../widgets/transactions_section.dart';
 import 'login_screen.dart';
-import 'transaction_history_screen.dart';
 
 /// Profile tab: edit profile, ad credits, transaction history, legal,
 /// contact us and sign out.
@@ -34,7 +36,8 @@ class ProfileTab extends StatefulWidget {
 }
 
 class _ProfileTabState extends State<ProfileTab> {
-  int? _credits;
+  final GlobalKey<AddCreditSectionState> _addCredit = GlobalKey();
+  final GlobalKey<TransactionsSectionState> _transactions = GlobalKey();
 
   @override
   void initState() {
@@ -49,13 +52,8 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
   Future<void> _loadCredits() async {
-    final auth = context.read<AuthProvider>();
-    int? c;
-    try {
-      c = await ApiService(token: auth.accessToken, userId: auth.userId)
-          .getUserCredits();
-    } catch (_) {}
-    if (mounted) setState(() => _credits = c);
+    // One shared balance for the whole app; this only makes sure it is fresh.
+    await context.read<LiveSync>().refreshCredits();
   }
 
   Future<void> _push(Widget screen) async {
@@ -206,10 +204,162 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
+  // ── Side drawer (opened by tapping the profile icon/card) ─────────────────
+  void _openDrawer() {
+    showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (ctx, _, __) => Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: _drawerPanel(ctx),
+      ),
+      transitionBuilder: (ctx, anim, _, child) {
+        final rtl = Directionality.of(ctx) == TextDirection.rtl;
+        return SlideTransition(
+          position: Tween<Offset>(
+                  begin: Offset(rtl ? 1 : -1, 0), end: Offset.zero)
+              .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+          child: child,
+        );
+      },
+    );
+  }
+
+  Widget _drawerPanel(BuildContext ctx) {
+    final cs = Theme.of(ctx).colorScheme;
+    final auth = ctx.read<AuthProvider>();
+    final name = (auth.user?.name ?? '').trim();
+    final width = math.min(320.0, MediaQuery.of(ctx).size.width * 0.82);
+
+    // Close the drawer first, then do what the item says.
+    Widget item(IconData icon, String label, VoidCallback action,
+        {Color? color, Widget? trailing}) {
+      final c = color ?? cs.onSurface;
+      return InkWell(
+        onTap: () {
+          Navigator.pop(ctx);
+          action();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+          child: Row(children: [
+            Icon(icon, color: color ?? AppColors.primary, size: 22),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(label,
+                  style: TextStyle(
+                      fontSize: AppText.body,
+                      fontWeight: FontWeight.w600,
+                      color: c)),
+            ),
+            if (trailing != null) trailing,
+          ]),
+        ),
+      );
+    }
+
+    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    final language = ctx.watch<LocaleProvider>().nativeName;
+
+    return Material(
+      color: AppColors.solid(cs),
+      child: SizedBox(
+        width: width,
+        height: double.infinity,
+        child: SafeArea(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
+              child: Row(children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: AppColors.primary,
+                  child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800)),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name.isEmpty ? ctx.l10n.yourName : name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: AppText.heading,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 2),
+                        Text(auth.user?.phoneNumber ?? '',
+                            style: TextStyle(
+                                color: cs.onSurface.withValues(alpha: 0.7))),
+                      ]),
+                ),
+              ]),
+            ),
+            Divider(height: 1, color: cs.onSurface.withValues(alpha: 0.08)),
+            item(Icons.person_outline_rounded, ctx.l10n.navProfile, _editProfile),
+            item(
+              Icons.translate_rounded,
+              ctx.l10n.language,
+              () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const LanguageScreen(isSettings: true))),
+              trailing: Text(language,
+                  style: TextStyle(
+                      fontSize: AppText.secondary,
+                      color: cs.onSurface.withValues(alpha: 0.7))),
+            ),
+            // Theme: the switch changes it in place, the drawer stays open.
+            SizedBox(
+              height: 54,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 20, right: 12),
+                child: Row(children: [
+                  Icon(isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
+                      color: AppColors.primary, size: 22),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(ctx.l10n.theme,
+                        style: TextStyle(
+                            fontSize: AppText.body,
+                            fontWeight: FontWeight.w600,
+                            color: cs.onSurface)),
+                  ),
+                  Builder(
+                    builder: (switchContext) => Switch(
+                      value: isDark,
+                      onChanged: (v) => ThemeReveal.setDark(switchContext, v),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            item(Icons.mail_outline_rounded, ctx.l10n.contactUs,
+                () => _push(const ContactScreen())),
+            item(Icons.gavel_rounded, ctx.l10n.legal, _showLegal),
+            const Spacer(),
+            Divider(height: 1, color: cs.onSurface.withValues(alpha: 0.08)),
+            item(Icons.logout_rounded, ctx.l10n.signOut, _signOut,
+                color: AppColors.danger),
+            const SizedBox(height: 8),
+          ]),
+        ),
+      ),
+    );
+  }
+
   // ── UI ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final credits = context.watch<LiveSync>().credits;
     final cs = Theme.of(context).colorScheme;
     final name = (auth.user?.name ?? '').trim();
     final size = MediaQuery.of(context).size;
@@ -221,7 +371,13 @@ class _ProfileTabState extends State<ProfileTab> {
           constraints: const BoxConstraints(maxWidth: 760),
           child: RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: _loadCredits,
+            onRefresh: () async {
+              await Future.wait([
+                _loadCredits(),
+                if (_addCredit.currentState != null) _addCredit.currentState!.reload(),
+                if (_transactions.currentState != null) _transactions.currentState!.reload(),
+              ]);
+            },
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
@@ -229,11 +385,12 @@ class _ProfileTabState extends State<ProfileTab> {
               children: [
                 AppHeader(
                   title: context.l10n.navProfile,
-                  actions: [if (_credits != null) CreditChip(_credits!)],
+                  actions: [if (credits != null) CreditChip(credits)],
                 ),
                 const SizedBox(height: 16),
                 AppCard(
                   padding: const EdgeInsets.all(18),
+                  onTap: _openDrawer,
                   child: Row(children: [
                     CircleAvatar(
                       radius: 30,
@@ -269,11 +426,14 @@ class _ProfileTabState extends State<ProfileTab> {
                 _group([
                   _row(Icons.person_outline_rounded, context.l10n.editProfile,
                       onTap: _editProfile),
-                  _row(Icons.stars_outlined, context.l10n.adCredits,
-                      onTap: () => _push(const AdCreditsScreen())),
-                  _row(Icons.receipt_long_outlined, context.l10n.transactionHistory,
-                      onTap: () => _push(const TransactionHistoryScreen())),
                 ]),
+                const SizedBox(height: 18),
+                // Add Credit, right on the Profile screen.
+                AddCreditSection(key: _addCredit),
+                const SizedBox(height: 22),
+                // Real transactions from the backend, directly below Add Credit.
+                TransactionsSection(key: _transactions),
+                const SizedBox(height: 4),
                 const SizedBox(height: 14),
                 _group([
                   _themeRow(),

@@ -122,12 +122,34 @@ class ApiService {
     }
   }
 
+  /// Records that the signed-in user tapped a vendor's Call or WhatsApp button
+  /// (a row in `call_clicks`, which is what becomes a lead for that vendor).
+  /// Fire-and-forget: it never delays the call or the chat from opening and it
+  /// never throws. Nothing is recorded for a signed-out user.
+  void trackCallClick(String vendorId, String action) {
+    final uid = userId;
+    if (uid == null || token == null || vendorId.isEmpty) return;
+    http
+        .post(
+          Uri.parse('$_baseUrl/rest/v1/call_clicks'),
+          headers: _headersMinimalReturn,
+          body: jsonEncode({
+            'user_id': uid,
+            'vendor_id': vendorId,
+            'action': action,
+            'source': 'app',
+          }),
+        )
+        .timeout(const Duration(seconds: 15))
+        .then<void>((_) {}, onError: (_) {});
+  }
+
   Future<Map<String, dynamic>> unlockVendorContact(String vendorId) async {
     try {
       final res = await http.post(
         Uri.parse('$_baseUrl/functions/v1/unlock-vendor-contact'),
         headers: _headers,
-        body: jsonEncode({'vendorId': vendorId}),
+        body: jsonEncode({'vendorId': vendorId, 'source': 'app'}),
       );
       if (res.statusCode == 200) {
         return Map<String, dynamic>.from(jsonDecode(res.body));
@@ -387,14 +409,28 @@ class ApiService {
     // When true, network/server failures throw instead of returning an empty
     // list, so the UI can show "No internet / Retry" rather than "No providers".
     bool throwOnError = false,
+    // Sort order (PostgREST syntax); newest first by default.
+    String order = 'created_at.desc',
+    // Only these vendors (e.g. the saved ones).
+    List<String>? ids,
+    // Receives the real number of vendors matching the filters (not just this
+    // page), counted by the database.
+    void Function(int total)? onTotal,
   }) async {
     try {
+      if (ids != null && ids.isEmpty) {
+        onTotal?.call(0);
+        return [];
+      }
       final String? effectiveService = serviceSlug ?? browseCategory ?? service;
       List<String>? districtLocalityIds;
       if (localityId == null && districtId != null) {
         districtLocalityIds = await _getLocalityIdsByDistrict(districtId,
             throwOnError: throwOnError);
-        if (districtLocalityIds.isEmpty) return [];
+        if (districtLocalityIds.isEmpty) {
+          onTotal?.call(0);
+          return [];
+        }
       }
       final params = <String, String>{
         'select': 'id,business_name,service_type,locality_id,'
@@ -406,7 +442,8 @@ class ApiService {
         'is_approved': 'eq.true',
         'limit': '$limit',
         'offset': '$offset',
-        'order': 'created_at.desc',
+        'order': order,
+        if (ids != null) 'id': 'in.(${ids.join(',')})',
         if (search.isNotEmpty) 'business_name': 'ilike.%$search%',
         if (effectiveService != null) 'service_type': 'eq.$effectiveService',
         if (verifiedOnly) 'is_verified': 'eq.true',
@@ -416,9 +453,19 @@ class ApiService {
       };
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors_public')
           .replace(queryParameters: params);
-      final res = await http.get(uri, headers: _headers);
-      if (res.statusCode == 200)
+      final res = await http.get(uri,
+          headers: onTotal == null
+              ? _headers
+              : {..._headers, 'Prefer': 'count=exact'});
+      if (res.statusCode == 200 || res.statusCode == 206) {
+        if (onTotal != null) {
+          // "Content-Range: 0-19/1440" -> 1440
+          final total = int.tryParse(
+              (res.headers['content-range'] ?? '').split('/').last);
+          if (total != null) onTotal(total);
+        }
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
+      }
       if (throwOnError) {
         throw Exception('Server error (${res.statusCode})');
       }

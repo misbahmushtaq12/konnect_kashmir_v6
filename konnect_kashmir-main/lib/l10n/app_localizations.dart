@@ -682,6 +682,12 @@ abstract class AppLocalizations {
   /// **'Unlock · 1 credit'**
   String get unlockOneCredit;
 
+  /// No description provided for @unlockContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Contact'**
+  String get unlockContact;
+
   /// No description provided for @watchAdToUnlock.
   ///
   /// In en, this message translates to:
@@ -889,7 +895,7 @@ abstract class AppLocalizations {
   /// No description provided for @otpEnterComplete.
   ///
   /// In en, this message translates to:
-  /// **'Please enter the complete 6-digit OTP'**
+  /// **'Please enter the complete 4-digit OTP'**
   String get otpEnterComplete;
 
   /// No description provided for @otpInvalid.
@@ -897,6 +903,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid OTP'**
   String get otpInvalid;
+
+  /// No description provided for @otpExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This OTP has expired. Please request a new one.'**
+  String get otpExpired;
 
   /// No description provided for @otpResendFailed.
   ///
@@ -919,7 +931,7 @@ abstract class AppLocalizations {
   /// No description provided for @otpCodeSentTo.
   ///
   /// In en, this message translates to:
-  /// **'Enter the 6-digit code sent to'**
+  /// **'Enter the 4-digit code sent to'**
   String get otpCodeSentTo;
 
   /// No description provided for @verifyAndProceed.
@@ -1401,6 +1413,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All'**
   String get categoryAll;
+
+  /// No description provided for @navDeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Deen'**
+  String get navDeen;
+
+  /// No description provided for @addCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Credit'**
+  String get addCredit;
+
+  /// No description provided for @deenPrayerTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer Times'**
+  String get deenPrayerTimes;
+
+  /// No description provided for @prayerFajr.
+  ///
+  /// In en, this message translates to:
+  /// **'Fajr'**
+  String get prayerFajr;
+
+  /// No description provided for @prayerDhuhr.
+  ///
+  /// In en, this message translates to:
+  /// **'Dhuhr'**
+  String get prayerDhuhr;
+
+  /// No description provided for @prayerAsr.
+  ///
+  /// In en, this message translates to:
+  /// **'Asr'**
+  String get prayerAsr;
+
+  /// No description provided for @prayerMaghrib.
+  ///
+  /// In en, this message translates to:
+  /// **'Maghrib'**
+  String get prayerMaghrib;
+
+  /// No description provided for @prayerIsha.
+  ///
+  /// In en, this message translates to:
+  /// **'Isha'**
+  String get prayerIsha;
+
+  /// No description provided for @deenCurrentLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Current location'**
+  String get deenCurrentLocation;
+
+  /// No description provided for @deenLocating.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your location…'**
+  String get deenLocating;
+
+  /// No description provided for @deenNextPrayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Next: {name} in {time}'**
+  String deenNextPrayer(String name, String time);
+
+  /// No description provided for @deenQibla.
+  ///
+  /// In en, this message translates to:
+  /// **'Qibla'**
+  String get deenQibla;
+
+  /// No description provided for @deenQiblaAngle.
+  ///
+  /// In en, this message translates to:
+  /// **'Qibla angle: {deg}° from North'**
+  String deenQiblaAngle(String deg);
+
+  /// No description provided for @deenQiblaAligned.
+  ///
+  /// In en, this message translates to:
+  /// **'You are facing the Qibla'**
+  String get deenQiblaAligned;
+
+  /// No description provided for @deenQiblaHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold your phone flat and turn until the arrow points up'**
+  String get deenQiblaHint;
+
+  /// No description provided for @deenCompassMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Compass is not available on this device. Use the angle above with a compass.'**
+  String get deenCompassMissing;
+
+  /// No description provided for @deenLocationOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location to see prayer times and the Qibla direction'**
+  String get deenLocationOff;
+
+  /// No description provided for @deenLocationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is needed for prayer times and the Qibla direction'**
+  String get deenLocationDenied;
+
+  /// No description provided for @deenLocationBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Location is blocked. Allow it from the app settings.'**
+  String get deenLocationBlocked;
+
+  /// No description provided for @deenAllowLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location'**
+  String get deenAllowLocation;
+
+  /// No description provided for @deenOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get deenOpenSettings;
+
+  /// No description provided for @deenQuran.
+  ///
+  /// In en, this message translates to:
+  /// **'Quran'**
+  String get deenQuran;
+
+  /// No description provided for @deenAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get deenAudio;
+
+  /// No description provided for @deenDuas.
+  ///
+  /// In en, this message translates to:
+  /// **'Duas'**
+  String get deenDuas;
+
+  /// No description provided for @deenIslamicAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Islamic Audio'**
+  String get deenIslamicAudio;
+
+  /// No description provided for @deenContinueReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Reading'**
+  String get deenContinueReading;
+
+  /// No description provided for @deenStartReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Start reading the Quran'**
+  String get deenStartReading;
+
+  /// No description provided for @deenLastRead.
+  ///
+  /// In en, this message translates to:
+  /// **'{surah} · Verse {verse}'**
+  String deenLastRead(String surah, String verse);
+
+  /// No description provided for @deenSearchSurah.
+  ///
+  /// In en, this message translates to:
+  /// **'Search surah'**
+  String get deenSearchSurah;
+
+  /// No description provided for @deenVerses.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} verses'**
+  String deenVerses(String count);
+
+  /// No description provided for @deenShowEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Show earlier verses'**
+  String get deenShowEarlier;
+
+  /// No description provided for @deenReciter.
+  ///
+  /// In en, this message translates to:
+  /// **'Reciter'**
+  String get deenReciter;
+
+  /// No description provided for @deenAudioError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t play this recitation. Check your internet.'**
+  String get deenAudioError;
+
+  /// No description provided for @deenDuaSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source: {source}'**
+  String deenDuaSource(String source);
+
+  /// No description provided for @txnReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Ref #{id}'**
+  String txnReference(String id);
+
+  /// No description provided for @txnStatusIs.
+  ///
+  /// In en, this message translates to:
+  /// **'Status: {status}'**
+  String txnStatusIs(String status);
 }
 
 class _AppLocalizationsDelegate

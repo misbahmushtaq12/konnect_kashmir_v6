@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:konnect_kashmir/screens/login_screen.dart';
-import 'package:konnect_kashmir/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
+import 'services/backend_config.dart';
+import 'services/live_sync.dart';
+import 'services/notification_service.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
 import 'screens/main_shell.dart';
@@ -29,26 +31,30 @@ final facebookAppEvents = FacebookAppEvents();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Enable Facebook SDK auto event logging (app installs/opens)
-  await facebookAppEvents.setAutoLogAppEventsEnabled(true);
-  debugPrint('✅ Facebook App Events initialized');
-
-  // Restore saved login session (if user was previously logged in)
+  // Everything the first screen needs is loaded at the same time instead of one
+  // after the other, so the app opens sooner.
   final authProvider = AuthProvider();
-  await authProvider.restoreSession();
+  final results = await Future.wait<Object?>([
+    authProvider.restoreSession(), // keeps the user signed in
+    Supabase.initialize(url: kSupabaseUrl, anonKey: kSupabaseAnonKey),
+    ThemeProvider.load(),
+    LocaleProvider.load(),
+  ]);
+  final themeProvider = results[2] as ThemeProvider;
+  final localeProvider = results[3] as LocaleProvider;
+  final liveSync = LiveSync(authProvider);
 
-  await Supabase.initialize(
-    url: 'https://fmmpsqnpezjofsluirrv.supabase.co',
-    anonKey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtbXBzcW5wZXpqb2ZzbHVpcnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MzIyNTgsImV4cCI6MjA4NTIwODI1OH0.6FCU_FLaHsKsE7G50A7-_zYf46GZiKpecg4l_de3tn4',
-  );
-  AuthService.initialize();
-  final themeProvider = await ThemeProvider.load();
-  final localeProvider = await LocaleProvider.load();
   runApp(KonnectKashmirApp(
       authProvider: authProvider,
       themeProvider: themeProvider,
-      localeProvider: localeProvider));
+      localeProvider: localeProvider,
+      liveSync: liveSync));
+
+  // Not needed to draw the first screen, so they start after it.
+  facebookAppEvents.setAutoLogAppEventsEnabled(true);
+  NotificationService.instance.start(authProvider);
+  // Fetch the balance while the splash plays; Home then reuses it.
+  if (authProvider.isAuthenticated) liveSync.refreshCredits();
 }
 
 final supabase = Supabase.instance.client;
@@ -57,11 +63,13 @@ class KonnectKashmirApp extends StatelessWidget {
   final AuthProvider authProvider;
   final ThemeProvider themeProvider;
   final LocaleProvider localeProvider;
+  final LiveSync liveSync;
   const KonnectKashmirApp({
     super.key,
     required this.authProvider,
     required this.themeProvider,
     required this.localeProvider,
+    required this.liveSync,
   });
 
   @override
@@ -72,10 +80,12 @@ class KonnectKashmirApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: localeProvider),
+        ChangeNotifierProvider.value(value: liveSync),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeState, localeState, _) => MaterialApp(
         title: 'KonnectKashmir',
+        navigatorKey: appNavigatorKey,
         debugShowCheckedModeBanner: false,
 
         // Language (English / Hindi / Urdu). Urdu automatically flips the layout RTL.
