@@ -146,6 +146,7 @@ class _LoginScreenState extends State<_LoginBody> {
     const Color textFooterMuted = Color(0xFF7E9791);
     const Color tealBrand = Color(0xFF339985);
     const Color iconBadgeBg = Color(0xFF1B3B34);
+   // const Color bgwhite = Color(fffff);
 
     return Scaffold(
       backgroundColor: isDark ? bgDark : theme.scaffoldBackgroundColor,
@@ -292,7 +293,7 @@ class _LoginScreenState extends State<_LoginBody> {
                                             style: TextStyle(
                                               fontSize: AppText.heading,
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.black,
+                                              color:isDark ? Colors.white: Colors.black,
                                             ),
                                           ),
                                         ],
@@ -311,7 +312,7 @@ class _LoginScreenState extends State<_LoginBody> {
                                         style: TextStyle(
                                           fontSize: AppText.body,
                                           fontWeight: FontWeight.w600,
-                                          color: Colors.black,
+                                          color: isDark ? Colors.white: Colors.black,
                                         ),
                                       ),
                                       const SizedBox(height: 10),
@@ -344,21 +345,21 @@ class _LoginScreenState extends State<_LoginBody> {
                                                   ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
-                                                children: const [
-                                                  Text(
+                                                children: [
+                                                  const Text(
                                                     '🇮🇳',
                                                     style: TextStyle(
                                                       fontSize: AppText.heading,
                                                     ),
                                                   ),
-                                                  SizedBox(width: 8),
+                                                  const SizedBox(width: 8),
                                                   Text(
                                                     '+91',
                                                     style: TextStyle(
                                                       fontSize: AppText.body,
                                                       fontWeight:
                                                           FontWeight.bold,
-                                                      color: Colors.black,
+                                                      color: isDark ? Colors.white: Colors.black,
                                                     ),
                                                   ),
                                                 ],
@@ -376,11 +377,11 @@ class _LoginScreenState extends State<_LoginBody> {
                                                 controller: _phoneController,
                                                 keyboardType:
                                                     TextInputType.phone,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontSize: AppText.body,
                                                   letterSpacing: 1.2,
                                                   fontWeight: FontWeight.w500,
-                                                  color: Colors.black,
+                                                  color:  isDark ? Colors.white: Colors.black, 
                                                 ),
                                                 decoration:
                                                     const InputDecoration(
@@ -404,11 +405,11 @@ class _LoginScreenState extends State<_LoginBody> {
                                                           ),
                                                     ),
                                                 onChanged: (_) {
-                                                  if (_error != null)
+                                                  if (_error != null) {
                                                     setState(
                                                       () => _error = null,
                                                     );
-                                                  else
+                                                  } else
                                                     setState(() {});
                                                 },
                                               ),
