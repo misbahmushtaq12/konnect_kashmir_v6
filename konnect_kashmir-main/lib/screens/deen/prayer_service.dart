@@ -93,6 +93,75 @@ class PrayerDay {
       );
 }
 
+enum Madhhab { hanafi, shafi, maliki, hanbali, jafari }
+
+/// AlAdhan calculation methods (ids as the AlAdhan API defines them).
+const List<(int, String)> kPrayerMethods = [
+  (1, 'University of Islamic Sciences, Karachi'),
+  (3, 'Muslim World League'),
+  (2, 'Islamic Society of North America (ISNA)'),
+  (4, 'Umm Al-Qura University, Makkah'),
+  (5, 'Egyptian General Authority of Survey'),
+  (7, 'Institute of Geophysics, University of Tehran'),
+  (0, 'Jafari / Shia Ithna-Ashari'),
+  (8, 'Gulf Region'),
+  (9, 'Kuwait'),
+  (10, 'Qatar'),
+  (11, 'Singapore'),
+  (13, 'Turkey / Diyanet'),
+  (15, 'Moonsighting Committee'),
+  (16, 'Dubai'),
+  (17, 'JAKIM'),
+  (18, 'Tunisia'),
+  (19, 'Algeria'),
+  (20, 'Indonesia'),
+  (21, 'Morocco'),
+  (22, 'Portugal'),
+  (23, 'Jordan'),
+];
+
+/// The user's two independent choices. Madhhab sets the AlAdhan `school`
+/// (it moves Asr only); the calculation method sets the astronomical
+/// parameters (Fajr, Isha...). Defaults: Hanafi + Karachi = method 1, school 1.
+class PrayerSettings {
+  final Madhhab madhhab;
+  final int method;
+  const PrayerSettings({this.madhhab = Madhhab.hanafi, this.method = 1});
+
+  /// AlAdhan `school`: 1 = Hanafi, 0 = the standard (Shafi, Maliki, Hanbali,
+  /// Ja'fari) Asr.
+  int get school => madhhab == Madhhab.hanafi ? 1 : 0;
+
+  /// Ja'fari prayer times use the Jafari method (id 0); the chosen method is
+  /// kept and comes back when another madhhab is picked.
+  int get effectiveMethod => madhhab == Madhhab.jafari ? 0 : method;
+
+  PrayerSettings copyWith({Madhhab? madhhab, int? method}) =>
+      PrayerSettings(madhhab: madhhab ?? this.madhhab, method: method ?? this.method);
+
+  static Future<PrayerSettings> load() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final m = p.getInt('prayer_madhhab') ?? Madhhab.hanafi.index;
+      final method = p.getInt('prayer_method') ?? 1;
+      return PrayerSettings(
+        madhhab: Madhhab.values[m.clamp(0, Madhhab.values.length - 1)],
+        method: kPrayerMethods.any((e) => e.$1 == method) ? method : 1,
+      );
+    } catch (_) {
+      return const PrayerSettings();
+    }
+  }
+
+  Future<void> save() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setInt('prayer_madhhab', madhhab.index);
+      await p.setInt('prayer_method', method);
+    } catch (_) {}
+  }
+}
+
 enum LocationProblem { servicesOff, denied, deniedForever }
 
 class LocationException implements Exception {
@@ -148,17 +217,19 @@ class PrayerService {
     }
   }
 
-  static String _cacheKey(double lat, double lng) {
+  static String _cacheKey(double lat, double lng, PrayerSettings st) {
     final d = DateTime.now();
-    return 'prayer_${d.year}${d.month}${d.day}_${lat.toStringAsFixed(1)}_${lng.toStringAsFixed(1)}';
+    return 'prayer_${d.year}${d.month}${d.day}_${lat.toStringAsFixed(1)}_${lng.toStringAsFixed(1)}'
+        '_m${st.effectiveMethod}_s${st.school}';
   }
 
   /// Today's timings from Aladhan (method=1, school=1). Today's result for the
   /// same area is kept on the phone so the screen opens instantly.
-  static Future<PrayerDay?> cached(double lat, double lng) async {
+  static Future<PrayerDay?> cached(double lat, double lng,
+      [PrayerSettings st = const PrayerSettings()]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_cacheKey(lat, lng));
+      final raw = prefs.getString(_cacheKey(lat, lng, st));
       if (raw == null) return null;
       return PrayerDay.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
@@ -166,9 +237,11 @@ class PrayerService {
     }
   }
 
-  static Future<PrayerDay> fetch(double lat, double lng) async {
+  static Future<PrayerDay> fetch(double lat, double lng,
+      [PrayerSettings st = const PrayerSettings()]) async {
     final uri = Uri.parse('https://api.aladhan.com/v1/timings'
-        '?latitude=$lat&longitude=$lng&method=1&school=1');
+        '?latitude=$lat&longitude=$lng'
+        '&method=${st.effectiveMethod}&school=${st.school}');
     final res = await http.get(uri).timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) {
       throw Exception('Prayer times unavailable (${res.statusCode})');
@@ -177,7 +250,7 @@ class PrayerService {
     final day = PrayerDay.fromApi(Map<String, dynamic>.from(body['data'] as Map));
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_cacheKey(lat, lng), jsonEncode(day.toJson()));
+      await prefs.setString(_cacheKey(lat, lng, st), jsonEncode(day.toJson()));
     } catch (e) {
       debugPrint('[Deen] cache: $e');
     }

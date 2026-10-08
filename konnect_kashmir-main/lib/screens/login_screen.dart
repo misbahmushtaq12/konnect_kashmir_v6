@@ -142,8 +142,9 @@ class _LoginScreenState extends State<_LoginBody> {
     const Color inputBgDark = Color(0xFF10211E);
     const Color inputBorderDark = Color(0xFF2D8272);
     const Color inputDividerDark = Color(0xFF254B42);
-    const Color textMuted = Color(0xFF8FA9A2);
-    const Color textFooterMuted = Color(0xFF7E9791);
+    // Text follows the mode: white in dark mode, black in light mode.
+    final Color textMuted = isDark ? Colors.white : Colors.black;
+    final Color textFooterMuted = isDark ? Colors.white : Colors.black;
     const Color tealBrand = Color(0xFF339985);
     const Color iconBadgeBg = Color(0xFF1B3B34);
    // const Color bgwhite = Color(fffff);

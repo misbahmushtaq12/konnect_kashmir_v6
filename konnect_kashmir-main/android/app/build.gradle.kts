@@ -6,12 +6,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-}
-
-// Push notifications (Firebase): only switched on when the project's
-// google-services.json has been added, so builds without it keep working.
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
+    id("com.google.gms.google-services") version "4.5.0"
 }
 
 // Load key.properties (android/key.properties). This file is git-ignored, so it

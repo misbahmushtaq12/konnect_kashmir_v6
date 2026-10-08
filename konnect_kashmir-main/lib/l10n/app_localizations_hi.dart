@@ -776,7 +776,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get deenQiblaHint =>
-      'फ़ोन को सीधा पकड़ें और तीर के ऊपर की ओर आने तक घुमाएँ';
+      'फ़ोन को सीधा पकड़ें और तीर के क़िब्ले की ओर आने तक घुमाएँ।';
 
   @override
   String get deenCompassMissing =>
@@ -853,4 +853,53 @@ class AppLocalizationsHi extends AppLocalizations {
   String txnStatusIs(String status) {
     return 'स्थिति: $status';
   }
+
+  @override
+  String get prayerSettings => 'नमाज़ सेटिंग्स';
+
+  @override
+  String get madhhabAsr => 'मज़हब / अस्र की गणना';
+
+  @override
+  String get madhhabHanafi => 'हनफ़ी';
+
+  @override
+  String get madhhabShafi => 'शाफ़ई';
+
+  @override
+  String get madhhabMaliki => 'मालिकी';
+
+  @override
+  String get madhhabHanbali => 'हंबली';
+
+  @override
+  String get madhhabJafari => 'जाफ़री';
+
+  @override
+  String get calcMethod => 'गणना पद्धति';
+
+  @override
+  String get prayerSettingsInfo =>
+      'मज़हब अस्र का समय तय करता है। गणना पद्धति खगोलीय गणना (फ़ज्र, इशा आदि) तय करती है।';
+
+  @override
+  String get prayerSettingsJafariNote =>
+      'जाफ़री के लिए जाफ़री गणना पद्धति इस्तेमाल होती है।';
+
+  @override
+  String get doneLabel => 'हो गया';
+
+  @override
+  String get deenGreeting => 'अस्सलामु अलैकुम';
+
+  @override
+  String get deenQiblaTurnTo => 'क़िब्ले की ओर घूमें';
+
+  @override
+  String deenVerseN(String verse) {
+    return 'आयत $verse';
+  }
+
+  @override
+  String get deenContinue => 'जारी रखें';
 }

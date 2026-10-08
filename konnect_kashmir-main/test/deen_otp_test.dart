@@ -22,6 +22,7 @@ double _reference(double lat, double lng) {
 
 void main() {
   audioUrlTests();
+  prayerSettingsTests();
   group('Qibla', () {
     test('London is about 119 degrees from North', () {
       expect(qiblaBearing(51.5074, -0.1278), closeTo(118.99, 0.5));
@@ -105,6 +106,37 @@ void audioUrlTests() {
       expect(r.surahUrl(1), 'https://download.quranicaudio.com/quran/abc/def/001.mp3');
       expect(r.surahUrl(36), endsWith('/036.mp3'));
       expect(r.surahUrl(114), endsWith('/114.mp3'));
+    });
+  });
+}
+
+void prayerSettingsTests() {
+  group('Prayer settings', () {
+    test('defaults are Hanafi + Karachi = method 1, school 1', () {
+      const s = PrayerSettings();
+      expect(s.madhhab, Madhhab.hanafi);
+      expect(s.effectiveMethod, 1);
+      expect(s.school, 1);
+    });
+
+    test('madhhab only changes the school, method only the method', () {
+      const base = PrayerSettings();
+      final shafi = base.copyWith(madhhab: Madhhab.shafi);
+      expect((shafi.effectiveMethod, shafi.school), (1, 0));
+      final mwl = base.copyWith(method: 3);
+      expect((mwl.effectiveMethod, mwl.school), (3, 1));
+    });
+
+    test('Jafari uses the Jafari method and keeps the chosen one for later', () {
+      final j = const PrayerSettings(method: 3).copyWith(madhhab: Madhhab.jafari);
+      expect((j.effectiveMethod, j.school), (0, 0));
+      expect(j.method, 3);
+      expect(j.copyWith(madhhab: Madhhab.hanafi).effectiveMethod, 3);
+    });
+
+    test('all 21 methods have unique AlAdhan ids', () {
+      expect(kPrayerMethods.length, 21);
+      expect(kPrayerMethods.map((e) => e.$1).toSet().length, 21);
     });
   });
 }

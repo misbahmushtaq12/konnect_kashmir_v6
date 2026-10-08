@@ -304,7 +304,7 @@
     }
   },
   "deenQiblaAligned": "You are facing the Qibla",
-  "deenQiblaHint": "Hold your phone flat and turn until the arrow points up",
+  "deenQiblaHint": "Hold your phone flat and turn until the arrow points toward Qibla.",
   "deenCompassMissing": "Compass is not available on this device. Use the angle above with a compass.",
   "deenLocationOff": "Turn on location to see prayer times and the Qibla direction",
   "deenLocationDenied": "Location permission is needed for prayer times and the Qibla direction",
@@ -351,5 +351,25 @@
     "placeholders": {
       "status": {"type": "String"}
     }
-  }
+  },
+  "prayerSettings": "Prayer Settings",
+  "madhhabAsr": "Madhhab / Asr Calculation",
+  "madhhabHanafi": "Hanafi",
+  "madhhabShafi": "Shafi",
+  "madhhabMaliki": "Maliki",
+  "madhhabHanbali": "Hanbali",
+  "madhhabJafari": "Ja'fari",
+  "calcMethod": "Calculation Method",
+  "prayerSettingsInfo": "Madhhab affects Asr timing. Calculation method affects astronomical prayer calculations.",
+  "prayerSettingsJafariNote": "Ja'fari uses the Jafari calculation method.",
+  "doneLabel": "Done",
+  "deenGreeting": "Assalamu Alaikum",
+  "deenQiblaTurnTo": "Turn towards Qibla",
+  "deenVerseN": "Verse {verse}",
+  "@deenVerseN": {
+    "placeholders": {
+      "verse": {"type": "String"}
+    }
+  },
+  "deenContinue": "Continue"
 }

@@ -67,11 +67,32 @@ Future<void> _showLocal(RemoteMessage m) async {
   );
 }
 
+/// Starts Firebase. Android reads android/app/google-services.json by itself.
+/// iOS gets the same project's public client settings here (taken from
+/// GoogleService-Info.plist), so it does not depend on the Xcode project
+/// bundling that file.
+Future<void> _initFirebase() async {
+  if (defaultTargetPlatform == TargetPlatform.iOS) {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: 'AIzaSyCMD4hAmdJyOkAbV6bCCcVEkwxjpbprz_g',
+        appId: '1:305067967310:ios:5f9924194ae416eeb4d41f',
+        messagingSenderId: '305067967310',
+        projectId: 'konnect-kashmir1',
+        storageBucket: 'konnect-kashmir1.firebasestorage.app',
+        iosBundleId: 'com.mediamosiac.konnectkashmirapp',
+      ),
+    );
+  } else {
+    await Firebase.initializeApp();
+  }
+}
+
 /// Runs when a push arrives while the app is in the background or closed.
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage m) async {
   try {
-    await Firebase.initializeApp();
+    await _initFirebase();
   } catch (_) {
     return;
   }
@@ -103,7 +124,7 @@ class NotificationService {
     _started = true;
     _auth = auth;
     try {
-      await Firebase.initializeApp();
+      await _initFirebase();
       _available = true;
     } catch (e) {
       debugPrint('[Push] Firebase is not configured, push disabled: $e');

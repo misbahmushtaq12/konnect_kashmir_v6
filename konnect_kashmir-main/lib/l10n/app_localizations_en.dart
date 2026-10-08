@@ -775,7 +775,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deenQiblaHint =>
-      'Hold your phone flat and turn until the arrow points up';
+      'Hold your phone flat and turn until the arrow points toward Qibla.';
 
   @override
   String get deenCompassMissing =>
@@ -854,4 +854,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String txnStatusIs(String status) {
     return 'Status: $status';
   }
+
+  @override
+  String get prayerSettings => 'Prayer Settings';
+
+  @override
+  String get madhhabAsr => 'Madhhab / Asr Calculation';
+
+  @override
+  String get madhhabHanafi => 'Hanafi';
+
+  @override
+  String get madhhabShafi => 'Shafi';
+
+  @override
+  String get madhhabMaliki => 'Maliki';
+
+  @override
+  String get madhhabHanbali => 'Hanbali';
+
+  @override
+  String get madhhabJafari => 'Ja\'fari';
+
+  @override
+  String get calcMethod => 'Calculation Method';
+
+  @override
+  String get prayerSettingsInfo =>
+      'Madhhab affects Asr timing. Calculation method affects astronomical prayer calculations.';
+
+  @override
+  String get prayerSettingsJafariNote =>
+      'Ja\'fari uses the Jafari calculation method.';
+
+  @override
+  String get doneLabel => 'Done';
+
+  @override
+  String get deenGreeting => 'Assalamu Alaikum';
+
+  @override
+  String get deenQiblaTurnTo => 'Turn towards Qibla';
+
+  @override
+  String deenVerseN(String verse) {
+    return 'Verse $verse';
+  }
+
+  @override
+  String get deenContinue => 'Continue';
 }

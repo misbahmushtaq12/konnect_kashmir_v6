@@ -781,7 +781,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get deenQiblaHint =>
-      'فون کو سیدھا پکڑیں اور تیر کے اوپر کی طرف آنے تک گھمائیں';
+      'فون کو سیدھا پکڑیں اور تیر کے قبلے کی طرف آنے تک گھمائیں۔';
 
   @override
   String get deenCompassMissing =>
@@ -859,4 +859,53 @@ class AppLocalizationsUr extends AppLocalizations {
   String txnStatusIs(String status) {
     return 'حالت: $status';
   }
+
+  @override
+  String get prayerSettings => 'نماز کی ترتیبات';
+
+  @override
+  String get madhhabAsr => 'مسلک / عصر کا حساب';
+
+  @override
+  String get madhhabHanafi => 'حنفی';
+
+  @override
+  String get madhhabShafi => 'شافعی';
+
+  @override
+  String get madhhabMaliki => 'مالکی';
+
+  @override
+  String get madhhabHanbali => 'حنبلی';
+
+  @override
+  String get madhhabJafari => 'جعفری';
+
+  @override
+  String get calcMethod => 'حساب کا طریقہ';
+
+  @override
+  String get prayerSettingsInfo =>
+      'مسلک عصر کا وقت طے کرتا ہے۔ حساب کا طریقہ فلکیاتی حساب (فجر، عشاء وغیرہ) طے کرتا ہے۔';
+
+  @override
+  String get prayerSettingsJafariNote =>
+      'جعفری کے لیے جعفری طریقۂ حساب استعمال ہوتا ہے۔';
+
+  @override
+  String get doneLabel => 'ہو گیا';
+
+  @override
+  String get deenGreeting => 'السلام علیکم';
+
+  @override
+  String get deenQiblaTurnTo => 'قبلے کی طرف مڑیں';
+
+  @override
+  String deenVerseN(String verse) {
+    return 'آیت $verse';
+  }
+
+  @override
+  String get deenContinue => 'جاری رکھیں';
 }

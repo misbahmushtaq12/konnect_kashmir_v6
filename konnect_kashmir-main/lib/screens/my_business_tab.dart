@@ -7,7 +7,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -69,59 +68,22 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     );
   }
 
-  // ── Remembering revealed leads ────────────────────────────────────────────
-  // Only lead IDs are stored (never phone numbers). The number is fetched again
-  // when needed; that call returns the phone without charging a credit.
-  String _revealKey(AuthProvider a) => 'revealed_leads_${a.userId}';
-
+  // Revealed leads are saved in the backend (table unlocked_leads), so they
+  // stay revealed after a cache clear, a reinstall or on another device. The
+  // lead list says which ones are revealed and carries their number.
   Future<Map<String, dynamic>> _revealWithRetry(
-      AuthProvider auth, String leadUserId, String vendorId) async {
+      AuthProvider auth, String leadUserId) async {
     ApiService api() =>
         ApiService(token: auth.accessToken, userId: auth.userId);
-    var r = await api().revealLeadPhone(leadUserId, vendorId);
-    // A rejected token is refused before anything is charged: refresh, retry.
+    var r = await api().revealLeadPhone(leadUserId);
+    // A rejected session is refused before anything is charged: refresh, retry.
+    final err = '${r['error']}';
     if (r['success'] != true &&
-        '${r['error']}'.contains('(401)') &&
+        (err.contains('(401)') || err.contains('Session expired')) &&
         await auth.refreshToken()) {
-      r = await api().revealLeadPhone(leadUserId, vendorId);
+      r = await api().revealLeadPhone(leadUserId);
     }
     return r;
-  }
-
-  Future<void> _rememberRevealed(AuthProvider auth, String leadId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final ids = prefs.getStringList(_revealKey(auth)) ?? <String>[];
-      if (!ids.contains(leadId)) {
-        ids.add(leadId);
-        await prefs.setStringList(_revealKey(auth), ids);
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _restoreRevealed() async {
-    try {
-      final auth = context.read<AuthProvider>();
-      final prefs = await SharedPreferences.getInstance();
-      final ids = (prefs.getStringList(_revealKey(auth)) ?? <String>[]).toSet();
-      if (ids.isEmpty) return;
-
-      final jobs = <Future<void>>[];
-      _leadsByVendor.forEach((vendorId, leads) {
-        for (final lead in leads) {
-          final id = lead['id'].toString();
-          if (!ids.contains(id) || _revealedPhones.containsKey(id)) continue;
-          jobs.add(() async {
-            final r = await _revealWithRetry(
-                auth, lead['user_id'].toString(), vendorId);
-            if (r['success'] == true && r['phone'] != null && mounted) {
-              setState(() => _revealedPhones[id] = r['phone'].toString());
-            }
-          }());
-        }
-      });
-      await Future.wait(jobs);
-    } catch (_) {}
   }
 
   String _digits(String phone) => phone.replaceAll(RegExp(r'[^0-9]'), '');
@@ -149,25 +111,6 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     }
   }
 
-  /// `reveal-lead-phone` returns the number but does not always charge. If the
-  /// balance did not drop after the reveal, spend the 1 credit here (once), then
-  /// verify it really changed.
-  Future<void> _ensureCreditSpent(AuthProvider auth, int? before) async {
-    if (before == null || before <= 0) return;
-    ApiService api() =>
-        ApiService(token: auth.accessToken, userId: auth.userId);
-    try {
-      final after = await api().getUserCredits();
-      if (after == null || after < before) return; // server already charged
-      await api().updateUserCredits(auth.userId, -1);
-      final verify = await api().getUserCredits();
-      if (verify != null && verify >= before) {
-        _snack(context.l10n.snackRevealedNoBalance,
-            type: SnackType.warning);
-      }
-    } catch (_) {}
-  }
-
   /// Reveals the lead's contact (1 credit) and shows it in a sheet, in place.
   Future<void> _getLead(dynamic lead, String vendorId) async {
     final leadId = lead['id'].toString();
@@ -182,30 +125,26 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     final auth = context.read<AuthProvider>();
     setState(() => _revealing.add(leadId));
     try {
-      ApiService api() =>
-          ApiService(token: auth.accessToken, userId: auth.userId);
-
-      final credits = await api().getUserCredits();
-      if (credits != null && credits <= 0) {
-        _snack(context.l10n.snackNotEnoughCredits,
-            type: SnackType.warning);
-        return;
-      }
-
-      final leadUserId = lead['user_id'].toString();
-      final result = await _revealWithRetry(auth, leadUserId, vendorId);
+      // The backend checks the credits, charges once, saves the reveal and
+      // returns the number. A lead revealed before is returned without a charge.
+      final result =
+          await _revealWithRetry(auth, lead['user_id'].toString());
       if (!mounted) return;
 
       if (result['success'] == true && result['phone'] != null) {
         final phone = result['phone'].toString();
         final shownName = result['name']?.toString() ?? name;
-        await _ensureCreditSpent(auth, credits);
-        await _rememberRevealed(auth, leadId);
         HapticFeedback.lightImpact(); // gentle buzz: contact revealed
-        _loadCredits(force: true);
-        context.read<LiveSync>().transactionHappened();
+        if (result['alreadyRevealed'] != true) {
+          _loadCredits(force: true); // show the real balance
+          context.read<LiveSync>().transactionHappened();
+        }
         // Stop the button spinner BEFORE the sheet opens, not after it closes.
         setState(() {
+          if (lead is Map) {
+            lead['revealed'] = true;
+            lead['phone'] = phone;
+          }
           _revealedPhones[leadId] = phone;
           _revealing.remove(leadId);
         });
@@ -278,8 +217,16 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           final leadsResult = await fetchLeadNames(auth, vendorIds);
           if (leadsResult['success'] == true && leadsResult['leads'] != null) {
             for (final lead in leadsResult['leads'] as List) {
-              final vId = lead['vendor_id'].toString();
-              leadsByVendor.putIfAbsent(vId, () => []).add(lead);
+              // Already revealed (saved in the backend): show the number.
+              if (lead['revealed'] == true && lead['phone'] != null) {
+                _revealedPhones[lead['id'].toString()] = lead['phone'].toString();
+              }
+              // A lead belongs to its business; if the list does not say which,
+              // it is shown under each of the vendor's businesses.
+              final vId = lead['vendor_id']?.toString();
+              for (final target in (vId != null ? [vId] : vendorIds)) {
+                leadsByVendor.putIfAbsent(target, () => []).add(lead);
+              }
             }
           } else {
             leadsFailed = true;
@@ -290,7 +237,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         if (!mounted) return;
         if (leadsFailed) {
           // Don't wipe leads we already have with a false "0".
-          final expired = (leadsError ?? '').contains('(401)');
+          final expired = (leadsError ?? '').contains('(401)') ||
+              (leadsError ?? '').contains('Session expired');
           showAppSnack(
             context,
             expired
@@ -309,7 +257,6 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           _errorMsg = null;
           _loading = false;
         });
-        _restoreRevealed(); // leads revealed earlier show their number again
         return;
       }
 

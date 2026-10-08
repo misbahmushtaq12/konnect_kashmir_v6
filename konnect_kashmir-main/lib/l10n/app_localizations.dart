@@ -1501,7 +1501,7 @@ abstract class AppLocalizations {
   /// No description provided for @deenQiblaHint.
   ///
   /// In en, this message translates to:
-  /// **'Hold your phone flat and turn until the arrow points up'**
+  /// **'Hold your phone flat and turn until the arrow points toward Qibla.'**
   String get deenQiblaHint;
 
   /// No description provided for @deenCompassMissing.
@@ -1629,6 +1629,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Status: {status}'**
   String txnStatusIs(String status);
+
+  /// No description provided for @prayerSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer Settings'**
+  String get prayerSettings;
+
+  /// No description provided for @madhhabAsr.
+  ///
+  /// In en, this message translates to:
+  /// **'Madhhab / Asr Calculation'**
+  String get madhhabAsr;
+
+  /// No description provided for @madhhabHanafi.
+  ///
+  /// In en, this message translates to:
+  /// **'Hanafi'**
+  String get madhhabHanafi;
+
+  /// No description provided for @madhhabShafi.
+  ///
+  /// In en, this message translates to:
+  /// **'Shafi'**
+  String get madhhabShafi;
+
+  /// No description provided for @madhhabMaliki.
+  ///
+  /// In en, this message translates to:
+  /// **'Maliki'**
+  String get madhhabMaliki;
+
+  /// No description provided for @madhhabHanbali.
+  ///
+  /// In en, this message translates to:
+  /// **'Hanbali'**
+  String get madhhabHanbali;
+
+  /// No description provided for @madhhabJafari.
+  ///
+  /// In en, this message translates to:
+  /// **'Ja\'fari'**
+  String get madhhabJafari;
+
+  /// No description provided for @calcMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculation Method'**
+  String get calcMethod;
+
+  /// No description provided for @prayerSettingsInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Madhhab affects Asr timing. Calculation method affects astronomical prayer calculations.'**
+  String get prayerSettingsInfo;
+
+  /// No description provided for @prayerSettingsJafariNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Ja\'fari uses the Jafari calculation method.'**
+  String get prayerSettingsJafariNote;
+
+  /// No description provided for @doneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get doneLabel;
+
+  /// No description provided for @deenGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Assalamu Alaikum'**
+  String get deenGreeting;
+
+  /// No description provided for @deenQiblaTurnTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn towards Qibla'**
+  String get deenQiblaTurnTo;
+
+  /// No description provided for @deenVerseN.
+  ///
+  /// In en, this message translates to:
+  /// **'Verse {verse}'**
+  String deenVerseN(String verse);
+
+  /// No description provided for @deenContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get deenContinue;
 }
 
 class _AppLocalizationsDelegate

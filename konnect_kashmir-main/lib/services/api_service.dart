@@ -326,11 +326,25 @@ class ApiService {
       final res = await http.post(
         Uri.parse('$_baseUrl/functions/v1/get-lead-names'),
         headers: _headers,
+        // The live function still asks for the vendor ids.
         body: jsonEncode({'vendorIds': vendorIds}),
       );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        if (data['leads'] != null) return _ok(data);
+        if (data['success'] == false) {
+          return _err((data['error'] ?? 'Failed to load leads').toString());
+        }
+        if (data['leads'] != null) {
+          // Give each lead the fields the screens use (id, user_id, user_name).
+          for (final l in data['leads'] as List) {
+            if (l is Map) {
+              l['id'] ??= l['lead_user_id'];
+              l['user_id'] ??= l['lead_user_id'];
+              l['user_name'] ??= l['name'];
+            }
+          }
+          return _ok(data);
+        }
         return _err('Failed to load leads');
       }
       return _err('Lead fetch failed (${res.statusCode}): ${res.body}');
@@ -339,18 +353,18 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> revealLeadPhone(
-      String leadUserId, String vendorId) async {
+  Future<Map<String, dynamic>> revealLeadPhone(String leadUserId,
+      [String? vendorId]) async {
     try {
       final res = await http.post(
         Uri.parse('$_baseUrl/functions/v1/reveal-lead-phone'),
         headers: _headers,
-        body: jsonEncode({'leadUserId': leadUserId, 'vendorId': vendorId}),
+        body: jsonEncode({'lead_user_id': leadUserId}),
       );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
-        if (data['phone'] != null) return _ok(data);
-        return _err('Failed to reveal phone');
+        if (data['success'] == true && data['phone'] != null) return _ok(data);
+        return _err((data['error'] ?? 'Failed to reveal phone').toString());
       }
       return _err('Phone reveal failed (${res.statusCode})');
     } catch (e) {

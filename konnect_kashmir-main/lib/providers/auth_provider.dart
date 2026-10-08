@@ -73,23 +73,17 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Clears the saved session but keeps device-level preferences: the user's
-  /// Light/Dark choice and the per-user list of revealed lead IDs (IDs only, no
-  /// phone numbers), so a logout/login on this phone doesn't lose them.
+  /// Light/Dark choice, so a logout/login on this phone doesn't lose them.
   Future<void> _clearSession(SharedPreferences prefs) async {
     final theme = prefs.getString('theme_mode');
+    final themeSys = prefs.getString('theme_mode_sys');
     final lang = prefs.getString('app_locale');
     final langChosen = prefs.getBool('app_locale_chosen');
-    final keptLeadIds = <String, List<String>>{
-      for (final k in prefs.getKeys().where((k) => k.startsWith('revealed_leads_')))
-        k: prefs.getStringList(k) ?? <String>[],
-    };
     await prefs.clear();
     if (theme != null) await prefs.setString('theme_mode', theme);
+    if (themeSys != null) await prefs.setString('theme_mode_sys', themeSys);
     if (lang != null) await prefs.setString('app_locale', lang);
     if (langChosen != null) await prefs.setBool('app_locale_chosen', langChosen);
-    for (final e in keptLeadIds.entries) {
-      await prefs.setStringList(e.key, e.value);
-    }
   }
 
   /// Coming back to the app (after it sat in the background) refreshes a token
