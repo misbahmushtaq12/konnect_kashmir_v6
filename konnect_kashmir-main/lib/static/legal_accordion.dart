@@ -12,7 +12,7 @@ class LegalSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) => Text(text,
       style: TextStyle(
           fontSize: AppText.heading,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w400,
           color: Theme.of(context).colorScheme.onSurface));
 }
 
@@ -94,7 +94,7 @@ class _LegalBodyState extends State<LegalBody> {
         Text(s.title,
             style: TextStyle(
                 fontSize: AppText.heading,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w400,
                 color: cs.onSurface)),
         const SizedBox(height: 12),
         ...s.body,
@@ -128,7 +128,7 @@ class _LegalBodyState extends State<LegalBody> {
                 child: Text(s.title,
                     style: TextStyle(
                         fontSize: AppText.heading,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w400,
                         height: 1.25,
                         color: cs.onSurface)),
               ),

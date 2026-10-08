@@ -138,9 +138,15 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: LayoutBuilder(
+                    builder: (context, viewport) => SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Column(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minHeight: viewport.maxHeight),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const SizedBox(height: 44),
@@ -401,12 +407,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 32),
                       ],
                     ),
+                    // 9. Terms section: part of the scroll content, so it stays at
+                    // the bottom when there is room but never rides up with the keyboard.
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 24),
+                      child: _buildTermsText(context, tealBrand, textFooterMuted, 12.0),
+                    ),
+                        ],
+                      ),
+                    ),
+                    ),
                   ),
-                ),
-                // 9. Terms section
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24, left: 24, right: 24),
-                  child: _buildTermsText(context, tealBrand, textFooterMuted, 12.0),
                 ),
               ],
             ),

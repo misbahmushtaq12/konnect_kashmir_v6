@@ -1768,10 +1768,9 @@ class _HomeScreenState extends State<CustomerScreen>
               ),
             ),
           ]),
-          if (!_searchActive) ...[
-            const SizedBox(height: 10),
-            _buildDistrictChip(),
-          ],
+          // District / locality filters stay available while searching too.
+          const SizedBox(height: 10),
+          _buildDistrictChip(),
           if (!_searchActive && _searchController.text.isEmpty) ...[
             const SizedBox(height: 14),
             _buildCategoriesGrid(),
@@ -1787,7 +1786,9 @@ class _HomeScreenState extends State<CustomerScreen>
   // Home-tab search mode: blank until the user types, then only matching vendors.
   List<Widget> _buildSearchModeResults() {
     final typed = _searchController.text.trim();
-    if (typed.isEmpty) return const [];
+    final hasFilter = selectedDistrictId != null || selectedLocalityId != null;
+    // Blank until the user types or picks a district/locality.
+    if (typed.isEmpty && !hasFilter) return const [];
     final ready = _resultsFor == typed && !_refreshingVendors;
     if (_vendorsError != null && !_refreshingVendors) {
       return [ErrorRetry.fromError(_vendorsError, onRetry: _loadVendors)];
