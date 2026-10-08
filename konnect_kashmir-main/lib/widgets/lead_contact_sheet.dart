@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'app_overlays.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_theme.dart';
@@ -10,9 +11,8 @@ const Color _kAccent = AppColors.primary;
 /// Uses the app theme (solid bottom-sheet surface), so it matches Light/Dark.
 Future<void> showLeadContactSheet(
     BuildContext context, String name, String phone) {
-  return showModalBottomSheet<void>(
+  return showAppSheet<void>(
     context: context,
-    isScrollControlled: true,
     builder: (ctx) {
       final cs = Theme.of(ctx).colorScheme;
       return SafeArea(
@@ -29,18 +29,18 @@ Future<void> showLeadContactSheet(
                       Text('Contact Details',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 20,
+                              fontSize: AppText.title,
                               fontWeight: FontWeight.bold)),
                       Text('Contact information for $name',
                           style: TextStyle(
-                              color: cs.onSurface.withValues(alpha: 0.6),
-                              fontSize: 13)),
+                              color: cs.onSurface.withValues(alpha: 0.7),
+                              fontSize: AppText.secondary)),
                     ]),
               ),
               GestureDetector(
                 onTap: () => Navigator.pop(ctx),
                 child: Icon(Icons.close,
-                    color: cs.onSurface.withValues(alpha: 0.5)),
+                    color: cs.onSurface.withValues(alpha: 0.66)),
               ),
             ]),
             const SizedBox(height: 28),
@@ -58,7 +58,7 @@ Future<void> showLeadContactSheet(
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: cs.onSurface,
-                    fontSize: 18,
+                    fontSize: AppText.heading,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             phone.isNotEmpty
@@ -70,8 +70,8 @@ Future<void> showLeadContactSheet(
                         letterSpacing: 1.5))
                 : Text('Phone not available',
                     style: TextStyle(
-                        color: cs.onSurface.withValues(alpha: 0.5),
-                        fontSize: 16)),
+                        color: cs.onSurface.withValues(alpha: 0.66),
+                        fontSize: AppText.body)),
             const SizedBox(height: 26),
             if (phone.isNotEmpty)
               SizedBox(
@@ -82,22 +82,15 @@ Future<void> showLeadContactSheet(
                     final uri = Uri(scheme: 'tel', path: phone);
                     if (await canLaunchUrl(uri)) await launchUrl(uri);
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _kAccent,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
+                  style: AppButtons.primary,
                   icon: const Icon(Icons.phone_in_talk, size: 22),
                   label: const Text('Call Now',
                       style:
-                          TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                          TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.bold)),
                 ),
               ),
           ]),
         ),
       );
-    },
-  );
+    });
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
@@ -78,7 +79,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
 
-    final dialogBg = isDark ? const Color(0xFF1A1A1A) : cs.surface;
+    final dialogBg = isDark ? const Color(0xFF1A1A1A) : AppColors.solid(cs);
     final titleColor = cs.onSurface;
     final subtitleColor = cs.onSurface.withOpacity(0.5);
     final rewardBadgeBg = isDark
@@ -112,10 +113,10 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
       player: YoutubePlayer(
         controller: _controller,
         showVideoProgressIndicator: true,
-        progressIndicatorColor: Colors.red,
+        progressIndicatorColor: AppColors.danger,
         progressColors: ProgressBarColors(
-          playedColor: Colors.red,
-          handleColor: Colors.redAccent,
+          playedColor: AppColors.danger,
+          handleColor: AppColors.danger,
           backgroundColor: cs.onSurface.withOpacity(0.15),
           bufferedColor: cs.onSurface.withOpacity(0.25),
         ),
@@ -131,7 +132,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
         return Dialog(
           backgroundColor: dialogBg,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
+              borderRadius: BorderRadius.circular(AppRadius.md)),
           insetPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
           child: Column(
@@ -150,7 +151,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                           Text(
                             title,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: AppText.body,
                               fontWeight: FontWeight.bold,
                               color: titleColor,
                             ),
@@ -159,7 +160,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                           Text(
                             'Watch to earn credits',
                             style: TextStyle(
-                                fontSize: 12, color: subtitleColor),
+                                fontSize: AppText.caption, color: subtitleColor),
                           ),
                         ],
                       ),
@@ -169,14 +170,14 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: rewardBadgeBg,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: Text(
                         '+$reward',
                         style: TextStyle(
                           color: teal,
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: AppText.caption,
                         ),
                       ),
                     ),
@@ -217,7 +218,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                                   ? 'Done!'
                                   : 'Watch for ${_remaining}s',
                               style: TextStyle(
-                                  color: timerTextColor, fontSize: 13),
+                                  color: timerTextColor, fontSize: AppText.secondary),
                             ),
                           ],
                         ),
@@ -226,7 +227,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                           style: TextStyle(
                             color: titleColor,
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: AppText.secondary,
                           ),
                         ),
                       ],
@@ -253,21 +254,14 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                             ? ElevatedButton.icon(
                           key: const ValueKey('claim'),
                           onPressed: _claimReward,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade700,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 13),
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                BorderRadius.circular(10)),
-                          ),
+                          style: AppButtons.danger,
                           icon: const Icon(Icons.celebration,
                               size: 18, color: Colors.white),
                           label: const Text(
                             'Claim Reward  🎉',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: AppText.body,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -282,7 +276,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                                 vertical: 13),
                             shape: RoundedRectangleBorder(
                                 borderRadius:
-                                BorderRadius.circular(10)),
+                                BorderRadius.circular(AppRadius.sm)),
                           ),
                           icon: Icon(
                               Icons.access_time_outlined,
@@ -292,7 +286,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                             'Please wait...  $_remaining',
                             style: TextStyle(
                               color: waitBtnFg,
-                              fontSize: 14,
+                              fontSize: AppText.body,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

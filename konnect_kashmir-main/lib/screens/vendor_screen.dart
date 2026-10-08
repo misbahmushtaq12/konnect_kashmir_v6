@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../widgets/app_snack.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/category_meta.dart';
 
@@ -458,7 +460,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                         const SizedBox(height: 14),
                               if (!_isEditing) ...[
                                 Row(children: [
-                                  Icon(Icons.hourglass_empty, color: Colors.orange[300]),
+                                  Icon(Icons.hourglass_empty, color: AppColors.warning),
                                   const SizedBox(width: 8),
                                   Flexible(
                                     child: Text(
@@ -477,28 +479,8 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                               //    to stack vertically on screens < 360 px ────
                               LayoutBuilder(builder: (ctx, constraints) {
                                 final bool narrow = constraints.maxWidth < 300;
-                                final buttonStyle_outlined = OutlinedButton.styleFrom(
-                                  foregroundColor: _onSurface,
-                                  side: BorderSide(color: _borderColor),
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: _rs(0.04, min: 14, max: 18),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                );
-                                final buttonStyle_filled = ElevatedButton.styleFrom(
-                                  backgroundColor: _isDark
-                                      ? const Color(0xFF0E3D2E)
-                                      : _cs.primary,
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: _rs(0.04, min: 14, max: 18),
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  disabledBackgroundColor:
-                                  _cs.onSurface.withOpacity(0.12),
-                                );
+                                final buttonStyle_outlined = AppButtons.secondary;
+                                final buttonStyle_filled = AppButtons.primary;
 
                                 final cancelBtn = OutlinedButton(
                                   onPressed: () => Navigator.pop(context),
@@ -577,7 +559,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         ),
         decoration: BoxDecoration(
           color: _inputFill,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(color: _borderColor),
         ),
         child: Text('+91', style: TextStyle(color: _onSurfaceMuted)),
@@ -598,7 +580,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   Widget _buildServiceCategorySelector() {
     final openBg   = _isDark ? const Color(0xFFA0522D).withOpacity(0.75) : _cs.secondaryContainer;
     final openBord = _isDark ? const Color(0xFFA0522D) : _cs.secondary;
-    final listBg   = _isDark ? const Color(0xFF1A1A1A) : _cs.surface;
+    final listBg   = _isDark ? const Color(0xFF1A1A1A) : AppColors.solid(_cs);
     final selBg    = _isDark
         ? const Color(0xFF8B1A1A).withOpacity(0.85)
         : _cs.primaryContainer.withOpacity(0.6);
@@ -620,11 +602,11 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
             decoration: BoxDecoration(
               color: _serviceDropdownOpen ? openBg : _inputFill,
               borderRadius: _serviceDropdownOpen
-                  ? const BorderRadius.vertical(top: Radius.circular(10))
-                  : BorderRadius.circular(10),
+                  ? const BorderRadius.vertical(top: Radius.circular(AppRadius.sm))
+                  : BorderRadius.circular(AppRadius.sm),
               border: Border.all(
                 color: _serviceTypeError
-                    ? Colors.red
+                    ? AppColors.danger
                     : _serviceDropdownOpen
                     ? openBord
                     : _borderColor,
@@ -657,7 +639,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
           Container(
             decoration: BoxDecoration(
               color: listBg,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppRadius.sm)),
               border: Border.all(color: _subtleBorder),
             ),
             child: Column(children: [
@@ -665,17 +647,17 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: TextField(
                   controller: _searchController,
-                  style: TextStyle(color: _onSurface, fontSize: 14),
+                  style: TextStyle(color: _onSurface, fontSize: AppText.body),
                   onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: InputDecoration(
                     hintText: 'Search categories...',
-                    hintStyle: TextStyle(color: _onSurfaceMuted, fontSize: 14),
+                    hintStyle: TextStyle(color: _onSurfaceMuted, fontSize: AppText.body),
                     prefixIcon: Icon(Icons.search, color: _onSurfaceMuted, size: 20),
                     filled: true,
                     fillColor: _inputFill,
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: BorderSide.none,
                     ),
                   ),
@@ -772,15 +754,15 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         Text(
           '${_selectedServiceTypes.length}/3 categories selected',
           style: TextStyle(
-            color: _serviceTypeError ? Colors.red : _onSurfaceMuted,
-            fontSize: 12,
+            color: _serviceTypeError ? AppColors.danger : _onSurfaceMuted,
+            fontSize: AppText.caption,
           ),
         ),
         if (_serviceTypeError)
           const Padding(
             padding: EdgeInsets.only(top: 2),
             child: Text('Please select at least one service',
-                style: TextStyle(color: Colors.red, fontSize: 12)),
+                style: TextStyle(color: AppColors.danger, fontSize: AppText.caption)),
           ),
       ],
     );
@@ -793,7 +775,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       padding: EdgeInsets.all(_rs(0.05, min: 14, max: 24)),
       decoration: BoxDecoration(
         color: _cardFill.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: _subtleBorder),
       ),
       child: child,
@@ -838,26 +820,26 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         filled: true,
         fillColor: _inputFill,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(color: _borderColor),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(color: _borderColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: const BorderSide(color: _kTeal, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
         ),
-        errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
+        errorStyle: const TextStyle(color: AppColors.danger, fontSize: AppText.caption),
         contentPadding: EdgeInsets.symmetric(
           horizontal: 16,
           vertical: _rs(0.04, min: 12, max: 18),
@@ -885,7 +867,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         return null;
       }
           : null,
-      dropdownColor: _isDark ? const Color(0xFF1E2E2E) : _cs.surface,
+      dropdownColor: _isDark ? const Color(0xFF1E2E2E) : AppColors.solid(_cs),
       style: TextStyle(
           color: _onSurface,
           fontSize: _rs(0.038, min: 13, max: 16)),
@@ -894,26 +876,26 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         filled: true,
         fillColor: _inputFill,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(color: _borderColor),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: BorderSide(color: _borderColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           borderSide: const BorderSide(color: _kTeal, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
         ),
-        errorStyle: const TextStyle(color: Colors.red, fontSize: 12),
+        errorStyle: const TextStyle(color: AppColors.danger, fontSize: AppText.caption),
         contentPadding: EdgeInsets.symmetric(
           horizontal: 16,
           vertical: _rs(0.04, min: 12, max: 18),
@@ -962,20 +944,12 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   void _submitForm() async {
     if (_selectedServiceTypes.isEmpty) {
       setState(() => _serviceTypeError = true);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please select at least one service type'),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ));
+      showAppSnack(context, 'Please select at least one service type', type: SnackType.error, duration: const Duration(seconds: 3));
       return;
     }
 
     if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please fill in all required fields'),
-        backgroundColor: Colors.red,
-        duration: Duration(seconds: 3),
-      ));
+      showAppSnack(context, 'Please fill in all required fields', type: SnackType.error, duration: const Duration(seconds: 3));
       return;
     }
 
@@ -1100,11 +1074,6 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(ctx).colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: Theme.of(ctx).colorScheme.outline.withOpacity(0.2)),
-        ),
         title: Text('Success',
             style: TextStyle(
                 color: Theme.of(ctx).colorScheme.onSurface,
@@ -1124,8 +1093,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
             },
             child: const Text('OK', style: TextStyle(color: _kTeal)),
           ),
-        ],
-      ),
+        ]),
     );
   }
 
@@ -1133,13 +1101,8 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Theme.of(ctx).colorScheme.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: Theme.of(ctx).colorScheme.outline.withOpacity(0.2)),
-        ),
         title: const Text('Error',
-            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold)),
         content: Text(message,
             style: TextStyle(
                 color: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.7))),
@@ -1148,8 +1111,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('OK', style: TextStyle(color: _kTeal)),
           ),
-        ],
-      ),
+        ]),
     );
   }
 }

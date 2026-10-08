@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'package:konnect_kashmir/screens/vendor_dashboard.dart';
 import 'customer_screen.dart';
 
@@ -25,8 +26,8 @@ class RoleSelectionScreen extends StatelessWidget {
 
     final mutedText = isDark ? Colors.grey[400]! : Colors.grey[600]!;
 
-    const customerColor = Colors.blue;
-    const vendorColor   = Colors.orange;
+    const customerColor = AppColors.info;
+    const vendorColor   = AppColors.warning;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -75,7 +76,7 @@ class RoleSelectionScreen extends StatelessWidget {
                   Text(
                     name.isNotEmpty ? 'Welcome, $name! 👋' : 'Welcome! 👋',
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: AppText.titleLg,
                       fontWeight: FontWeight.bold,
                       color: cs.onSurface,
                     ),
@@ -86,7 +87,7 @@ class RoleSelectionScreen extends StatelessWidget {
 
                   Text(
                     'How would you like to continue?',
-                    style: TextStyle(fontSize: 15, color: mutedText),
+                    style: TextStyle(fontSize: AppText.body, color: mutedText),
                     textAlign: TextAlign.center,
                   ),
 
@@ -96,8 +97,8 @@ class RoleSelectionScreen extends StatelessWidget {
                     icon: Icons.person_outline,
                     iconBg: customerColor.withOpacity(0.15),
                     iconColor: isDark
-                        ? Colors.blue.shade300
-                        : Colors.blue.shade700,
+                        ? AppColors.info
+                        : AppColors.info,
                     borderColor: (!isVendor)
                         ? customerColor.withOpacity(0.55)
                         : customerColor.withOpacity(0.15),
@@ -106,8 +107,8 @@ class RoleSelectionScreen extends StatelessWidget {
                     subtitle: 'Browse local services and connect with vendors',
                     badgeText: (!isVendor) ? 'Your Account' : null,
                     badgeColor: isDark
-                        ? Colors.blue.shade400
-                        : Colors.blue.shade700,
+                        ? AppColors.info
+                        : AppColors.info,
                     mutedText: mutedText,
                     onTap: () => Navigator.pushAndRemoveUntil(
                       context,
@@ -122,8 +123,8 @@ class RoleSelectionScreen extends StatelessWidget {
                     icon: Icons.store_outlined,
                     iconBg: vendorColor.withOpacity(0.15),
                     iconColor: isDark
-                        ? Colors.orange.shade300
-                        : Colors.orange.shade800,
+                        ? AppColors.warning
+                        : AppColors.warning,
                     borderColor: isVendor
                         ? vendorColor.withOpacity(0.55)
                         : vendorColor.withOpacity(0.15),
@@ -132,8 +133,8 @@ class RoleSelectionScreen extends StatelessWidget {
                     subtitle: 'Manage your businesses and view leads',
                     badgeText: isVendor ? 'Your Account' : null,
                     badgeColor: isDark
-                        ? Colors.orange.shade400
-                        : Colors.orange.shade800,
+                        ? AppColors.warning
+                        : AppColors.warning,
                     mutedText: mutedText,
                     onTap: () => Navigator.pushAndRemoveUntil(
                       context,
@@ -151,7 +152,7 @@ class RoleSelectionScreen extends StatelessWidget {
                         horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: cs.onSurface.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -161,7 +162,7 @@ class RoleSelectionScreen extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           'Signed in as $phone',
-                          style: TextStyle(color: mutedText, fontSize: 13),
+                          style: TextStyle(color: mutedText, fontSize: AppText.secondary),
                         ),
                       ],
                     ),
@@ -196,7 +197,7 @@ class _AccountBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: color.withOpacity(0.4)),
       ),
       child: Row(
@@ -208,7 +209,7 @@ class _AccountBadge extends StatelessWidget {
             label,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: AppText.caption,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -257,7 +258,7 @@ class _RoleCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: cardBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: borderColor),
         ),
         child: Row(
@@ -267,7 +268,7 @@ class _RoleCard extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Icon(icon, color: iconColor, size: 28),
             ),
@@ -287,7 +288,7 @@ class _RoleCard extends StatelessWidget {
                         title,
                         style: TextStyle(
                           color: cs.onSurface,
-                          fontSize: 15,
+                          fontSize: AppText.body,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -298,13 +299,13 @@ class _RoleCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: (badgeColor ?? cs.onSurface)
                                 .withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
                           child: Text(
                             badgeText!,
                             style: TextStyle(
                               color: badgeColor ?? cs.onSurface,
-                              fontSize: 11,
+                              fontSize: AppText.caption,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -316,7 +317,7 @@ class _RoleCard extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       color: mutedText,
-                      fontSize: 13,
+                      fontSize: AppText.secondary,
                       height: 1.3,
                     ),
                   ),

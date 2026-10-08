@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../widgets/app_overlays.dart';
+import '../widgets/app_snack.dart';
+import 'package:flutter/services.dart';
 import 'package:konnect_kashmir/screens/profile2.dart';
 import 'package:konnect_kashmir/screens/vendor_dashboard.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +16,10 @@ import 'package:konnect_kashmir/static/grevience_screen.dart';
 import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_chip.dart';
+import '../widgets/app_header.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/error_retry.dart';
 import '../widgets/category_meta.dart';
 import 'ad_watch_dialog.dart';
 
@@ -106,6 +112,140 @@ class _HomeScreenState extends State<CustomerScreen>
       ctx,
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeInOutCubic,
+      alignment: 0.17, // leave room for the pinned search + filter bar
+    );
+  }
+
+  // ── Pinned search bar (Home tab) ──────────────────────────────────────────
+  // Appears once the real search bar has scrolled out of view. Tapping the
+  // search part scrolls back up and focuses the real field; the district chip
+  // opens the district picker directly.
+  final ValueNotifier<bool> _showSticky = ValueNotifier<bool>(false);
+
+  void _onScrollTick() {
+    if (!_scrollController.hasClients) return;
+    final show = _scrollController.offset > 280;
+    if (show != _showSticky.value) _showSticky.value = show;
+  }
+
+  Future<void> _focusSearchFromSticky() async {
+    if (_scrollController.hasClients) {
+      await _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic);
+    }
+    if (mounted) _searchFocus.requestFocus();
+  }
+
+  Widget _buildStickyBar(double hPad) {
+    final cs = Theme.of(context).colorScheme;
+    final solid = AppColors.solid(cs);
+    final query = _searchController.text.trim();
+    final border = Border.all(color: cs.onSurface.withValues(alpha: 0.14));
+
+    // Compact filter chip that fills its half of the row.
+    Widget chip(IconData icon, String label, bool active, VoidCallback onTap) {
+      final fg = active ? AppColors.primary : cs.onSurface;
+      return Expanded(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(999),
+          child: Container(
+            height: 38,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: active ? AppColors.primary.withValues(alpha: 0.14) : solid,
+              borderRadius: BorderRadius.circular(999),
+              border: active ? Border.all(color: AppColors.primary) : border,
+            ),
+            child: Row(children: [
+              Icon(icon, size: 17, color: active ? AppColors.primary : cs.onSurface.withValues(alpha: 0.7)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: AppText.secondary, fontWeight: FontWeight.w600, color: fg)),
+              ),
+              Icon(Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: active ? AppColors.primary : cs.onSurface.withValues(alpha: 0.7)),
+            ]),
+          ),
+        ),
+      );
+    }
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _showSticky,
+        builder: (context, show, _) => IgnorePointer(
+          ignoring: !show,
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            offset: Offset(0, show ? 0 : -1),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: show ? 1 : 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 8),
+                decoration: BoxDecoration(
+                  color: AppColors.baseBg(Theme.of(context)),
+                  border: Border(
+                      bottom: BorderSide(
+                          color: cs.onSurface.withValues(alpha: 0.08))),
+                ),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  InkWell(
+                    onTap: _focusSearchFromSticky,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      height: 44,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                          color: solid,
+                          borderRadius: BorderRadius.circular(999),
+                          border: border),
+                      child: Row(children: [
+                        Icon(Icons.search_rounded,
+                            size: 20,
+                            color: cs.onSurface.withValues(alpha: 0.66)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            query.isEmpty ? 'Search vendors...' : query,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: AppText.body,
+                                color: cs.onSurface.withValues(
+                                    alpha: query.isEmpty ? 0.62 : 0.9)),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    chip(Icons.location_city_outlined,
+                        selectedDistrictName ?? 'All districts',
+                        selectedDistrictId != null, _showDistrictSheet),
+                    const SizedBox(width: 8),
+                    chip(Icons.place_outlined,
+                        selectedLocalityName ?? 'All localities',
+                        selectedLocalityId != null, _showLocalitySheet),
+                  ]),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -185,6 +325,7 @@ class _HomeScreenState extends State<CustomerScreen>
   Set<String> _favorites = {};
   int _vendorReq = 0; // guards against out-of-order API responses
   bool _refreshingVendors = false;
+  String? _vendorsError; // set when the last providers request failed
 
   bool isLoading = true;
   bool isLoadingLocalities = false;
@@ -210,6 +351,7 @@ class _HomeScreenState extends State<CustomerScreen>
     }
     _favoritesOnly = widget.initialFavoritesOnly;
     _searchFocus.addListener(_onSearchFocusChange);
+    _scrollController.addListener(_onScrollTick);
     _loadFavorites();
     _loadData().then((_) {
       if (widget.openAdsOnStart && mounted && _hasWatchableAds) {
@@ -223,6 +365,8 @@ class _HomeScreenState extends State<CustomerScreen>
     _searchDebounce?.cancel();
     _coveringRoute?.removeStatusListener(_onRouteCovered);
     _searchFocus.removeListener(_onSearchFocusChange);
+    _scrollController.removeListener(_onScrollTick);
+    _showSticky.dispose();
     _searchFocus.dispose();
     _searchAnim.dispose();
     _searchController.dispose();
@@ -236,9 +380,10 @@ class _HomeScreenState extends State<CustomerScreen>
     super.dispose();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool quiet = false}) async {
     if (!mounted) return;
-    setState(() => isLoading = true);
+    // Pull-to-refresh is "quiet": its own spinner shows, not a second loader.
+    if (!quiet) setState(() => isLoading = true);
     await Future.wait([
       _loadStats().catchError((e) => debugPrint('loadStats: $e')),
       _loadVendors().catchError((e) => debugPrint('loadVendors: $e')),
@@ -407,6 +552,11 @@ class _HomeScreenState extends State<CustomerScreen>
     }
     try {
       await _fetchVendors(reqId, hold);
+      if (mounted && reqId == _vendorReq) _vendorsError = null;
+    } catch (e) {
+      // Keep the old list, but show "No internet / Retry" instead of silently
+      // pretending there are no providers.
+      if (mounted && reqId == _vendorReq) _vendorsError = e.toString();
     } finally {
       finished = true;
       if (mounted && reqId == _vendorReq) {
@@ -427,6 +577,7 @@ class _HomeScreenState extends State<CustomerScreen>
       serviceSlug: selectedServiceSlug ?? selectedBrowseCategory,
       verifiedOnly: verifiedOnly,
       limit: 1000,
+      throwOnError: true,
     );
 
     if (hold != null) await hold;
@@ -618,53 +769,33 @@ class _HomeScreenState extends State<CustomerScreen>
       userCredits = newBalance;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [
-        const Icon(Icons.stars_rounded, color: Colors.orange, size: 20),
-        const SizedBox(width: 10),
-        Expanded(
-            child: Text(
-                '+$credits credit${credits > 1 ? 's' : ''} earned! You now have $newBalance credits.')),
-      ]),
-      backgroundColor: const Color(0xFF0E3D2E),
-      duration: const Duration(seconds: 3),
-    ));
+    showAppSnack(context,
+        '+$credits credit${credits > 1 ? 's' : ''} earned! You now have $newBalance credits.',
+        type: SnackType.success);
   }
 
   Future<void> _showWatchAdSheet() async {
     final watchable = _watchableAds;
     final cs = Theme.of(context).colorScheme;
     if (watchable.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No ads available right now.'),
-          backgroundColor: Color(0xFF0E3D2E)));
+      showAppSnack(context, 'No ads available right now.', type: SnackType.success);
       return;
     }
-    await showModalBottomSheet(
+    await showAppSheet(
       context: context,
-      backgroundColor: AppColors.solid(cs),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: cs.onSurface.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
+
             Row(children: [
               Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12)),
+                      color: AppColors.warning.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(AppRadius.sm)),
                   child: const Icon(Icons.play_circle_outline,
-                      color: Colors.orange, size: 26)),
+                      color: AppColors.warning, size: 26)),
               const SizedBox(width: 14),
               Expanded(
                   child: Column(
@@ -673,12 +804,12 @@ class _HomeScreenState extends State<CustomerScreen>
                         Text('Watch Ads to Earn Credits',
                             style: TextStyle(
                                 color: cs.onSurface,
-                                fontSize: 18,
+                                fontSize: AppText.heading,
                                 fontWeight: FontWeight.bold)),
                         Text('Watch a short video to earn free credits',
                             style: TextStyle(
                                 color: cs.onSurface.withOpacity(0.6),
-                                fontSize: 13)),
+                                fontSize: AppText.secondary)),
                       ])),
               GestureDetector(
                   onTap: () => Navigator.pop(ctx),
@@ -697,15 +828,15 @@ class _HomeScreenState extends State<CustomerScreen>
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                     color: cs.onSurface.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(
-                        color: Colors.orange.withOpacity(0.25))),
+                        color: AppColors.warning.withOpacity(0.25))),
                 child: Row(children: [
                   Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                          color: Colors.red.shade900,
-                          borderRadius: BorderRadius.circular(10)),
+                          color: AppColors.danger,
+                          borderRadius: BorderRadius.circular(AppRadius.sm)),
                       child: const Icon(Icons.play_arrow,
                           color: Colors.white, size: 22)),
                   const SizedBox(width: 14),
@@ -717,29 +848,29 @@ class _HomeScreenState extends State<CustomerScreen>
                                 style: TextStyle(
                                     color: cs.onSurface,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 15)),
+                                    fontSize: AppText.body)),
                             const SizedBox(height: 4),
                             Row(children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: AppColors.warning.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(AppRadius.sm),
                                     border: Border.all(
                                         color:
-                                        Colors.orange.withOpacity(0.4))),
+                                        AppColors.warning.withOpacity(0.4))),
                                 child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Icon(Icons.toll_outlined,
-                                          color: Colors.orange, size: 13),
+                                          color: AppColors.warning, size: 13),
                                       const SizedBox(width: 3),
                                       Text(
                                           '+$credits credit${credits > 1 ? 's' : ''}',
                                           style: const TextStyle(
-                                              color: Colors.orange,
-                                              fontSize: 12,
+                                              color: AppColors.warning,
+                                              fontSize: AppText.caption,
                                               fontWeight: FontWeight.bold)),
                                     ]),
                               ),
@@ -747,7 +878,7 @@ class _HomeScreenState extends State<CustomerScreen>
                               Text('$remaining left',
                                   style: TextStyle(
                                       color: cs.onSurface.withOpacity(0.5),
-                                      fontSize: 12)),
+                                      fontSize: AppText.caption)),
                             ]),
                           ])),
                   ElevatedButton(
@@ -755,23 +886,17 @@ class _HomeScreenState extends State<CustomerScreen>
                       Navigator.pop(ctx);
                       await _watchAdForCredits(ad);
                     },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade800,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10)),
+                    style: AppButtons.primary,
                     child: const Text('Watch',
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 14)),
+                            fontWeight: FontWeight.bold, fontSize: AppText.body)),
                   ),
                 ]),
               );
             }),
           ]),
         ),
-      ),
-    );
+      ));
   }
 
   // ── Navigation ──────────────────────────────────────────────
@@ -880,7 +1005,7 @@ class _HomeScreenState extends State<CustomerScreen>
                           style: TextStyle(
                             color:
                             isSelected ? activeColor : inactiveColor,
-                            fontSize: 10,
+                            fontSize: AppText.caption,
                             fontWeight: isSelected
                                 ? FontWeight.w700
                                 : FontWeight.w400,
@@ -1031,9 +1156,8 @@ class _HomeScreenState extends State<CustomerScreen>
       });
     }
 
-    final applied = await showModalBottomSheet<bool>(
+    final applied = await showAppSheet<bool>(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
         final cs = Theme.of(ctx).colorScheme;
         final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
@@ -1047,9 +1171,9 @@ class _HomeScreenState extends State<CustomerScreen>
               padding: const EdgeInsets.only(top: 16, bottom: 8),
               child: Text(t,
                   style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppText.secondary,
                       fontWeight: FontWeight.w600,
-                      color: cs.onSurface.withValues(alpha: 0.6))),
+                      color: cs.onSurface.withValues(alpha: 0.7))),
             );
 
         return Padding(
@@ -1063,7 +1187,7 @@ class _HomeScreenState extends State<CustomerScreen>
                   const Expanded(
                     child: Text('Filters',
                         style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w800)),
+                            fontSize: AppText.title, fontWeight: FontWeight.w800)),
                   ),
                   TextButton(
                     onPressed: () => setSheet(() {
@@ -1173,8 +1297,7 @@ class _HomeScreenState extends State<CustomerScreen>
             ),
           ),
         );
-      }),
-    );
+      }));
 
     if (!mounted) return;
 
@@ -1221,8 +1344,7 @@ class _HomeScreenState extends State<CustomerScreen>
           mode: LaunchMode.externalApplication);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Couldn't open WhatsApp")));
+      showAppSnack(context, "Couldn't open WhatsApp", type: SnackType.info);
     }
   }
 
@@ -1232,7 +1354,7 @@ class _HomeScreenState extends State<CustomerScreen>
     final hasText = _searchController.text.isNotEmpty;
 
     return Container(
-      height: 56,
+      height: 48,
       padding: EdgeInsets.fromLTRB(18, 0, hasText ? 7 : 18, 0),
       decoration: BoxDecoration(
         color: cs.surface,
@@ -1240,7 +1362,7 @@ class _HomeScreenState extends State<CustomerScreen>
         border: Border.all(color: cs.onSurface.withValues(alpha: 0.12)),
       ),
       child: Row(children: [
-        Icon(Icons.search_rounded, color: cs.onSurface.withValues(alpha: 0.5)),
+        Icon(Icons.search_rounded, color: cs.onSurface.withValues(alpha: 0.66)),
         const SizedBox(width: 10),
         Expanded(
           child: TextField(
@@ -1256,10 +1378,10 @@ class _HomeScreenState extends State<CustomerScreen>
               FocusScope.of(context).unfocus();
               _onSearchChanged(val);
             },
-            style: TextStyle(color: cs.onSurface, fontSize: 15),
+            style: TextStyle(color: cs.onSurface, fontSize: AppText.body),
             decoration: InputDecoration(
               hintText: 'Search vendors...',
-              hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
+              hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.62)),
               filled: false,
               isDense: true,
               contentPadding: EdgeInsets.zero,
@@ -1271,7 +1393,7 @@ class _HomeScreenState extends State<CustomerScreen>
         ),
         if (hasText)
           IconButton(
-            icon: Icon(Icons.close_rounded, color: cs.onSurface.withValues(alpha: 0.6), size: 22),
+            icon: Icon(Icons.close_rounded, color: cs.onSurface.withValues(alpha: 0.7), size: 22),
             onPressed: () {
               _searchController.clear();
               setState(() {});
@@ -1305,7 +1427,7 @@ class _HomeScreenState extends State<CustomerScreen>
         onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
             color: active ? AppColors.primary.withValues(alpha: 0.12) : null,
             borderRadius: BorderRadius.circular(999),
@@ -1319,11 +1441,11 @@ class _HomeScreenState extends State<CustomerScreen>
                 size: 18,
                 color: active
                     ? AppColors.primary
-                    : cs.onSurface.withValues(alpha: 0.6)),
+                    : cs.onSurface.withValues(alpha: 0.7)),
             const SizedBox(width: 8),
             Text(label,
                 style: TextStyle(
-                    fontSize: 14,
+                    fontSize: AppText.body,
                     fontWeight: FontWeight.w600,
                     color: active ? AppColors.primary : cs.onSurface)),
             const SizedBox(width: 4),
@@ -1331,7 +1453,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 size: 20,
                 color: active
                     ? AppColors.primary
-                    : cs.onSurface.withValues(alpha: 0.6)),
+                    : cs.onSurface.withValues(alpha: 0.7)),
           ]),
         ),
       ),
@@ -1369,7 +1491,7 @@ class _HomeScreenState extends State<CustomerScreen>
                   padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
                   child: Text('Filter by district',
                       style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                          TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.w800)),
                 ),
                 option('All districts', selectedDistrictId == null, null),
                 for (final d in _districts)
@@ -1395,8 +1517,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
   Future<void> _showLocalitySheet() async {
     if (selectedDistrictId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Select a district first')));
+      showAppSnack(context, 'Select a district first', type: SnackType.info);
       return;
     }
     if (_localities.isEmpty && !isLoadingLocalities) {
@@ -1433,7 +1554,7 @@ class _HomeScreenState extends State<CustomerScreen>
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                   child: Text('Localities in $selectedDistrictName',
                       style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w800)),
+                          fontSize: AppText.heading, fontWeight: FontWeight.w800)),
                 ),
                 option('All localities', selectedLocalityId == null, null),
                 for (final l in _localities)
@@ -1477,17 +1598,17 @@ class _HomeScreenState extends State<CustomerScreen>
       children: [
         SectionHeader(
           title: 'Our services',
-          actionLabel: _showAllCategories ? 'Show less' : 'See all',
+          actionLabel: _showAllCategories ? 'Show less' : 'Show all',
           onAction: () =>
               setState(() => _showAllCategories = !_showAllCategories),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 2),
         GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 4,
-            mainAxisExtent: 112,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
+            mainAxisExtent: 88,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
           ),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -1512,7 +1633,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
     return Material(
       color: cs.surface,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
@@ -1533,12 +1654,12 @@ class _HomeScreenState extends State<CustomerScreen>
                   : cs.onSurface.withValues(alpha: 0.08),
               width: isSelected ? 1.5 : 1.0,
             ),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
-          padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+          padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
           child: Column(children: [
-            Icon(meta.icon, color: meta.color, size: 28),
-            const SizedBox(height: 12),
+            Icon(meta.icon, color: meta.color, size: 26),
+            const SizedBox(height: 6),
             Expanded(
               child: Text(
                 name,
@@ -1546,7 +1667,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    fontSize: 11.5,
+                    fontSize: AppText.caption,
                     fontWeight: FontWeight.w600,
                     height: 1.15,
                     color: isDark ? cs.onSurface : const Color(0xFF333333)),
@@ -1564,7 +1685,7 @@ class _HomeScreenState extends State<CustomerScreen>
     final isSmall = MediaQuery.of(context).size.width < 360;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+      padding: const EdgeInsets.fromLTRB(0, 12, 0, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1576,31 +1697,12 @@ class _HomeScreenState extends State<CustomerScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-          Row(children: [
-            _adaptiveLogo(height: 48), // Increased size
-            const Spacer(),
-            if (auth.isAuthenticated) ...[
-              InkWell(
-                borderRadius: BorderRadius.circular(999),
-                onTap: _hasWatchableAds ? _showWatchAdSheet : null,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.stars_rounded, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 4),
-                    Text('$userCredits',
-                        style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13)),
-                  ]),
-                ),
-              ),
-              const SizedBox(width: 8),
+          AppHeader(
+            leading: _adaptiveLogo(height: 48),
+            actions: [
+              if (auth.isAuthenticated) ...[
+              CreditChip(userCredits,
+                  onTap: _hasWatchableAds ? _showWatchAdSheet : null),
               InkWell(
                 borderRadius: BorderRadius.circular(999),
                 onTap: widget.onOpenProfile ??
@@ -1611,16 +1713,17 @@ class _HomeScreenState extends State<CustomerScreen>
                   child: Text(
                     first.isNotEmpty ? first[0].toUpperCase() : '?',
                     style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14),
+                        color: Colors.white, fontWeight: FontWeight.w700, fontSize: AppText.body),
                   ),
                 ),
               ),
-            ]
-          ]),
-          const SizedBox(height: 24),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(first.isNotEmpty ? 'Salam, $first' : 'Salam',
               style: TextStyle(
-                  fontSize: 14, color: cs.onSurface.withValues(alpha: 0.6))),
+                  fontSize: AppText.body, color: cs.onSurface.withValues(alpha: 0.7))),
           const SizedBox(height: 6),
           Text.rich(
             const TextSpan(children: [
@@ -1637,7 +1740,7 @@ class _HomeScreenState extends State<CustomerScreen>
               color: cs.onSurface,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
                 ],
               ),
             ),
@@ -1660,22 +1763,22 @@ class _HomeScreenState extends State<CustomerScreen>
                   ),
                   child: const Text('Cancel',
                       style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.body)),
                 ),
               ),
             ),
           ]),
           if (!_searchActive) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildDistrictChip(),
           ],
           if (!_searchActive && _searchController.text.isEmpty) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: 14),
             _buildCategoriesGrid(),
           ],
           // Scroll anchor just above the providers heading. It lives in the hero
           // (always built), unlike the lazily-built providers list.
-          SizedBox(key: _providersKey, height: 24),
+          SizedBox(key: _providersKey, height: 8),
         ],
       ),
     );
@@ -1686,15 +1789,19 @@ class _HomeScreenState extends State<CustomerScreen>
     final typed = _searchController.text.trim();
     if (typed.isEmpty) return const [];
     final ready = _resultsFor == typed && !_refreshingVendors;
+    if (_vendorsError != null && !_refreshingVendors) {
+      return [ErrorRetry.fromError(_vendorsError, onRetry: _loadVendors)];
+    }
     if (!ready) {
       return const [
         Padding(
-          padding: EdgeInsets.only(top: 48),
+          padding: EdgeInsets.only(top: 64),
           child: Center(
               child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5))),
+                  width: 36,
+                  height: 36,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 3.2, color: AppColors.primary))),
         ),
       ];
     }
@@ -1725,8 +1832,9 @@ class _HomeScreenState extends State<CustomerScreen>
             _buildSearchAndFilters(),
           ],
           Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadData,
+            child: Stack(children: [
+            RefreshIndicator(
+              onRefresh: () => _loadData(quiet: true),
               color: AppColors.primary,
               child: ListView(
                 controller: _scrollController,
@@ -1740,7 +1848,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     ..._buildSearchModeResults()
                   else ...[
                   _buildActiveFilters(),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
                   _buildVendorCount(),
                   const SizedBox(height: 4),
                   _buildVendorsList(),
@@ -1749,6 +1857,8 @@ class _HomeScreenState extends State<CustomerScreen>
                 ],
               ),
             ),
+            if (isHomeTab && !_searchActive) _buildStickyBar(hPad),
+          ]),
           ),
         ]),
       ),
@@ -1763,10 +1873,7 @@ class _HomeScreenState extends State<CustomerScreen>
     if (!auth.isAuthenticated) {
       trailing = FilledButton.tonal(
         onPressed: () => Navigator.pushNamed(context, '/login'),
-        style: FilledButton.styleFrom(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-        ),
+        style: AppButtons.compact(AppButtons.secondary),
         child: const Text('Sign In'),
       );
     } else {
@@ -1786,7 +1893,7 @@ class _HomeScreenState extends State<CustomerScreen>
             Text('$userCredits ${userCredits == 1 ? 'credit' : 'credits'}',
                 style: const TextStyle(
                     color: AppColors.primary,
-                    fontSize: 13,
+                    fontSize: AppText.secondary,
                     fontWeight: FontWeight.w700)),
             if (_hasWatchableAds) ...[
               const SizedBox(width: 6),
@@ -1813,12 +1920,12 @@ class _HomeScreenState extends State<CustomerScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Find services',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
               if (auth.isAuthenticated && first.isNotEmpty)
                 Text('Hi, $first',
                     style: TextStyle(
-                        fontSize: 12.5,
-                        color: cs.onSurface.withValues(alpha: 0.55))),
+                        fontSize: AppText.caption,
+                        color: cs.onSurface.withValues(alpha: 0.68))),
             ],
           ),
         ),
@@ -1905,7 +2012,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 const SizedBox(width: 6),
                 Text(name,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppText.secondary,
                       fontWeight: FontWeight.w600,
                       color: isSelected
                           ? Colors.white
@@ -1934,9 +2041,9 @@ class _HomeScreenState extends State<CustomerScreen>
             style: TextStyle(color: cs.onSurface),
             decoration: InputDecoration(
               hintText: 'Search by name or service',
-              hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.4)),
+              hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.62)),
               prefixIcon: Icon(Icons.search,
-                  color: cs.onSurface.withValues(alpha: 0.5)),
+                  color: cs.onSurface.withValues(alpha: 0.66)),
               suffixIcon: _searchController.text.isEmpty
                   ? null
                   : IconButton(
@@ -1980,7 +2087,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 child: Text('$count',
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
+                        fontSize: AppText.caption,
                         fontWeight: FontWeight.w700)),
               ),
             ),
@@ -2047,7 +2154,7 @@ class _HomeScreenState extends State<CustomerScreen>
         Text(label,
             style: const TextStyle(
                 color: AppColors.primary,
-                fontSize: 13,
+                fontSize: AppText.secondary,
                 fontWeight: FontWeight.w600)),
         const SizedBox(width: 4),
         InkWell(
@@ -2068,16 +2175,20 @@ class _HomeScreenState extends State<CustomerScreen>
     return Row(children: [
       Expanded(
         child: Text(
-          (isLoading || _refreshingVendors) ? 'Finding providers…' : '$n ${n == 1 ? 'provider' : 'providers'}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          isLoading ? 'Finding providers…' : '$n ${n == 1 ? 'provider' : 'providers'}',
+          style: const TextStyle(fontSize: AppText.body, fontWeight: FontWeight.w700),
         ),
       ),
     ]);
   }
 
-  // Skeleton cards while loading/refreshing, softly cross-faded into the list.
+  // Loading rule: first load -> centered circular loader; refreshes (filter /
+  // category / search changes) are quiet: the current list just dims slightly
+  // until the new one arrives. Failures show a full "No internet / Retry" state.
   Widget _buildVendorsList() {
-    final loading = isLoading || _refreshingVendors;
+    final state = isLoading
+        ? 'loading'
+        : (_vendorsError != null ? 'error' : 'list');
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
       layoutBuilder: (current, previous) => Stack(
@@ -2085,50 +2196,35 @@ class _HomeScreenState extends State<CustomerScreen>
         children: [...previous, if (current != null) current],
       ),
       child: KeyedSubtree(
-        key: ValueKey(loading),
-        child: _vendorsListBody(loading),
+        key: ValueKey(state),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: (_refreshingVendors && state == 'list') ? 0.5 : 1.0,
+          child: _vendorsListBody(state),
+        ),
       ),
     );
   }
 
-  Widget _vendorsListBody(bool loading) {
+  Widget _vendorsListBody(String state) {
     final cs = Theme.of(context).colorScheme;
 
-    if (loading) {
-      return Column(
-        children: List.generate(
-          3,
-          (_) => Container(
-            margin: const EdgeInsets.only(bottom: 14),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: cs.surface,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
-            ),
-            child: Column(children: [
-              Row(children: const [
-                Skeleton(width: 52, height: 52, radius: 14),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Skeleton(height: 16, radius: 6),
-                      SizedBox(height: 8),
-                      Skeleton(width: 140, height: 12, radius: 6),
-                    ],
-                  ),
-                ),
-              ]),
-              const SizedBox(height: 14),
-              const Skeleton(height: 12, radius: 6),
-              const SizedBox(height: 16),
-              const Skeleton(height: 44, radius: 12),
-            ]),
+    if (state == 'loading') {
+      return const SizedBox(
+        height: 300,
+        child: Center(
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+                strokeWidth: 3.2, color: AppColors.primary),
           ),
         ),
       );
+    }
+
+    if (state == 'error') {
+      return ErrorRetry.fromError(_vendorsError, onRetry: _loadVendors);
     }
 
     final list = _displayVendors;
@@ -2149,7 +2245,7 @@ class _HomeScreenState extends State<CustomerScreen>
           ),
           const SizedBox(height: 18),
           const Text('No providers found',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              style: TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.w700)),
           const SizedBox(height: 6),
           Text(
             _favoritesOnly
@@ -2157,14 +2253,13 @@ class _HomeScreenState extends State<CustomerScreen>
                 : 'Try a different search or change your filters.',
             textAlign: TextAlign.center,
             style: TextStyle(
-                color: cs.onSurface.withValues(alpha: 0.6), height: 1.4),
+                color: cs.onSurface.withValues(alpha: 0.7), height: 1.4),
           ),
           if (_hasAnyFilter) ...[
             const SizedBox(height: 18),
             OutlinedButton(
               onPressed: _clearAllFilters,
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(160, 46)),
+              style: AppButtons.secondary,
               child: const Text('Clear all filters'),
             ),
           ],
@@ -2233,25 +2328,10 @@ class _HomeScreenState extends State<CustomerScreen>
     final initialsWidget = Center(
       child: Text(initials,
           style: TextStyle(
-              color: meta.color, fontSize: 17, fontWeight: FontWeight.w800)),
+              color: meta.color, fontSize: AppText.heading, fontWeight: FontWeight.w800)),
     );
 
-    Widget tag(IconData icon, String text) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color: cs.onSurface.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(icon, size: 14, color: cs.onSurface.withValues(alpha: 0.6)),
-            const SizedBox(width: 4),
-            Text(text,
-                style: TextStyle(
-                    fontSize: 12,
-                    color: cs.onSurface.withValues(alpha: 0.75))),
-          ]),
-        );
-
+    Widget tag(IconData icon, String text) => AppChip(text, icon: icon);
     final tags = <Widget>[
       if (price != null) tag(Icons.currency_rupee_rounded, price.substring(1)),
       if (exp != null && exp > 0)
@@ -2280,10 +2360,7 @@ class _HomeScreenState extends State<CustomerScreen>
         const SizedBox(width: 8),
         ElevatedButton.icon(
           onPressed: () => _dialNumber(phone),
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(0, 44),
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-          ),
+          style: AppButtons.compact(AppButtons.primary),
           icon: const Icon(Icons.phone_rounded, size: 18),
           label: const Text('Call'),
         ),
@@ -2308,7 +2385,7 @@ class _HomeScreenState extends State<CustomerScreen>
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: meta.color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: (logoUrl != null && logoUrl.isNotEmpty)
                 ? Image.network(logoUrl,
@@ -2327,7 +2404,7 @@ class _HomeScreenState extends State<CustomerScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                            fontSize: AppText.body, fontWeight: FontWeight.w700)),
                   ),
                   if (vendor['is_verified'] == true) ...[
                     const SizedBox(width: 5),
@@ -2341,8 +2418,8 @@ class _HomeScreenState extends State<CustomerScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                          fontSize: 13,
-                          color: cs.onSurface.withValues(alpha: 0.6))),
+                          fontSize: AppText.secondary,
+                          color: cs.onSurface.withValues(alpha: 0.7))),
                 ],
               ],
             ),
@@ -2354,7 +2431,7 @@ class _HomeScreenState extends State<CustomerScreen>
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  fontSize: 13.5,
+                  fontSize: AppText.secondary,
                   height: 1.4,
                   color: cs.onSurface.withValues(alpha: 0.7))),
         ],
@@ -2372,20 +2449,20 @@ class _HomeScreenState extends State<CustomerScreen>
               children: [
                 Text(isRevealed ? 'Unlocked' : 'Contact',
                     style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurface.withValues(alpha: 0.5))),
+                        fontSize: AppText.caption,
+                        color: cs.onSurface.withValues(alpha: 0.66))),
                 const SizedBox(height: 2),
                 Text(
                   isRevealed
                       ? '+91 $phone'
                       : '+91 ${_maskPhone(phone)}',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: AppText.body,
                     fontWeight: isRevealed ? FontWeight.w600 : FontWeight.w400,
                     letterSpacing: 0.3,
                     color: isRevealed
                         ? cs.onSurface
-                        : cs.onSurface.withValues(alpha: 0.55),
+                        : cs.onSurface.withValues(alpha: 0.68),
                   ),
                 ),
               ],
@@ -2397,7 +2474,7 @@ class _HomeScreenState extends State<CustomerScreen>
         if (isRevealed) ...[
           const SizedBox(height: 8),
           InkWell(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             onTap: () => setState(() => showActionsMap[vendorId] = !expanded),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -2407,12 +2484,12 @@ class _HomeScreenState extends State<CustomerScreen>
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
                     size: 20,
-                    color: cs.onSurface.withValues(alpha: 0.6)),
+                    color: cs.onSurface.withValues(alpha: 0.7)),
                 const SizedBox(width: 4),
                 Text(expanded ? 'Hide' : 'Rate, review or report',
                     style: TextStyle(
-                        fontSize: 13.5,
-                        color: cs.onSurface.withValues(alpha: 0.6))),
+                        fontSize: AppText.secondary,
+                        color: cs.onSurface.withValues(alpha: 0.7))),
               ]),
             ),
           ),
@@ -2430,12 +2507,12 @@ class _HomeScreenState extends State<CustomerScreen>
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(children: [
                 Icon(Icons.flag_outlined,
-                    color: cs.onSurface.withValues(alpha: 0.5), size: 18),
+                    color: cs.onSurface.withValues(alpha: 0.66), size: 18),
                 const SizedBox(width: 8),
                 Text('Report',
                     style: TextStyle(
-                        color: cs.onSurface.withValues(alpha: 0.5),
-                        fontSize: 14)),
+                        color: cs.onSurface.withValues(alpha: 0.66),
+                        fontSize: AppText.body)),
               ]),
             ),
           ),
@@ -2446,33 +2523,24 @@ class _HomeScreenState extends State<CustomerScreen>
 
   Widget _buildSignInButton() => FilledButton.tonalIcon(
         onPressed: () => Navigator.pushNamed(context, '/login'),
-        style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 44),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.sm)),
-        ),
+        style: AppButtons.compact(AppButtons.secondary),
         icon: const Icon(Icons.lock_outline, size: 17),
         label: const Text('Sign in to unlock',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.secondary)),
       );
 
   Widget _buildRevealButton(dynamic vendor) {
     final hasCredit = userCredits > 0;
     return ElevatedButton.icon(
       onPressed: () => _revealContact(vendor),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: hasCredit ? AppColors.primary : AppColors.accent,
-        minimumSize: const Size(0, 44),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.sm)),
-      ),
+      style: AppButtons.compact(hasCredit
+          ? AppButtons.primary
+          : AppButtons.withBg(AppButtons.primary, AppColors.accent)),
       icon: Icon(
           hasCredit ? Icons.lock_open_outlined : Icons.play_circle_outline,
           size: 18),
       label: Text(hasCredit ? 'Unlock · 1 credit' : 'Watch ad to unlock',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.secondary)),
     );
   }
 
@@ -2485,10 +2553,7 @@ class _HomeScreenState extends State<CustomerScreen>
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Calling +91 $phone…'),
-        backgroundColor: Colors.red.shade700,
-        duration: const Duration(seconds: 2)));
+    showAppSnack(context, 'Calling +91 $phone…', type: SnackType.info, duration: const Duration(seconds: 2));
   }
 
   Future<void> _revealContact(dynamic vendor) async {
@@ -2508,9 +2573,7 @@ class _HomeScreenState extends State<CustomerScreen>
     }
     final watchable = _watchableAds;
     if (watchable.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('No credits & no ads available. Check back later.'),
-          backgroundColor: Color(0xFF0E3D2E)));
+      showAppSnack(context, 'No credits & no ads available. Check back later.', type: SnackType.success);
       return;
     }
     final ad = watchable.first;
@@ -2532,24 +2595,14 @@ class _HomeScreenState extends State<CustomerScreen>
       userCredits = newAdBalance;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [
-        const Icon(Icons.stars_rounded, color: Colors.orange, size: 20),
-        const SizedBox(width: 10),
-        Text(
-            '+$adCreditReward credit${adCreditReward > 1 ? 's' : ''} earned!'),
-      ]),
-      backgroundColor: const Color(0xFF0E3D2E),
-      duration: const Duration(seconds: 2),
-    ));
+    showAppSnack(context, '+$adCreditReward credit${adCreditReward > 1 ? 's' : ''} earned!',
+        type: SnackType.success, duration: const Duration(seconds: 2));
 
     if (userCredits > 0) {
       await _doUnlockContact(vendor);
     } else {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Not enough credits after ad. Please try again.'),
-          backgroundColor: Color(0xFF0E3D2E)));
+      showAppSnack(context, 'Not enough credits after ad. Please try again.', type: SnackType.success);
     }
   }
 
@@ -2598,10 +2651,8 @@ class _HomeScreenState extends State<CustomerScreen>
           _showContactSheet(vendor, localPhone);
         } else {
           setState(() => _isRevealingVendor[vendorId] = false);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(result['error']?.toString() ??
-                  'Could not unlock contact. Please try again.'),
-              backgroundColor: Colors.red.shade700));
+          showAppSnack(context, result['error']?.toString() ??
+                  'Could not unlock contact. Please try again.', type: SnackType.error);
         }
       }
     } catch (e) {
@@ -2617,56 +2668,30 @@ class _HomeScreenState extends State<CustomerScreen>
         _showContactSheet(vendor, localPhone);
       } else {
         setState(() => _isRevealingVendor[vendorId] = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Network error. Please try again.'),
-            backgroundColor: Colors.red));
+        showAppSnack(context, 'Network error. Please try again.', type: SnackType.error);
       }
     }
   }
 
   void _showContactSheet(dynamic vendor, String phone) {
+    HapticFeedback.lightImpact(); // gentle buzz when a contact is revealed
     final cs = Theme.of(context).colorScheme;
     final name = vendor['business_name'] ?? 'Vendor';
     final double phoneFontSize =
     MediaQuery.of(context).size.width < 360 ? 20 : 28;
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Row(children: [
-        Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-        SizedBox(width: 10),
-        Text('Contact Unlocked!',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14))
-      ]),
-      backgroundColor: const Color(0xFF0E3D2E),
-      behavior: SnackBarBehavior.floating,
-      margin: const EdgeInsets.all(16),
-      shape:
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      duration: const Duration(seconds: 2),
-    ));
+    showAppSnack(context, 'Contact Unlocked!',
+        type: SnackType.success, duration: const Duration(seconds: 2));
 
-    showModalBottomSheet(
+    showAppSheet(
       context: context,
-      backgroundColor: AppColors.solid(cs),
-      shape: const RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: cs.onSurface.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 20),
+
           Row(children: [
             Icon(Icons.phone_outlined,
-                color: Colors.orange.shade400, size: 28),
+                color: AppColors.warning, size: 28),
             const SizedBox(width: 12),
             Expanded(
                 child: Column(
@@ -2675,11 +2700,11 @@ class _HomeScreenState extends State<CustomerScreen>
                       Text('Contact Details',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 20,
+                              fontSize: AppText.title,
                               fontWeight: FontWeight.bold)),
                       Text('Contact information for $name',
                           style: TextStyle(
-                              color: cs.onSurface.withOpacity(0.6), fontSize: 13),
+                              color: cs.onSurface.withOpacity(0.6), fontSize: AppText.secondary),
                           overflow: TextOverflow.ellipsis),
                     ])),
             GestureDetector(
@@ -2692,15 +2717,15 @@ class _HomeScreenState extends State<CustomerScreen>
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.15),
+                  color: AppColors.warning.withOpacity(0.15),
                   shape: BoxShape.circle),
               child: Icon(Icons.person_outline,
-                  color: Colors.orange.shade400, size: 40)),
+                  color: AppColors.warning, size: 40)),
           const SizedBox(height: 16),
           Text(name,
               style: TextStyle(
                   color: cs.onSurface,
-                  fontSize: 18,
+                  fontSize: AppText.heading,
                   fontWeight: FontWeight.bold),
               textAlign: TextAlign.center),
           const SizedBox(height: 8),
@@ -2715,7 +2740,7 @@ class _HomeScreenState extends State<CustomerScreen>
                       letterSpacing: 1.5)))
               : Text('Phone not available',
               style: TextStyle(
-                  color: cs.onSurface.withOpacity(0.5), fontSize: 16)),
+                  color: cs.onSurface.withOpacity(0.5), fontSize: AppText.body)),
           const SizedBox(height: 28),
           if (phone.isNotEmpty)
             SizedBox(
@@ -2725,20 +2750,15 @@ class _HomeScreenState extends State<CustomerScreen>
                   Navigator.pop(context);
                   _dialNumber(phone);
                 },
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12))),
+                style: AppButtons.danger,
                 icon: const Icon(Icons.phone_in_talk, size: 22),
                 label: const Text('Call Now',
                     style: TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.bold)),
+                        fontSize: AppText.heading, fontWeight: FontWeight.bold)),
               ),
             ),
         ]),
-      ),
-    );
+      ));
   }
 
   Widget _buildImportantNotice() {
@@ -2747,7 +2767,7 @@ class _HomeScreenState extends State<CustomerScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.onSurface.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: cs.onSurface.withOpacity(0.12)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2758,7 +2778,7 @@ class _HomeScreenState extends State<CustomerScreen>
           Text('Important Notice',
               style: TextStyle(
                   color: cs.onSurface,
-                  fontSize: 15,
+                  fontSize: AppText.body,
                   fontWeight: FontWeight.bold)),
         ]),
         const SizedBox(height: 10),
@@ -2766,7 +2786,7 @@ class _HomeScreenState extends State<CustomerScreen>
             text: TextSpan(
                 style: TextStyle(
                     color: cs.onSurface.withOpacity(0.6),
-                    fontSize: 13,
+                    fontSize: AppText.secondary,
                     height: 1.6),
                 children: [
                   const TextSpan(
@@ -2781,7 +2801,7 @@ class _HomeScreenState extends State<CustomerScreen>
                         child: const Text('Grievance Portal.',
                             style: TextStyle(
                                 color: Color(0xFF6BC4B2),
-                                fontSize: 13,
+                                fontSize: AppText.secondary,
                                 decoration: TextDecoration.underline)),
                       )),
                 ])),
@@ -2799,7 +2819,7 @@ class _HomeScreenState extends State<CustomerScreen>
       Text('Leave a Review',
           style: TextStyle(
               color: cs.onSurface,
-              fontSize: 16,
+              fontSize: AppText.body,
               fontWeight: FontWeight.bold)),
       const SizedBox(height: 12),
       Row(children: [
@@ -2815,7 +2835,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     child: Icon(
                         i < rating ? Icons.star : Icons.star_border,
                         color: i < rating
-                            ? Colors.amber
+                            ? AppColors.warning
                             : cs.onSurface.withOpacity(0.4),
                         size: 28))))
       ]),
@@ -2831,15 +2851,15 @@ class _HomeScreenState extends State<CustomerScreen>
           filled: true,
           fillColor: cs.onSurface.withOpacity(0.04),
           border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               borderSide: BorderSide(
                   color: cs.onSurface.withOpacity(0.15))),
           enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               borderSide: BorderSide(
                   color: cs.onSurface.withOpacity(0.15))),
           focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10)),
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.sm)),
               borderSide: BorderSide(color: Color(0xFF6BC4B2))),
         ),
       ),
@@ -2849,14 +2869,10 @@ class _HomeScreenState extends State<CustomerScreen>
           child: ElevatedButton(
             onPressed: () =>
                 _submitReview(vendorId, rating, controller.text),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0E3D2E),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10))),
+            style: AppButtons.primary,
             child: const Text('Submit Review',
                 style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600)),
+                    fontSize: AppText.body, fontWeight: FontWeight.w600)),
           )),
     ]);
   }
@@ -2864,9 +2880,7 @@ class _HomeScreenState extends State<CustomerScreen>
   Future<void> _submitReview(
       dynamic vendorId, int rating, String text) async {
     if (rating == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please select a star rating first.'),
-          backgroundColor: Colors.orange));
+      showAppSnack(context, 'Please select a star rating first.', type: SnackType.warning);
       return;
     }
     final result =
@@ -2878,16 +2892,10 @@ class _HomeScreenState extends State<CustomerScreen>
         reviewControllers[vendorId]?.clear();
         showActionsMap[vendorId] = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Review submitted! It will be visible after admin approval.'),
-          backgroundColor: Color(0xFF0E3D2E),
-          duration: Duration(seconds: 3)));
+      showAppSnack(context, 'Review submitted! It will be visible after admin approval.', type: SnackType.success, duration: const Duration(seconds: 3));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(result['error']?.toString() ??
-              'Failed to submit review. Please try again.'),
-          backgroundColor: Colors.red.shade700));
+      showAppSnack(context, result['error']?.toString() ??
+              'Failed to submit review. Please try again.', type: SnackType.error);
     }
   }
 
@@ -2912,9 +2920,6 @@ class _HomeScreenState extends State<CustomerScreen>
       builder: (ctx) => StatefulBuilder(builder: (ctx, setS) {
         final charCount = reportControllers[vendorId]!.text.length;
         return Dialog(
-          backgroundColor: AppColors.solid(cs),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
           insetPadding: const EdgeInsets.symmetric(
               horizontal: 16, vertical: 40),
           child: SingleChildScrollView(
@@ -2934,7 +2939,7 @@ class _HomeScreenState extends State<CustomerScreen>
                                 'Report "${vendor['business_name'] ?? 'Vendor'}"',
                                 style: TextStyle(
                                     color: cs.onSurface,
-                                    fontSize: 17,
+                                    fontSize: AppText.heading,
                                     fontWeight: FontWeight.bold),
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
@@ -2954,14 +2959,14 @@ class _HomeScreenState extends State<CustomerScreen>
                       'Help us maintain quality. Your report will be reviewed within 48 hours.',
                       style: TextStyle(
                           color: cs.onSurface.withOpacity(0.6),
-                          fontSize: 13,
+                          fontSize: AppText.secondary,
                           height: 1.5),
                       textAlign: TextAlign.center),
                   const SizedBox(height: 24),
                   Text("What's the issue?",
                       style: TextStyle(
                           color: cs.onSurface,
-                          fontSize: 15,
+                          fontSize: AppText.body,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   ...reasons.map((reason) {
@@ -3000,7 +3005,7 @@ class _HomeScreenState extends State<CustomerScreen>
                             const SizedBox(width: 14),
                             Text(reason,
                                 style: TextStyle(
-                                    color: cs.onSurface, fontSize: 15)),
+                                    color: cs.onSurface, fontSize: AppText.body)),
                           ])),
                     );
                   }),
@@ -3008,7 +3013,7 @@ class _HomeScreenState extends State<CustomerScreen>
                   Text('Describe the issue *',
                       style: TextStyle(
                           color: cs.onSurface,
-                          fontSize: 15,
+                          fontSize: AppText.body,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 10),
                   TextField(
@@ -3016,7 +3021,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     maxLines: 5,
                     maxLength: 1000,
                     style:
-                    TextStyle(color: cs.onSurface, fontSize: 14),
+                    TextStyle(color: cs.onSurface, fontSize: AppText.body),
                     onChanged: (_) => setS(() {}),
                     decoration: InputDecoration(
                       counterText: '',
@@ -3024,20 +3029,20 @@ class _HomeScreenState extends State<CustomerScreen>
                       'Please provide details about the issue (minimum 20 characters)...',
                       hintStyle: TextStyle(
                           color: cs.onSurface.withOpacity(0.4),
-                          fontSize: 13),
+                          fontSize: AppText.secondary),
                       filled: true,
                       fillColor: cs.onSurface.withOpacity(0.04),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           borderSide: const BorderSide(
                               color: Color(0xFF6BC4B2))),
                       enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           borderSide: BorderSide(
                               color: cs.onSurface.withOpacity(0.15))),
                       focusedBorder: const OutlineInputBorder(
                           borderRadius:
-                          BorderRadius.all(Radius.circular(12)),
+                          BorderRadius.all(Radius.circular(AppRadius.sm)),
                           borderSide: BorderSide(
                               color: Color(0xFF6BC4B2), width: 2)),
                     ),
@@ -3046,18 +3051,18 @@ class _HomeScreenState extends State<CustomerScreen>
                   Text('$charCount/1000 characters',
                       style: TextStyle(
                           color: cs.onSurface.withOpacity(0.4),
-                          fontSize: 12)),
+                          fontSize: AppText.caption)),
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                         color: cs.onSurface.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(AppRadius.sm)),
                     child: RichText(
                         text: TextSpan(
                             style: TextStyle(
                                 color: cs.onSurface.withOpacity(0.5),
-                                fontSize: 12,
+                                fontSize: AppText.caption,
                                 height: 1.5),
                             children: [
                               TextSpan(
@@ -3076,17 +3081,10 @@ class _HomeScreenState extends State<CustomerScreen>
                     Expanded(
                         child: ElevatedButton(
                           onPressed: () => Navigator.pop(ctx),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                              cs.onSurface.withOpacity(0.1),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(12))),
+                          style: AppButtons.secondary,
                           child: Text('Cancel',
                               style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: AppText.body,
                                   fontWeight: FontWeight.bold,
                                   color: cs.onSurface)),
                         )),
@@ -3095,22 +3093,15 @@ class _HomeScreenState extends State<CustomerScreen>
                         child: ElevatedButton(
                           onPressed: () => _submitReport(
                               ctx, vendorId, vendor['id']),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0E3D2E),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 15),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(12))),
+                          style: AppButtons.primary,
                           child: const Text('Submit Report',
                               style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: AppText.body,
                                   fontWeight: FontWeight.bold)),
                         )),
                   ]),
                 ]),
-          ),
-        );
+          ));
       }),
     );
   }
@@ -3121,16 +3112,11 @@ class _HomeScreenState extends State<CustomerScreen>
     final description =
         reportControllers[vendorId]?.text.trim() ?? '';
     if (reason == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please select a reason.'),
-          backgroundColor: Colors.orange));
+      showAppSnack(context, 'Please select a reason.', type: SnackType.warning);
       return;
     }
     if (description.length < 20) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content:
-          Text('Please describe the issue (min 20 chars).'),
-          backgroundColor: Colors.orange));
+      showAppSnack(context, 'Please describe the issue (min 20 chars).', type: SnackType.warning);
       return;
     }
     Navigator.pop(ctx);
@@ -3142,16 +3128,10 @@ class _HomeScreenState extends State<CustomerScreen>
         reportControllers[vendorId]?.clear();
         selectedReportReason[vendorId] = null;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Report submitted! Our team will review it within 48 hours.'),
-          backgroundColor: Color(0xFF0E3D2E),
-          duration: Duration(seconds: 3)));
+      showAppSnack(context, 'Report submitted! Our team will review it within 48 hours.', type: SnackType.success, duration: const Duration(seconds: 3));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(result['error']?.toString() ??
-              'Failed to submit report. Please try again.'),
-          backgroundColor: Colors.red.shade700));
+      showAppSnack(context, result['error']?.toString() ??
+              'Failed to submit report. Please try again.', type: SnackType.error);
     }
   }
 

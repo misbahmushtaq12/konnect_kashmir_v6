@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
@@ -9,11 +10,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/app_chip.dart';
+import '../widgets/category_meta.dart';
+import '../widgets/app_header.dart';
+import '../widgets/app_snack.dart';
+import '../widgets/error_retry.dart';
 import '../services/lead_loader.dart';
 import '../widgets/lead_contact_sheet.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_widgets.dart';
 
+import 'ad_credits_screen.dart';
 import 'login_screen.dart';
 import 'vendor_screen.dart';
 
@@ -37,15 +43,15 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   bool _loading = true;
   String? _errorMsg;
   String? _expandedBizId;
+  int? _credits; // shown in the header; null until first loaded
 
   // Revealed lead phones stay for this session so re-opening never re-charges.
   final Map<String, String> _revealedPhones = {};
   final Set<String> _revealing = {};
 
-  void _snack(String msg) {
+  void _snack(String msg, {SnackType type = SnackType.info}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg, maxLines: 3)));
+    showAppSnack(context, msg, type: type);
   }
 
   /// The stored session can no longer be refreshed (server rejects it), so the
@@ -135,50 +141,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
       await launchUrl(Uri.parse('https://wa.me/$number'),
           mode: LaunchMode.externalApplication);
     } catch (_) {
-      _snack("Couldn't open WhatsApp");
+      _snack("Couldn't open WhatsApp", type: SnackType.error);
     }
-  }
-
-  /// Shown instead of "Get Lead" once the contact is revealed: number + chat.
-  Widget _revealedContact(String phone) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.only(left: 14, right: 4),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(children: [
-        Expanded(
-          child: InkWell(
-            onTap: () => _callPhone(phone),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(children: [
-                const Icon(Icons.phone_outlined,
-                    color: AppColors.primary, size: 18),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(_displayPhone(phone),
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: cs.onSurface,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5)),
-                ),
-              ]),
-            ),
-          ),
-        ),
-        IconButton(
-          onPressed: () => _openWhatsApp(phone),
-          tooltip: 'Chat on WhatsApp',
-          icon: const FaIcon(FontAwesomeIcons.whatsapp,
-              color: Color(0xFF25D366), size: 26),
-        ),
-      ]),
-    );
   }
 
   /// `reveal-lead-phone` returns the number but does not always charge. If the
@@ -194,7 +158,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
       await api().updateUserCredits(auth.userId, -1);
       final verify = await api().getUserCredits();
       if (verify != null && verify >= before) {
-        _snack('Contact revealed, but your credit balance could not be updated.');
+        _snack('Contact revealed, but your credit balance could not be updated.',
+            type: SnackType.warning);
       }
     } catch (_) {}
   }
@@ -218,7 +183,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
 
       final credits = await api().getUserCredits();
       if (credits != null && credits <= 0) {
-        _snack('Not enough credits. Watch an ad to earn credits.');
+        _snack('Not enough credits. Watch an ad to earn credits.',
+            type: SnackType.warning);
         return;
       }
 
@@ -231,6 +197,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         final shownName = result['name']?.toString() ?? name;
         await _ensureCreditSpent(auth, credits);
         await _rememberRevealed(auth, leadId);
+        HapticFeedback.lightImpact(); // gentle buzz: contact revealed
+        _loadCredits();
         // Stop the button spinner BEFORE the sheet opens, not after it closes.
         setState(() {
           _revealedPhones[leadId] = phone;
@@ -239,10 +207,10 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         await showLeadContactSheet(context, shownName, phone);
       } else {
         _snack(result['error']?.toString() ??
-            'Could not reveal contact. Try again.');
+            'Could not reveal contact. Try again.', type: SnackType.error);
       }
     } catch (_) {
-      _snack('Network error. Please try again.');
+      _snack('Network error. Please try again.', type: SnackType.error);
     } finally {
       if (mounted && _revealing.contains(leadId)) {
         setState(() => _revealing.remove(leadId));
@@ -271,6 +239,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
       return;
     }
     if (mounted && !silent) setState(() => _loading = true);
+    _loadCredits(); // header balance (quiet)
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors').replace(
         queryParameters: {
@@ -308,21 +277,17 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         if (leadsFailed) {
           // Don't wipe leads we already have with a false "0".
           final expired = (leadsError ?? '').contains('(401)');
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              duration: Duration(seconds: expired ? 12 : 4),
-              content: Text(
-                  expired
-                      ? 'Your session has expired, so leads cannot load. '
-                          'Please sign in again.'
-                      : "Couldn't refresh leads. ${leadsError ?? ''}",
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis),
-              action: expired
-                  ? SnackBarAction(label: 'Sign in', onPressed: _signInAgain)
-                  : null,
-            ));
+          showAppSnack(
+            context,
+            expired
+                ? 'Your session has expired, so leads cannot load. Please sign in again.'
+                : "Couldn't refresh leads. ${leadsError ?? ''}",
+            type: expired ? SnackType.warning : SnackType.error,
+            duration: Duration(seconds: expired ? 12 : 4),
+            action: expired
+                ? SnackBarAction(label: 'Sign in', onPressed: _signInAgain)
+                : null,
+          );
         }
         setState(() {
           _businesses = bizList;
@@ -367,7 +332,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           constraints: const BoxConstraints(maxWidth: 760),
           child: RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: _load,
+            onRefresh: () => _load(silent: true),
             child: LayoutBuilder(builder: (context, constraints) {
               _viewportHeight = constraints.maxHeight;
               return ListView(
@@ -375,12 +340,10 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                   parent: BouncingScrollPhysics()),
               padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('My Business',
-                        style: TextStyle(
-                            fontSize: 26, fontWeight: FontWeight.w800)),
+                AppHeader(
+                  title: 'My Business',
+                  actions: [
+                    if (_credits != null) CreditChip(_credits!),
                     if (!_loading && _errorMsg == null && _businesses.isNotEmpty)
                       IconButton(
                         onPressed: () => _push(const ListBusinessScreen()),
@@ -389,6 +352,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                       ),
                   ],
                 ),
+                if (_credits == 0) _outOfCreditsBanner(),
                 const SizedBox(height: 16),
                 if (_loading)
                   ..._skeletons()
@@ -408,11 +372,84 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     );
   }
 
+  // ── Credits ───────────────────────────────────────────────────────────────
+  Future<void> _loadCredits() async {
+    try {
+      final auth = context.read<AuthProvider>();
+      final c = await ApiService(token: auth.accessToken, userId: auth.userId)
+          .getUserCredits();
+      if (mounted && c != null) setState(() => _credits = c);
+    } catch (_) {}
+  }
+
+  Future<void> _openAds() async {
+    await Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const AdCreditsScreen()));
+    if (mounted) _loadCredits();
+  }
+
+  Widget _outOfCreditsBanner() {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.info_outline_rounded,
+            size: 20, color: AppColors.accent),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text('No credits left. Watch an ad to reveal leads.',
+              style: TextStyle(
+                  color: cs.onSurface.withValues(alpha: 0.85),
+                  fontSize: AppText.secondary,
+                  height: 1.3)),
+        ),
+        FilledButton.icon(
+          onPressed: _openAds,
+          icon: const Icon(Icons.play_arrow_rounded, size: 20),
+          label: const Text('Watch ad'),
+          style: AppButtons.compact(AppButtons.primary),
+        ),
+      ]),
+    );
+  }
+
+  // "just now", "5 min ago", "2 hours ago", "3 days ago", else the date.
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inSeconds < 60) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) {
+      final h = diff.inHours;
+      return '$h ${h == 1 ? 'hour' : 'hours'} ago';
+    }
+    if (diff.inDays < 7) {
+      final d = diff.inDays;
+      return '$d ${d == 1 ? 'day' : 'days'} ago';
+    }
+    const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    final l = dt.toLocal();
+    return '${l.day} ${m[l.month - 1]} ${l.year}';
+  }
+
+  // Circular loader centered in the space below the title.
   List<Widget> _skeletons() => [
-        for (var i = 0; i < 1; i++) ...[
-          const Skeleton(height: 170, radius: AppRadius.lg),
-          const SizedBox(height: 14),
-        ]
+        SizedBox(
+          height: (_viewportHeight - 12 - 32 - 16 - 24).clamp(240.0, double.infinity),
+          child: const Center(
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(
+                  strokeWidth: 3.2, color: AppColors.primary),
+            ),
+          ),
+        ),
       ];
 
   Widget _emptyState() {
@@ -453,7 +490,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
             const SizedBox(height: 28),
             const Text("You haven't listed a business yet",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -461,7 +498,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
                 'List your services and get discovered by customers across Kashmir.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: 15,
+                    fontSize: AppText.body,
                     height: 1.5,
                     color: cs.onSurface.withValues(alpha: 0.6)),
               ),
@@ -469,17 +506,10 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () => _push(const ListBusinessScreen()),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  minimumSize: const Size(240, 56)),
+              style: AppButtons.primary,
               icon: const Icon(Icons.add_business_rounded),
               label: const Text('List my business',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: AppText.body, fontWeight: FontWeight.bold)),
             ),
           ]),
         ),
@@ -487,34 +517,16 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     );
   }
 
-  Widget _errorState() {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(top: 40),
-      child: Column(children: [
-        Icon(Icons.wifi_off_rounded,
-            size: 40, color: cs.onSurface.withValues(alpha: 0.5)),
-        const SizedBox(height: 12),
-        const Text("Couldn't load your business",
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        if (_errorMsg != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 8, left: 16, right: 16),
-            child: Text(
-              _errorMsg!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: cs.error, fontSize: 13),
-            ),
-          ),
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: _load,
-          style: OutlinedButton.styleFrom(minimumSize: const Size(140, 46)),
-          child: const Text('Retry'),
-        ),
-      ]),
-    );
-  }
+  Widget _errorState() => ErrorRetry.fromError(
+        _errorMsg,
+        title: ErrorRetry.isOfflineError(_errorMsg)
+            ? null
+            : "Couldn't load your business",
+        onRetry: () => _load(),
+      );
+
+  void _toggleBiz(String? id) =>
+      setState(() => _expandedBizId = _expandedBizId == id ? null : id);
 
   Widget _businessCard(Map<String, dynamic> b) {
     final cs = Theme.of(context).colorScheme;
@@ -526,269 +538,294 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     final isApproved = b['is_approved'] == true;
     final bizId = b['id']?.toString();
 
-    String formatSlug(String s) {
-      if (s.isEmpty) return '';
-      return s
-          .split('_')
-          .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
-          .join(' ');
-    }
+    String formatSlug(String s) => s.isEmpty
+        ? ''
+        : s
+            .split('_')
+            .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+            .join(' ');
 
-    const svcIcons = <String, IconData>{
-      'electrician': Icons.bolt,
-      'plumber': Icons.plumbing,
-      'carpenter': Icons.handyman,
-      'painter': Icons.brush,
-      'cleaner': Icons.cleaning_services,
-      'catering': Icons.restaurant,
-      'mechanic': Icons.build,
-      'home_tutor': Icons.school,
-    };
+    final meta = CategoryMeta.of(svcType);
+    final leads = _leadsByVendor[bizId] ?? const [];
+    final expanded = _expandedBizId == bizId;
+    final subtitle = [formatSlug(svcType), locality]
+        .where((s) => s.isNotEmpty)
+        .join(' • ');
+    final border = cs.onSurface.withValues(alpha: 0.10);
 
-    final kTeal = AppColors.primary;
-    final tealContainer = kTeal.withValues(alpha: 0.15);
-
-    return GestureDetector(
-      onTap: () => setState(() {
-        if (_expandedBizId == bizId) {
-          _expandedBizId = null;
-        } else {
-          _expandedBizId = bizId;
-        }
-      }),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cs.onSurface.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                  color: tealContainer,
-                  borderRadius: BorderRadius.circular(10)),
-              child: Icon(svcIcons[svcType] ?? Icons.storefront,
-                  color: kTeal, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                  Text(name,
-                      style: TextStyle(
-                          color: cs.onSurface,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold)),
-                  Text('${formatSlug(svcType)} • $locality',
-                      style: TextStyle(
-                          color: cs.onSurface.withValues(alpha: 0.6),
-                          fontSize: 13)),
-                ])),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.solid(cs).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: border),
+      ),
+      child: Column(children: [
+        // Header: tap anywhere to open/close the leads.
+        InkWell(
+          onTap: () => _toggleBiz(bizId),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
-                    color: tealContainer,
-                    borderRadius: BorderRadius.circular(12)),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.people_alt_rounded, size: 12, color: kTeal),
-                    const SizedBox(width: 4),
-                    Text('${_leadsByVendor[bizId]?.length ?? 0} Leads',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: kTeal,
-                            fontWeight: FontWeight.w800)),
-                  ],
+                  color: meta.color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                    color: isApproved
-                        ? Colors.green.withValues(alpha: 0.15)
-                        : Colors.orange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8)),
-                child: Text(isApproved ? 'Active' : 'Pending',
-                    style: TextStyle(
-                        color: isApproved ? Colors.green : Colors.orange,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
-              ),
-            ]),
-          ]),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _push(ListBusinessScreen(existingVendor: b)),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.onSurface.withValues(alpha: 0.08),
-                      foregroundColor: cs.onSurface,
-                      elevation: 0,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10))),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                ),
+                child: Icon(meta.icon, color: meta.color, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => setState(() {
-                    if (_expandedBizId == bizId) {
-                      _expandedBizId = null;
-                    } else {
-                      _expandedBizId = bizId;
-                    }
-                  }),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: tealContainer,
-                      foregroundColor: kTeal,
-                      elevation: 0,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10))),
-                  icon: Icon(_expandedBizId == bizId ? Icons.expand_less : Icons.expand_more, size: 18),
-                  label: const Text('Leads',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                ),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: cs.onSurface,
+                              fontSize: AppText.heading,
+                              fontWeight: FontWeight.w400)),
+                      if (subtitle.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: cs.onSurface.withValues(alpha: 0.7),
+                                fontSize: AppText.secondary)),
+                      ],
+                    ]),
+              ),
+              const SizedBox(width: 8),
+              AppChip(isApproved ? 'Active' : 'Pending',
+                  tone: isApproved ? ChipTone.success : ChipTone.warning),
+            ]),
+          ),
+        ),
+
+        // Actions: Edit and Leads, side by side (as before).
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Row(children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _push(ListBusinessScreen(existingVendor: b)),
+                style: AppButtons.secondary,
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text('Edit',
+                    style: TextStyle(
+                        fontSize: AppText.secondary,
+                        fontWeight: FontWeight.bold)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () => _toggleBiz(bizId),
+                style: AppButtons.secondary,
+                icon: Icon(expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 18),
+                label: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Text('Leads',
+                      style: TextStyle(
+                          fontSize: AppText.secondary,
+                          fontWeight: FontWeight.bold)),
+                  if (leads.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text('${leads.length}',
+                          style: const TextStyle(
+                              fontSize: AppText.caption,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary)),
+                    ),
+                  ],
+                ]),
+              ),
+            ),
+          ]),
+        ),
+
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: expanded
+              ? _leadsPanel(bizId, leads)
+              : const SizedBox(width: double.infinity),
+        ),
+      ]),
+    );
+  }
+
+  Widget _leadsPanel(String? bizId, List<dynamic> leads) {
+    final cs = Theme.of(context).colorScheme;
+    final anyHidden =
+        leads.any((l) => !_revealedPhones.containsKey(l['id'].toString()));
+
+    // A faint tinted band instead of a hard divider line.
+    return Container(
+      color: cs.onSurface.withValues(alpha: 0.04),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (leads.isEmpty)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+          child: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.people_outline_rounded,
+                  size: 32, color: cs.onSurface.withValues(alpha: 0.5)),
+              const SizedBox(height: 8),
+              const Text('No leads yet',
+                  style: TextStyle(
+                      fontSize: AppText.body, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text('Customers who show interest will appear here.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: AppText.secondary,
+                      color: cs.onSurface.withValues(alpha: 0.7))),
+            ]),
+          ),
+        )
+      else ...[
+        if (anyHidden)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(children: [
+              Icon(Icons.info_outline_rounded,
+                  size: 16, color: cs.onSurface.withValues(alpha: 0.66)),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Revealing a contact costs 1 credit.',
+                    style: TextStyle(
+                        fontSize: AppText.caption,
+                        color: cs.onSurface.withValues(alpha: 0.7))),
+              ),
+            ]),
+          ),
+        for (var i = 0; i < leads.length; i++) ...[
+          if (i > 0)
+            Divider(
+                height: 1,
+                indent: 69,
+                endIndent: 16,
+                color: cs.onSurface.withValues(alpha: 0.06)),
+          _leadRow(leads[i], bizId),
+        ],
+        const SizedBox(height: 4),
+      ],
+    ]),
+    );
+  }
+
+  /// One lead as a slim row: avatar, name, time, and a single action.
+  Widget _leadRow(dynamic lead, String? bizId) {
+    final cs = Theme.of(context).colorScheme;
+    final id = lead['id'].toString();
+    final leadName = lead['user_name']?.toString() ?? 'Customer';
+    final initial =
+        leadName.trim().isEmpty ? '?' : leadName.trim()[0].toUpperCase();
+    final dt = DateTime.tryParse(lead['created_at']?.toString() ?? '') ??
+        DateTime.now();
+    final isFresh = DateTime.now().difference(dt).inHours < 24;
+    final phone = _revealedPhones[id];
+    final busy = _revealing.contains(id);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      child: Row(children: [
+        CircleAvatar(
+          radius: 21,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+          child: Text(initial,
+              style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: AppText.heading,
+                  fontWeight: FontWeight.w800)),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(leadName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: cs.onSurface,
+                    fontSize: AppText.body,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Row(children: [
+              Icon(Icons.access_time_rounded,
+                  size: 13,
+                  color: isFresh
+                      ? AppColors.primary
+                      : cs.onSurface.withValues(alpha: 0.66)),
+              const SizedBox(width: 4),
+              Text(_timeAgo(dt),
+                  style: TextStyle(
+                      fontSize: AppText.secondary,
+                      fontWeight: isFresh ? FontWeight.w600 : FontWeight.w400,
+                      color: isFresh
+                          ? AppColors.primary
+                          : cs.onSurface.withValues(alpha: 0.7))),
+            ]),
+            if (phone != null) ...[
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: () => _callPhone(phone),
+                child: Text(_displayPhone(phone),
+                    style: TextStyle(
+                        color: cs.onSurface,
+                        fontSize: AppText.body,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4)),
               ),
             ],
+          ]),
+        ),
+        const SizedBox(width: 6),
+        if (phone != null)
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            IconButton(
+              onPressed: () => _callPhone(phone),
+              tooltip: 'Call',
+              icon: const Icon(Icons.call_rounded,
+                  color: AppColors.primary, size: 22),
+            ),
+            IconButton(
+              onPressed: () => _openWhatsApp(phone),
+              tooltip: 'Chat on WhatsApp',
+              icon: const FaIcon(FontAwesomeIcons.whatsapp,
+                  color: Color(0xFF25D366), size: 25),
+            ),
+          ])
+        else
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ElevatedButton.icon(
+              onPressed: busy ? null : () => _getLead(lead, bizId ?? ''),
+              style: AppButtons.compact(AppButtons.primary),
+              icon: busy
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.lock_open_rounded, size: 17),
+              label: const Text('Get Lead'),
+            ),
           ),
-          if (_expandedBizId == bizId) ...[
-            const SizedBox(height: 16),
-            Divider(color: cs.onSurface.withValues(alpha: 0.08)),
-            const SizedBox(height: 8),
-            if ((_leadsByVendor[bizId] ?? []).isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Center(
-                  child: Text('No leads yet',
-                      style: TextStyle(
-                          color: cs.onSurface.withValues(alpha: 0.5),
-                          fontSize: 13)),
-                ),
-              )
-            else
-              ...(_leadsByVendor[bizId] ?? []).map((lead) {
-                final leadName = lead['user_name']?.toString() ?? 'Customer';
-                final dtStr = lead['created_at']?.toString() ?? '';
-                final dt = DateTime.tryParse(dtStr) ?? DateTime.now();
-                
-                String monthName(int m) {
-                  const mths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                  return m >= 1 && m <= 12 ? mths[m - 1] : '';
-                }
-                final dateStr = '${dt.day} ${monthName(dt.month)} ${dt.year}';
-                final timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour < 12 ? 'am' : 'pm'}';
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                      color: cs.onSurface.withValues(alpha: 0.04),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: cs.onSurface.withValues(alpha: 0.08))),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      Icon(Icons.person_outline, color: kTeal, size: 22),
-                      const SizedBox(width: 10),
-                      Expanded(
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(leadName,
-                                    style: TextStyle(
-                                        color: cs.onSurface,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                Row(children: [
-                                  Icon(Icons.calendar_today_outlined,
-                                      color: cs.onSurface.withValues(alpha: 0.4), size: 13),
-                                  const SizedBox(width: 4),
-                                  Text(dateStr,
-                                      style: TextStyle(
-                                          color: cs.onSurface.withValues(alpha: 0.4),
-                                          fontSize: 12)),
-                                  const SizedBox(width: 10),
-                                  Icon(Icons.access_time_outlined,
-                                      color: cs.onSurface.withValues(alpha: 0.4), size: 13),
-                                  const SizedBox(width: 4),
-                                  Text(timeStr,
-                                      style: TextStyle(
-                                          color: cs.onSurface.withValues(alpha: 0.4),
-                                          fontSize: 12)),
-                                ]),
-                              ])),
-                    ]),
-                    const SizedBox(height: 12),
-                    if (_revealedPhones.containsKey(lead['id'].toString()))
-                      _revealedContact(_revealedPhones[lead['id'].toString()]!)
-                    else ...[
-                    ElevatedButton.icon(
-                      onPressed: _revealing.contains(lead['id'].toString())
-                          ? null
-                          : () => _getLead(lead, bizId ?? ""),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: tealContainer,
-                        foregroundColor: kTeal,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        minimumSize: const Size(double.infinity, 44),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
-                      ),
-                      icon: _revealing.contains(lead['id'].toString())
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.visibility_outlined, size: 18),
-                      label: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Text('Get Lead',
-                            style: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                              color: kTeal.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10)),
-                          child: const Text('1',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13)),
-                        ),
-                      ]),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: Text('Costs 1 credit to reveal contact',
-                          style: TextStyle(
-                              color: cs.onSurface.withValues(alpha: 0.4),
-                              fontSize: 11)),
-                    ),
-                    ],
-                  ]),
-                );
-              }),
-          ],
-        ]),
-      ),
+      ]),
     );
   }
 }

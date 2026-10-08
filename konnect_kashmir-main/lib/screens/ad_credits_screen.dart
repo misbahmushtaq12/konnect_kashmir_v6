@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_snack.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -76,11 +77,8 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
     setState(() => _claimingId = null);
 
     if (result['success'] == false) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text((result['error'] ?? "Couldn't add credits. Try again.")
-            .toString()),
-        backgroundColor: AppColors.danger,
-      ));
+      showAppSnack(context, (result['error'] ?? "Couldn't add credits. Try again.")
+            .toString(), type: SnackType.error);
       return;
     }
 
@@ -90,10 +88,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
       _credits = (result['newBalance'] as num?)?.toInt() ??
           ((_credits ?? 0) + reward);
     });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('+$reward credit${reward > 1 ? 's' : ''} added!'),
-      backgroundColor: AppColors.success,
-    ));
+    showAppSnack(context, '+$reward credit${reward > 1 ? 's' : ''} added!', type: SnackType.success);
   }
 
   @override
@@ -129,7 +124,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
                         Text('Your balance',
                             style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 13)),
+                                fontSize: AppText.secondary)),
                         const SizedBox(height: 2),
                         Text(
                           _credits == null ? '—' : '$_credits credits',
@@ -145,11 +140,11 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
             const SizedBox(height: 8),
             Text('1 credit unlocks 1 provider contact.',
                 style: TextStyle(
-                    fontSize: 12.5,
+                    fontSize: AppText.caption,
                     color: cs.onSurface.withValues(alpha: 0.6))),
             const SizedBox(height: 22),
             const Text('Watch & earn',
-                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                style: TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.w800)),
             const SizedBox(height: 10),
             if (_loading)
               for (var i = 0; i < 2; i++) ...[
@@ -165,7 +160,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
                   const SizedBox(height: 12),
                   const Text('No ads available right now',
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          TextStyle(fontSize: AppText.body, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
                   Text('Check back later for new ways to earn credits.',
                       style: TextStyle(
@@ -199,7 +194,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
             height: 48,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: const Icon(Icons.play_arrow_rounded,
                 color: AppColors.primary, size: 30),
@@ -211,11 +206,11 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15)),
+                      fontWeight: FontWeight.w700, fontSize: AppText.body)),
               const SizedBox(height: 3),
               Text('+$reward credit${reward > 1 ? 's' : ''} · $watched/$max watched',
                   style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: AppText.caption,
                       color: cs.onSurface.withValues(alpha: 0.6))),
             ]),
           ),
@@ -230,9 +225,7 @@ class _AdCreditsScreenState extends State<AdCreditsScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2.4))
                   : ElevatedButton(
                       onPressed: () => _watch(ad),
-                      style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(0, 40),
-                          padding: const EdgeInsets.symmetric(horizontal: 16)),
+                      style: AppButtons.compact(AppButtons.primary),
                       child: const Text('Watch'),
                     ),
         ]),

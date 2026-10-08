@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactScreen extends StatelessWidget {
@@ -70,7 +71,7 @@ class ContactScreen extends StatelessWidget {
                             'Back to Home',
                             style: TextStyle(
                               color: strongText,
-                              fontSize: 18,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -99,7 +100,7 @@ class ContactScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         Text(
                           'We\'re here to help. Reach out to us anytime!',
-                          style: TextStyle(fontSize: 16, color: subtleText),
+                          style: TextStyle(fontSize: AppText.body, color: subtleText),
                         ),
                         const SizedBox(height: 40),
 
@@ -177,7 +178,7 @@ class ContactScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: cardBorder, width: 1),
       ),
       child: Row(
@@ -191,7 +192,7 @@ class ContactScreen extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: AppText.heading,
                     fontWeight: FontWeight.bold,
                     color: strongText,
                   ),
@@ -202,7 +203,7 @@ class ContactScreen extends StatelessWidget {
                   child: Text(
                     content,
                     style: TextStyle(
-                        fontSize: 15, color: teal, height: 1.4),
+                        fontSize: AppText.body, color: teal, height: 1.4),
                   ),
                 ),
               ],
@@ -223,7 +224,7 @@ class ContactScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: cardBorder, width: 1),
       ),
       child: Column(
@@ -232,7 +233,7 @@ class ContactScreen extends StatelessWidget {
           Text(
             'Business Hours',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: AppText.heading,
               fontWeight: FontWeight.bold,
               color: strongText,
             ),
@@ -248,13 +249,13 @@ class ContactScreen extends StatelessWidget {
                   children: [
                     Text('Monday - Saturday',
                         style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppText.body,
                             color: subtleText,
                             fontWeight: FontWeight.w500)),
                     const SizedBox(height: 12),
                     Text('Sunday',
                         style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppText.body,
                             color: subtleText,
                             fontWeight: FontWeight.w500)),
                   ],
@@ -266,13 +267,13 @@ class ContactScreen extends StatelessWidget {
                   children: [
                     Text('9:00 AM - 6:00 PM',
                         style: TextStyle(
-                            fontSize: 11,
+                            fontSize: AppText.caption,
                             color: subtleText,
                             fontWeight: FontWeight.w600)),
                     const SizedBox(height: 12),
                     Text('Closed',
                         style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppText.body,
                             color: subtleText,
                             fontWeight: FontWeight.w600)),
                   ],

@@ -1,5 +1,7 @@
 import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import '../widgets/app_overlays.dart';
+import '../widgets/app_snack.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:konnect_kashmir/services/api_service.dart';
@@ -31,12 +33,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final cs = Theme.of(context).colorScheme;
     _nameController.text = auth.user?.name ?? '';
 
-    await showModalBottomSheet(
+    await showAppSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.solid(cs),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
             24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 40),
@@ -45,22 +43,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Handle bar
-            Center(
-              child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: cs.onSurface.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2))),
-            ),
-            const SizedBox(height: 24),
+
             // Header
             Row(children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                     color: const Color(0xFF6BC4B2).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(AppRadius.sm)),
                 child: const Icon(Icons.edit_outlined,
                     color: Color(0xFF6BC4B2), size: 24),
               ),
@@ -72,13 +62,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text('Edit Profile',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 20,
+                              fontSize: AppText.title,
                               fontWeight: FontWeight.bold)),
                       const SizedBox(height: 2),
                       Text('Update your display name',
                           style: TextStyle(
                               color: cs.onSurface.withValues(alpha: 0.5),
-                              fontSize: 13)),
+                              fontSize: AppText.secondary)),
                     ]),
               ),
               GestureDetector(
@@ -90,14 +80,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Display Name',
                 style: TextStyle(
                     color: cs.onSurface,
-                    fontSize: 14,
+                    fontSize: AppText.body,
                     fontWeight: FontWeight.w600)),
             const SizedBox(height: 10),
             TextField(
               controller: _nameController,
               autofocus: true,
               textCapitalization: TextCapitalization.words,
-              style: TextStyle(color: cs.onSurface, fontSize: 16),
+              style: TextStyle(color: cs.onSurface, fontSize: AppText.body),
               decoration: InputDecoration(
                 hintText: 'Enter your name',
                 hintStyle:
@@ -107,15 +97,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 filled: true,
                 fillColor: cs.onSurface.withValues(alpha: 0.06),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     borderSide: BorderSide.none),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     borderSide: BorderSide(
                         color: cs.onSurface.withValues(alpha: 0.1))),
                 focusedBorder: const OutlineInputBorder(
                     borderRadius:
-                    BorderRadius.all(Radius.circular(14)),
+                    BorderRadius.all(Radius.circular(AppRadius.md)),
                     borderSide: BorderSide(
                         color: Color(0xFF6BC4B2), width: 2)),
               ),
@@ -129,11 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     : () async {
                   final newName = _nameController.text.trim();
                   if (newName.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Name cannot be empty.'),
-                          backgroundColor: Colors.orange),
-                    );
+                    showAppSnack(context, 'Name cannot be empty.', type: SnackType.warning);
                     return;
                   }
                   setState(() => _isSavingName = true);
@@ -154,21 +140,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   setState(() => _isSavingName = false);
                   if (mounted) {
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Profile updated successfully!'),
-                        backgroundColor: Color(0xFF0E3D2E),
-                      ),
-                    );
+                    showAppSnack(context, 'Profile updated successfully!', type: SnackType.success);
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0E3D2E),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
+                style: AppButtons.primary,
                 child: _isSavingName
                     ? const SizedBox(
                     width: 22,
@@ -177,13 +152,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         color: Colors.white, strokeWidth: 2))
                     : const Text('Save Changes',
                     style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold)),
+                        fontSize: AppText.body, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
         ),
-      ),
-    );
+      ));
   }
 
   // ──────────────────────────────────────────────────────────
@@ -194,11 +168,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.solid(cs),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: cs.onSurface.withValues(alpha: 0.1)),
-        ),
         title: Text('Sign Out',
             style: TextStyle(
                 color: cs.onSurface, fontWeight: FontWeight.bold)),
@@ -222,11 +191,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             },
             child: Text('Sign Out',
                 style: TextStyle(
-                    color: Colors.red.shade400,
+                    color: AppColors.danger,
                     fontWeight: FontWeight.w600)),
           ),
-        ],
-      ),
+        ]),
     );
   }
 
@@ -240,13 +208,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    await showModalBottomSheet(
+    await showAppSheet(
       context: context,
-      backgroundColor: AppColors.solid(cs),
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
             24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 40),
@@ -254,22 +217,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
-                child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                        color: cs.onSurface.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 24),
+
             Row(children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12)),
+                    color: AppColors.danger.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.sm)),
                 child: const Icon(Icons.delete_forever_outlined,
-                    color: Colors.redAccent, size: 26),
+                    color: AppColors.danger, size: 26),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -279,13 +235,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text('Delete Account',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 20,
+                              fontSize: AppText.title,
                               fontWeight: FontWeight.bold)),
                       const SizedBox(height: 2),
                       Text("We're sorry to see you go",
                           style: TextStyle(
                               color: cs.onSurface.withValues(alpha: 0.5),
-                              fontSize: 13)),
+                              fontSize: AppText.secondary)),
                     ]),
               ),
               GestureDetector(
@@ -300,24 +256,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.red.withValues(alpha: 0.08)
-                    : Colors.red.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(14),
+                    ? AppColors.danger.withValues(alpha: 0.08)
+                    : AppColors.danger.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 border: Border.all(
-                    color: Colors.redAccent.withValues(alpha: 0.25)),
+                    color: AppColors.danger.withValues(alpha: 0.25)),
               ),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
                       Icon(Icons.info_outline,
-                          color: Colors.redAccent.withValues(alpha: 0.8),
+                          color: AppColors.danger.withValues(alpha: 0.8),
                           size: 18),
                       const SizedBox(width: 8),
                       Text('Before you proceed',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 14,
+                              fontSize: AppText.body,
                               fontWeight: FontWeight.bold)),
                     ]),
                     const SizedBox(height: 10),
@@ -328,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           'your request within 7 business days.',
                       style: TextStyle(
                           color: cs.onSurface.withValues(alpha: 0.65),
-                          fontSize: 13,
+                          fontSize: AppText.secondary,
                           height: 1.6),
                     ),
                   ]),
@@ -337,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text('Contact Us To Delete',
                 style: TextStyle(
                     color: cs.onSurface,
-                    fontSize: 15,
+                    fontSize: AppText.body,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             GestureDetector(
@@ -372,25 +328,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: cs.onSurface.withValues(alpha: 0.08),
-                  foregroundColor: cs.onSurface,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
+                style: AppButtons.secondary,
                 child: Text('Cancel',
                     style: TextStyle(
-                        fontSize: 15,
+                        fontSize: AppText.body,
                         fontWeight: FontWeight.w600,
                         color: cs.onSurface)),
               ),
             ),
           ],
         ),
-      ),
-    );
+      ));
   }
 
   Widget _contactTile(
@@ -400,7 +348,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: cs.onSurface.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
             color: const Color(0xFF6BC4B2).withValues(alpha: 0.3)),
       ),
@@ -409,7 +357,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
               color: const Color(0xFF6BC4B2).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(AppRadius.sm)),
           child: Icon(icon, color: const Color(0xFF6BC4B2), size: 20),
         ),
         const SizedBox(width: 14),
@@ -420,12 +368,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(title,
                       style: TextStyle(
                           color: cs.onSurface,
-                          fontSize: 14,
+                          fontSize: AppText.body,
                           fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Text(subtitle,
                       style: const TextStyle(
-                          color: Color(0xFF6BC4B2), fontSize: 13)),
+                          color: Color(0xFF6BC4B2), fontSize: AppText.secondary)),
                 ])),
         Icon(Icons.arrow_forward_ios_rounded,
             color: const Color(0xFF6BC4B2).withValues(alpha: 0.6), size: 14),
@@ -474,7 +422,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: cs.onSurface.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           border: Border.all(
                               color: cs.onSurface.withValues(alpha: 0.1)),
                         ),
@@ -486,7 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text('Profile',
                         style: TextStyle(
                             color: cs.onSurface,
-                            fontSize: 18,
+                            fontSize: AppText.heading,
                             fontWeight: FontWeight.bold)),
                     const Spacer(),
                     const SizedBox(width: 44), // balance
@@ -566,7 +514,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF6BC4B2).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
                       border: Border.all(
                           color:
                           const Color(0xFF6BC4B2).withValues(alpha: 0.3)),
@@ -575,7 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       userEmail,
                       style: const TextStyle(
                           color: Color(0xFF6BC4B2),
-                          fontSize: 13,
+                          fontSize: AppText.secondary,
                           fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -606,8 +554,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       cs: cs,
                       isDark: isDark,
                       icon: Icons.delete_outline_rounded,
-                      iconBg: Colors.red.withValues(alpha: 0.1),
-                      iconColor: Colors.redAccent,
+                      iconBg: AppColors.danger.withValues(alpha: 0.1),
+                      iconColor: AppColors.danger,
                       title: 'Delete Account',
                       subtitle: 'Permanently remove your account',
                       onTap: _showDeleteAccountSheet,
@@ -620,11 +568,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       cs: cs,
                       isDark: isDark,
                       icon: Icons.logout_rounded,
-                      iconBg: Colors.orange.withValues(alpha: 0.1),
-                      iconColor: Colors.orange.shade700,
+                      iconBg: AppColors.warning.withValues(alpha: 0.1),
+                      iconColor: AppColors.warning,
                       title: 'Sign Out',
                       subtitle: 'Log out of your account',
-                      titleColor: Colors.orange.shade700,
+                      titleColor: AppColors.warning,
                       onTap: () => _showSignOutDialog(auth),
                     ),
                   ]),
@@ -637,7 +585,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   '© 2026 Media Mosiac (OPC) Pvt. Ltd.',
                   style: TextStyle(
                       color: cs.onSurface.withValues(alpha: 0.3),
-                      fontSize: 11),
+                      fontSize: AppText.caption),
                 ),
                 const SizedBox(height: 32),
               ],
@@ -662,7 +610,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: onTap,
         child: Container(
           padding:
@@ -671,7 +619,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: isDark
                 ? cs.onSurface.withValues(alpha: 0.04)
                 : cs.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
             boxShadow: isDark
                 ? []
@@ -687,7 +635,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: iconBg, borderRadius: BorderRadius.circular(12)),
+                  color: iconBg, borderRadius: BorderRadius.circular(AppRadius.sm)),
               child: Icon(icon, color: iconColor, size: 22),
             ),
             const SizedBox(width: 16),
@@ -698,13 +646,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(title,
                           style: TextStyle(
                               color: titleColor ?? cs.onSurface,
-                              fontSize: 15,
+                              fontSize: AppText.body,
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
                       Text(subtitle,
                           style: TextStyle(
                               color: cs.onSurface.withValues(alpha: 0.45),
-                              fontSize: 12)),
+                              fontSize: AppText.caption)),
                     ])),
             Icon(Icons.chevron_right_rounded,
                 color: cs.onSurface.withValues(alpha: 0.3), size: 22),

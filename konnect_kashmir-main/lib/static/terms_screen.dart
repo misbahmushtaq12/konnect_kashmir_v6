@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'legal_accordion.dart';
+import '../theme/app_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:konnect_kashmir/static/privacy_screen.dart';
 import 'package:konnect_kashmir/static/refund_screen.dart';
@@ -71,7 +73,7 @@ class TermsScreen extends StatelessWidget {
                             style: TextStyle(
                               // ── CHANGE: back button text from onSurface
                               color: cs.onSurface,
-                              fontSize: 18,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -84,7 +86,7 @@ class TermsScreen extends StatelessWidget {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
-                    child: Column(
+                    child: LegalBody(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 24),
@@ -105,7 +107,7 @@ class TermsScreen extends StatelessWidget {
                         Text(
                           'Last updated: February 2026',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppText.body,
                             // ── CHANGE: date text from onSurface with opacity
                             color: cs.onSurface.withOpacity(0.5),
                           ),
@@ -119,7 +121,7 @@ class TermsScreen extends StatelessWidget {
                             child: Text(
                               'These Terms of Service are published in accordance with the Information Technology Act, 2000, Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, and Consumer Protection (E-Commerce) Rules, 2020.',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: AppText.caption,
                                 // ── CHANGE: note text from onSurface
                                 color: cs.onSurface,
                               ),
@@ -387,20 +389,13 @@ class TermsScreen extends StatelessWidget {
 
   // ── Helpers — all now accept ColorScheme cs ──────────────────────────────
 
-  Widget _buildSectionTitle(String title, ColorScheme cs) => Text(
-    title,
-    style: TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.bold,
-      // ── CHANGE: section titles from onSurface (was hardcoded white)
-      color: cs.onSurface,
-    ),
-  );
+  Widget _buildSectionTitle(String title, ColorScheme cs) =>
+      LegalSectionTitle(title);
 
   Widget _buildParagraph(String text, ColorScheme cs) => Text(
     text,
     style: TextStyle(
-      fontSize: 15,
+      fontSize: AppText.body,
       // ── CHANGE: paragraph text from onSurface
       color: cs.onSurface,
       height: 1.6,
@@ -416,7 +411,7 @@ class TermsScreen extends StatelessWidget {
     final List<TextSpan> textSpans = [
       TextSpan(
         text: normalText,
-        style: TextStyle(fontSize: 15, color: cs.onSurface, height: 1.6),
+        style: TextStyle(fontSize: AppText.body, color: cs.onSurface, height: 1.6),
       ),
     ];
 
@@ -425,7 +420,7 @@ class TermsScreen extends StatelessWidget {
         TextSpan(
           text: span.text,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: AppText.body,
             // ── CHANGE: links use primary, plain text uses onSurface
             color: span.onTap != null ? cs.primary : cs.onSurface,
             height: 1.6,
@@ -461,7 +456,7 @@ class TermsScreen extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: TextStyle(fontSize: 15, color: cs.onSurface, height: 1.6),
+            style: TextStyle(fontSize: AppText.body, color: cs.onSurface, height: 1.6),
           ),
         ),
       ],

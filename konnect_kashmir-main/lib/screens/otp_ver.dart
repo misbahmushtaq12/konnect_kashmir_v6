@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
 import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:provider/provider.dart';
@@ -148,11 +150,8 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       _otpController.clear();
       _focusNode.requestFocus();
       _startTimer();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('OTP resent successfully'),
-        backgroundColor: _kTeal,
-        behavior: SnackBarBehavior.floating,
-      ));
+      showAppSnack(context, 'OTP resent successfully',
+          type: SnackType.success);
     } else {
       setState(() => _error = result['error'] ?? 'Failed to resend OTP');
     }
@@ -178,7 +177,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
             height: boxSize + 4,
             decoration: BoxDecoration(
               color: _inputFill,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(
                 color: isActive
                     ? _kTeal
@@ -281,7 +280,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                         Text(
                           "Verify your phone number",
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: AppText.body,
                             color: cs.onSurface.withValues(alpha: 0.60),
                           ),
                           textAlign: TextAlign.center,
@@ -293,7 +292,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: isDark ? const Color(0xFF162521) : cs.surface,
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
                             border: Border.all(
                               color: cs.onSurface.withValues(alpha: 0.08),
                             ),
@@ -314,7 +313,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
                                       color: cs.primary.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(AppRadius.sm),
                                     ),
                                     child: Icon(Icons.verified_user_rounded, color: cs.primary, size: 20),
                                   ),
@@ -322,7 +321,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                   const Text(
                                     'OTP Verification',
                                     style: TextStyle(
-                                      fontSize: 18,
+                                      fontSize: AppText.heading,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -332,7 +331,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                               Text(
                                 'Enter the 6-digit code sent to\n+91 ${widget.phoneNumber}',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: AppText.secondary,
                                   color: cs.onSurface.withValues(alpha: 0.55),
                                   height: 1.4,
                                 ),
@@ -376,7 +375,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 16),
                                   child: Center(
-                                    child: Text(_error!, style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 13)),
+                                    child: Text(_error!, style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: AppText.secondary)),
                                   ),
                                 ),
 
@@ -386,7 +385,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                 width: double.infinity,
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
                                   boxShadow: [
                                     BoxShadow(
                                       color: cs.primary.withValues(alpha: 0.3),
@@ -397,15 +396,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                 ),
                                 child: ElevatedButton(
                                   onPressed: _isLoading ? null : _verifyOTP,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: cs.primary,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    elevation: 0,
-                                  ),
+                                  style: AppButtons.primary,
                                   child: _isLoading
                                       ? const SizedBox(
                                           height: 24,
@@ -418,7 +409,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                             Text(
                                               'Verify & Proceed',
                                               style: TextStyle(
-                                                fontSize: 16,
+                                                fontSize: AppText.body,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -437,7 +428,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                           'Resend OTP',
                                           style: TextStyle(
                                             color: cs.primary,
-                                            fontSize: 14.0,
+                                            fontSize: AppText.body,
                                             fontWeight: FontWeight.bold,
                                           ),
                                         ),
@@ -446,7 +437,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                                         'Resend OTP in ${_resendTimer}s',
                                         style: TextStyle(
                                             color: cs.onSurface.withValues(alpha: 0.4),
-                                            fontSize: 14.0),
+                                            fontSize: AppText.body),
                                       ),
                               ),
                             ],

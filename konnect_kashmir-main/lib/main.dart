@@ -113,7 +113,7 @@ class _PlaceholderScreen extends StatelessWidget {
       body: Center(
         child: Text(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 18),
+          style: const TextStyle(color: Colors.white, fontSize: AppText.heading),
         ),
       ),
     );

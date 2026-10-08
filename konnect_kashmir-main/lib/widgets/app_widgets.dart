@@ -57,12 +57,20 @@ class SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(title,
               style: TextStyle(
-                  fontSize: 19,
+                  fontSize: AppText.heading,
                   fontWeight: FontWeight.w700,
                   color: cs.onSurface)),
         ),
         if (actionLabel != null)
-          TextButton(onPressed: onAction, child: Text(actionLabel!)),
+          TextButton(
+            onPressed: onAction,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(actionLabel!),
+          ),
       ],
     );
   }

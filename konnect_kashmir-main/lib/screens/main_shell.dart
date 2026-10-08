@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 
 import '../theme/app_theme.dart';
+import '../widgets/app_overlays.dart';
 import 'customer_screen.dart';
 import 'login_screen.dart';
 import 'my_business_tab.dart';
@@ -33,20 +34,21 @@ class _MainShellState extends State<MainShell> {
   Future<void> _showSessionExpired() async {
     if (_expiredDialogOpen) return;
     _expiredDialogOpen = true;
-    await showDialog<void>(
-      context: context,
+    await showAppDialog<void>(
+      context,
+      title: 'Session expired',
+      message: 'For your security you need to sign in again to load your '
+          'leads and credits.',
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Session expired'),
-        content: const Text(
-            'For your security you need to sign in again to load your leads '
-            'and credits.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Sign in')),
-        ],
-      ),
+      actions: [
+        Builder(
+          builder: (ctx) => ElevatedButton(
+            style: AppButtons.primary,
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Sign in'),
+          ),
+        ),
+      ],
     );
     if (!mounted) return;
     final nav = Navigator.of(context, rootNavigator: true);

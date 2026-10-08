@@ -2,6 +2,7 @@ import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:konnect_kashmir/screens/customer_screen.dart';
@@ -147,8 +148,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _loadDashboardData() async {
-    setState(() => isLoading = true);
+  Future<void> _loadDashboardData({bool quiet = false}) async {
+    if (!quiet) setState(() => isLoading = true);
     final auth = context.read<AuthProvider>();
     final token = auth.accessToken;
     final userId = auth.userId ?? auth.user?.id;
@@ -318,10 +319,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final int    maxViews = _adMaxViews(ad);
     final int    watched  = adViewCounts[adId] ?? 0;
     if (watched >= maxViews) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('You have already watched this ad the maximum times.'),
-        backgroundColor: Colors.orange,
-      ));
+      showAppSnack(context, 'You have already watched this ad the maximum times.', type: SnackType.warning);
       return;
     }
     final bool? completed = await showDialog<bool>(
@@ -376,9 +374,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         // Backend responded but with an error message
         final errMsg = result['error']?.toString() ?? '';
         if (errMsg.isNotEmpty && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(errMsg),
-              backgroundColor: Colors.orange));
+          showAppSnack(context, errMsg, type: SnackType.warning);
         } else {
           // No clear error — assume optimistic success
           _onAdCompleted(ad, expectedReward, creditBalance + expectedReward, adId);
@@ -415,18 +411,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       });
     });
     if (mounted) {
-      final cs = Theme.of(context).colorScheme;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Row(children: [
-          const Icon(Icons.stars_rounded, color: Colors.orange, size: 20),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Text('+$earned credit${earned > 1 ? 's' : ''} earned! Balance: $newBalance'),
-          ),
-        ]),
-        backgroundColor: cs.primary.withOpacity(0.85),
-        duration: const Duration(seconds: 3),
-      ));
+      showAppSnack(context,
+          '+$earned credit${earned > 1 ? 's' : ''} earned! Balance: $newBalance',
+          type: SnackType.success);
     }
   }
 
@@ -464,11 +451,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.solid(cs),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: BorderSide(color: cs.outline.withOpacity(0.3)),
-        ),
         title: Text('Sign Out',
             style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
         content: Text('Are you sure you want to sign out?',
@@ -486,8 +468,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             },
             child: Text('Sign Out', style: TextStyle(color: cs.onSurfaceVariant)),
           ),
-        ],
-      ),
+        ]),
     );
   }
 
@@ -589,7 +570,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: isLoading
                 ? Center(child: CircularProgressIndicator(color: cs.primary))
                 : RefreshIndicator(
-              onRefresh: _loadDashboardData,
+              onRefresh: () => _loadDashboardData(quiet: true),
               color: const Color(0xFF6BC4B2),
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -678,7 +659,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: cs.surface.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: cs.outline.withOpacity(0.15)),
         ),
         child: Column(children: [
@@ -700,8 +681,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   // Container(
                   //   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   //   decoration: BoxDecoration(
-                  //     color: creditBalance > 0 ? deepTeal : Colors.red.shade700,
-                  //     borderRadius: BorderRadius.circular(30),
+                  //     color: creditBalance > 0 ? deepTeal : AppColors.danger,
+                  //     borderRadius: BorderRadius.circular(AppRadius.xl),
                   //   ),
                   //   child: Row(mainAxisSize: MainAxisSize.min, children: [
                   //     Icon(Icons.stars_rounded, size: 16,
@@ -709,7 +690,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   //     const SizedBox(width: 6),
                   //     Text('$creditBalance Credits',
                   //         style: const TextStyle(
-                  //             color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                  //             color: Colors.white, fontSize: AppText.body, fontWeight: FontWeight.bold)),
                   //   ]),
                   // ),
                 ],
@@ -739,7 +720,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           InkWell(
             onTap: () => setState(() => referExpanded = !referExpanded),
             borderRadius: referExpanded ? BorderRadius.zero
-                : const BorderRadius.vertical(bottom: Radius.circular(18)),
+                : const BorderRadius.vertical(bottom: Radius.circular(AppRadius.lg)),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: hp, vertical: 14),
               child: Row(children: [
@@ -787,7 +768,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       decoration: BoxDecoration(
                         color: cs.onSurface.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                         border: Border.all(color: cs.outline.withOpacity(0.2)),
                       ),
                       // ── CHANGE 13: Referral code text also uses FittedBox ─────
@@ -813,16 +794,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onTap: () {
                       if (referralCode.isEmpty) return;
                       Clipboard.setData(ClipboardData(text: referralCode));
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Referral code copied!'),
-                        duration: Duration(seconds: 2),
-                      ));
+                      showAppSnack(context, 'Referral code copied!', type: SnackType.info, duration: const Duration(seconds: 2));
                     },
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                           color: cs.onSurface.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(AppRadius.sm)),
                       child: Icon(Icons.copy_rounded, color: cs.onSurface, size: 22),
                     ),
                   ),
@@ -842,15 +820,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         subject: 'Join KonnectKashmir — use code $code',
                       );
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
+                    style: AppButtons.primary,
                     icon: const Icon(Icons.share, size: 20),
                     label: const Text('Share with Friends',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: TextStyle(fontSize: AppText.body, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ]),
@@ -869,7 +842,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: cs.surface.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: cs.outline.withOpacity(0.15)),
         ),
         padding: EdgeInsets.all(_rs(0.05, min: 14, max: 24)),
@@ -902,11 +875,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildAdsLoading(ColorScheme cs) => Center(
+  Widget _buildAdsLoading(ColorScheme cs) => const Center(
     child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Text('Loading ads...',
-          style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 14)),
+      padding: EdgeInsets.symmetric(vertical: 24),
+      child: SizedBox(
+        width: 32,
+        height: 32,
+        child: CircularProgressIndicator(
+            strokeWidth: 3, color: AppColors.primary),
+      ),
     ),
   );
 
@@ -921,10 +898,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ),
     const SizedBox(height: 16),
     Text('All caught up!',
-        style: TextStyle(color: cs.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
+        style: TextStyle(color: cs.onSurface, fontSize: AppText.body, fontWeight: FontWeight.bold)),
     const SizedBox(height: 4),
     Text('No new ads to watch right now.',
-        style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 14)),
+        style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: AppText.body)),
     const SizedBox(height: 8),
   ]);
 
@@ -940,7 +917,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: EdgeInsets.all(_rs(0.035, min: 10, max: 16)),
       decoration: BoxDecoration(
         color: cs.onSurface.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: cs.secondary.withOpacity(0.3)),
       ),
       // ── CHANGE 14: Ad row is wrapped in LayoutBuilder so the thumbnail
@@ -952,8 +929,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             width: thumbSize, height: thumbSize,
             decoration: BoxDecoration(
-                color: Colors.red.shade800,
-                borderRadius: BorderRadius.circular(10)),
+                color: AppColors.danger,
+                borderRadius: BorderRadius.circular(AppRadius.sm)),
             child: const Icon(Icons.play_arrow, color: Colors.white, size: 26),
           ),
           const SizedBox(width: 10),
@@ -974,7 +951,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                         color: cs.secondary.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                         border: Border.all(color: cs.secondary.withOpacity(0.4))),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.toll_outlined, color: cs.secondary, size: 12),
@@ -982,7 +959,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Text('+$reward credit${reward > 1 ? 's' : ''}',
                           style: TextStyle(
                               color: cs.secondary,
-                              fontSize: 11,
+                              fontSize: AppText.caption,
                               fontWeight: FontWeight.bold)),
                     ]),
                   ),
@@ -991,7 +968,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ? '$watched/$total  •  $remaining left'
                         : '$remaining left',
                     style: TextStyle(
-                        color: cs.onSurface.withOpacity(0.4), fontSize: 11),
+                        color: cs.onSurface.withOpacity(0.4), fontSize: AppText.caption),
                   ),
                 ],
               ),
@@ -1007,7 +984,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               decoration: BoxDecoration(
                 color: cs.primary.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 border: Border.all(color: cs.primary.withOpacity(0.5)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1064,7 +1041,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: EdgeInsets.symmetric(vertical: _rs(0.045, min: 14, max: 22)),
       decoration: BoxDecoration(
         color: cs.surface.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: cs.outline.withOpacity(0.15)),
       ),
       child: Column(children: [
@@ -1088,7 +1065,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: cs.surface.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: cs.outline.withOpacity(0.15)),
         ),
         padding: EdgeInsets.all(hp),
@@ -1120,13 +1097,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text('No transactions yet',
                 style: TextStyle(
                     color: cs.onSurface.withOpacity(0.4),
-                    fontSize: 14,
+                    fontSize: AppText.body,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 4),
             Text('Watch an ad or unlock a vendor contact\nto see your activity here.',
                 style: TextStyle(
                     color: cs.onSurface.withOpacity(0.25),
-                    fontSize: 12,
+                    fontSize: AppText.caption,
                     height: 1.5),
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -1179,13 +1156,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: EdgeInsets.all(_rs(0.035, min: 10, max: 16)),
       decoration: BoxDecoration(
           color: cs.onSurface.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(color: cs.outline.withOpacity(0.1))),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-              color: txIconBg, borderRadius: BorderRadius.circular(10)),
+              color: txIconBg, borderRadius: BorderRadius.circular(AppRadius.sm)),
           child: Icon(txIcon, color: txIconColor,
               size: _rs(0.05, min: 16, max: 22)),
         ),
@@ -1214,7 +1191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(width: 4),
                   Text(tx['date'] as String,
                       style: TextStyle(
-                          color: cs.onSurface.withOpacity(0.3), fontSize: 12)),
+                          color: cs.onSurface.withOpacity(0.3), fontSize: AppText.caption)),
                 ]),
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.access_time_outlined,
@@ -1222,7 +1199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(width: 4),
                   Text(tx['time'] as String,
                       style: TextStyle(
-                          color: cs.onSurface.withOpacity(0.3), fontSize: 12)),
+                          color: cs.onSurface.withOpacity(0.3), fontSize: AppText.caption)),
                 ]),
               ],
             ),
@@ -1241,7 +1218,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(amount.abs() == 1 ? 'credit' : 'credits',
               style: TextStyle(
                   color: isCredit ? cs.secondary : cs.primary,
-                  fontSize: 12,
+                  fontSize: AppText.caption,
                   fontWeight: FontWeight.bold)),
         ]),
       ]),
@@ -1256,7 +1233,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       padding: EdgeInsets.all(_rs(0.05, min: 16, max: 24)),
       decoration: BoxDecoration(
         color: cs.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -1303,7 +1280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _guidelineLink(BuildContext context, String text, IconData icon, VoidCallback onTap, ColorScheme cs) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
         child: Row(

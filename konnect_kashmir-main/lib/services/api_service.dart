@@ -384,12 +384,16 @@ class ApiService {
     bool verifiedOnly = false,
     int limit = 100,
     int offset = 0,
+    // When true, network/server failures throw instead of returning an empty
+    // list, so the UI can show "No internet / Retry" rather than "No providers".
+    bool throwOnError = false,
   }) async {
     try {
       final String? effectiveService = serviceSlug ?? browseCategory ?? service;
       List<String>? districtLocalityIds;
       if (localityId == null && districtId != null) {
-        districtLocalityIds = await _getLocalityIdsByDistrict(districtId);
+        districtLocalityIds = await _getLocalityIdsByDistrict(districtId,
+            throwOnError: throwOnError);
         if (districtLocalityIds.isEmpty) return [];
       }
       final params = <String, String>{
@@ -415,8 +419,12 @@ class ApiService {
       final res = await http.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
+      if (throwOnError) {
+        throw Exception('Server error (${res.statusCode})');
+      }
       return [];
     } catch (e) {
+      if (throwOnError) rethrow;
       return [];
     }
   }
@@ -424,7 +432,8 @@ class ApiService {
   // Locality ids rarely change; cache per district so repeat filters skip a request.
   static final Map<String, List<String>> _districtLocalityIds = {};
 
-  Future<List<String>> _getLocalityIdsByDistrict(String districtId) async {
+  Future<List<String>> _getLocalityIdsByDistrict(String districtId,
+      {bool throwOnError = false}) async {
     final cached = _districtLocalityIds[districtId];
     if (cached != null) return cached;
     try {
@@ -438,8 +447,10 @@ class ApiService {
         if (ids.isNotEmpty) _districtLocalityIds[districtId] = ids;
         return ids;
       }
+      if (throwOnError) throw Exception('Server error (${res.statusCode})');
       return [];
     } catch (e) {
+      if (throwOnError) rethrow;
       return [];
     }
   }

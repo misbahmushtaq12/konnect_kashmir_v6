@@ -1,5 +1,6 @@
 import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'legal_accordion.dart';
 import 'grevience_screen.dart';
 
 class RefundPolicy extends StatelessWidget {
@@ -64,7 +65,7 @@ class RefundPolicy extends StatelessWidget {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
-                  child: Column(
+                  child: LegalBody(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ── Title
@@ -86,7 +87,7 @@ class RefundPolicy extends StatelessWidget {
                         style: TextStyle(
                           // ── CHANGE: accent from primary
                           color: cs.primary,
-                          fontSize: 14,
+                          fontSize: AppText.body,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -97,7 +98,7 @@ class RefundPolicy extends StatelessWidget {
                         decoration: BoxDecoration(
                           // ── CHANGE: notice box bg from surface
                           color: cs.onSurface.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           border: Border.all(color: cs.outline.withOpacity(0.15)),
                         ),
                         child: Row(
@@ -115,7 +116,7 @@ class RefundPolicy extends StatelessWidget {
                                     style: TextStyle(
                                       color: cs.onSurface,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                      fontSize: AppText.body,
                                     ),
                                   ),
                                   const SizedBox(height: 6),
@@ -123,7 +124,7 @@ class RefundPolicy extends StatelessWidget {
                                     'This policy is published in accordance with the Consumer Protection (E-Commerce) Rules, 2020 and Consumer Protection Act, 2019.',
                                     style: TextStyle(
                                       color: cs.onSurface.withOpacity(0.6),
-                                      fontSize: 13,
+                                      fontSize: AppText.secondary,
                                       height: 1.5,
                                     ),
                                   ),
@@ -228,7 +229,7 @@ class RefundPolicy extends StatelessWidget {
                       const SizedBox(height: 14),
                       RichText(
                         text: TextSpan(
-                          style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.5),
+                          style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.5),
                           children: [
                             const TextSpan(text: 'Requests must be submitted within '),
                             TextSpan(
@@ -284,7 +285,7 @@ class RefundPolicy extends StatelessWidget {
                         decoration: BoxDecoration(
                           // ── CHANGE: info box from surface
                           color: cs.onSurface.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           border: Border.all(color: cs.outline.withOpacity(0.12)),
                         ),
                         child: Column(
@@ -295,7 +296,7 @@ class RefundPolicy extends StatelessWidget {
                               style: TextStyle(
                                 color: cs.onSurface,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                fontSize: AppText.body,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -303,7 +304,7 @@ class RefundPolicy extends StatelessWidget {
                               'KonnectKashmir is an intermediary platform. Refunds from us only apply to platform services (credits, contact access). For refunds related to vendor services (work quality, payments to vendors), please contact the vendor directly. As per the Consumer Protection Act, 2019, vendors are responsible for their own refund policies.',
                               style: TextStyle(
                                 color: cs.onSurface.withOpacity(0.6),
-                                fontSize: 13,
+                                fontSize: AppText.secondary,
                                 height: 1.6,
                               ),
                             ),
@@ -328,7 +329,7 @@ class RefundPolicy extends StatelessWidget {
 
                       Text(
                         'Legal Compliance',
-                        style: TextStyle(color: cs.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: cs.onSurface, fontSize: AppText.heading, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 10),
                       _buildSimpleBody('This Refund Policy is published in compliance with:', cs),
@@ -350,22 +351,15 @@ class RefundPolicy extends StatelessWidget {
 
   // ── Helpers — all now accept ColorScheme cs ──────────────────────────────
 
-  Widget _buildSectionTitle(String text, ColorScheme cs) => Text(
-    text,
-    style: TextStyle(
-      // ── CHANGE: section titles use primary colour
-      color: cs.primary,
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
-  );
+  Widget _buildSectionTitle(String text, ColorScheme cs) =>
+      LegalSectionTitle(text);
 
   Widget _buildSubSectionTitle(String text, ColorScheme cs) => Text(
     text,
     style: TextStyle(
       // ── CHANGE: sub-section titles use onSurface
       color: cs.onSurface,
-      fontSize: 16,
+      fontSize: AppText.body,
       fontWeight: FontWeight.bold,
     ),
   );
@@ -373,7 +367,7 @@ class RefundPolicy extends StatelessWidget {
   Widget _buildBody(String prefix, {String bold = '', String suffix = '', required ColorScheme cs}) =>
       RichText(
         text: TextSpan(
-          style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.6),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.6),
           children: [
             TextSpan(text: prefix),
             TextSpan(text: bold, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
@@ -387,7 +381,7 @@ class RefundPolicy extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 4),
         child: RichText(
           text: TextSpan(
-            style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.6),
+            style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.6),
             children: [
               TextSpan(text: prefix),
               TextSpan(text: bold, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
@@ -399,7 +393,7 @@ class RefundPolicy extends StatelessWidget {
 
   Widget _buildSimpleBody(String text, ColorScheme cs) => Text(
     text,
-    style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.6),
+    style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.6),
   );
 
   Widget _buildBullet(String label, String value, ColorScheme cs) => Padding(
@@ -408,11 +402,11 @@ class RefundPolicy extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── CHANGE: bullet dot uses primary
-        Text('• ', style: TextStyle(color: cs.primary, fontSize: 16)),
+        Text('• ', style: TextStyle(color: cs.primary, fontSize: AppText.body)),
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.5),
+              style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.5),
               children: [
                 TextSpan(text: label, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
                 TextSpan(text: value),
@@ -429,9 +423,9 @@ class RefundPolicy extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('• ', style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 16)),
+        Text('• ', style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: AppText.body)),
         Expanded(
-          child: Text(text, style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.5)),
+          child: Text(text, style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.5)),
         ),
       ],
     ),
@@ -442,11 +436,11 @@ class RefundPolicy extends StatelessWidget {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('• ', style: TextStyle(color: cs.primary, fontSize: 16)),
+        Text('• ', style: TextStyle(color: cs.primary, fontSize: AppText.body)),
         Expanded(
           child: RichText(
             text: TextSpan(
-              style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.5),
+              style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.5),
               children: [
                 TextSpan(text: label, style: TextStyle(color: cs.onSurface, fontWeight: FontWeight.bold)),
                 TextSpan(text: value),
@@ -467,12 +461,12 @@ class RefundPolicy extends StatelessWidget {
           children: [
             SizedBox(
               width: 24,
-              child: Text(number, style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 14)),
+              child: Text(number, style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: AppText.body)),
             ),
             Expanded(
               child: RichText(
                 text: TextSpan(
-                  style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.5),
+                  style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.5),
                   children: [
                     TextSpan(text: text),
                     if (boldMid.isNotEmpty)
@@ -502,12 +496,12 @@ class RefundPolicy extends StatelessWidget {
           children: [
             SizedBox(
               width: 24,
-              child: Text(number, style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 14)),
+              child: Text(number, style: TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: AppText.body)),
             ),
             Expanded(
               child: RichText(
                 text: TextSpan(
-                  style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 14, height: 1.5),
+                  style: TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body, height: 1.5),
                   children: [
                     TextSpan(text: prefix),
                     WidgetSpan(
@@ -518,7 +512,7 @@ class RefundPolicy extends StatelessWidget {
                           style: TextStyle(
                             // ── CHANGE: link uses primary colour
                             color: cs.primary,
-                            fontSize: 14,
+                            fontSize: AppText.body,
                             decoration: TextDecoration.underline,
                             decorationColor: cs.primary,
                           ),

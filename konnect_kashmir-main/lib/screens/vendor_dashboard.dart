@@ -1,6 +1,8 @@
 import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../widgets/app_overlays.dart';
+import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:konnect_kashmir/screens/profile2.dart';
@@ -123,8 +125,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     super.dispose();
   }
 
-  Future<void> _loadAll() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadAll({bool quiet = false}) async {
+    if (!quiet) setState(() => _isLoading = true);
     _userName = context.read<AuthProvider>().user?.name ?? 'Vendor';
     await Future.wait([
       _fetchProfile(),
@@ -192,9 +194,9 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         ..clear()
         ..addAll(byVendor);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Couldn't load leads. ${leadsResult['error'] ?? ''}",
-              maxLines: 3, overflow: TextOverflow.ellipsis)));
+      showAppSnack(context,
+          "Couldn't load leads. ${leadsResult['error'] ?? ''}",
+          type: SnackType.error);
     }
 
     setState(() {
@@ -234,9 +236,9 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         leads.add(Map<String, dynamic>.from(l as Map));
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Couldn't load leads. ${result['error'] ?? ''}",
-              maxLines: 3, overflow: TextOverflow.ellipsis)));
+      showAppSnack(context,
+          "Couldn't load leads. ${result['error'] ?? ''}",
+          type: SnackType.error);
     }
     setState(() {
       _leads = leads;
@@ -259,7 +261,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     }
 
     if (_credits <= 0) {
-      _snack('Not enough credits. Watch an ad to earn credits.', Colors.red);
+      _snack('Not enough credits. Watch an ad to earn credits.', AppColors.danger);
       return;
     }
 
@@ -293,32 +295,23 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         setState(() => _isRevealing[leadId] = false);
         _snack(
             result['error']?.toString() ?? 'Could not reveal contact. Try again.',
-            Colors.red);
+            AppColors.danger);
       }
     } catch (e) {
       setState(() => _isRevealing[leadId] = false);
-      _snack('Network error. Please try again.', Colors.red);
+      _snack('Network error. Please try again.', AppColors.danger);
     }
   }
 
   void _showContactSheet(String name, String phone) {
     final cs = Theme.of(context).colorScheme;
     _snack('Lead contact revealed!', _kTealDark);
-    showModalBottomSheet(
+    showAppSheet(
       context: context,
-      backgroundColor: AppColors.solid(cs),
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                  color: cs.onSurface.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 20),
+
           Row(children: [
             const Icon(Icons.phone_outlined, color: _kOrange, size: 28),
             const SizedBox(width: 12),
@@ -329,11 +322,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       Text('Contact Details',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 20,
+                              fontSize: AppText.title,
                               fontWeight: FontWeight.bold)),
                       Text('Contact information for $name',
                           style: TextStyle(
-                              color: cs.onSurface.withOpacity(0.6), fontSize: 13)),
+                              color: cs.onSurface.withOpacity(0.6), fontSize: AppText.secondary)),
                     ])),
             GestureDetector(
                 onTap: () => Navigator.pop(context),
@@ -350,7 +343,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           Text(name,
               style: TextStyle(
                   color: cs.onSurface,
-                  fontSize: 18,
+                  fontSize: AppText.heading,
                   fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           phone.isNotEmpty
@@ -362,7 +355,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   letterSpacing: 1.5))
               : Text('Phone not available',
               style: TextStyle(
-                  color: cs.onSurface.withOpacity(0.5), fontSize: 16)),
+                  color: cs.onSurface.withOpacity(0.5), fontSize: AppText.body)),
           const SizedBox(height: 28),
           if (phone.isNotEmpty)
             SizedBox(
@@ -373,20 +366,14 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   final uri = Uri(scheme: 'tel', path: phone);
                   if (await canLaunchUrl(uri)) await launchUrl(uri);
                 },
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12))),
+                style: AppButtons.danger,
                 icon: const Icon(Icons.phone_in_talk, size: 22),
                 label: const Text('Call Now',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                    style: TextStyle(fontSize: AppText.heading, fontWeight: FontWeight.bold)),
               ),
             ),
         ]),
-      ),
-    );
+      ));
   }
 
   // ── Ads ───────────────────────────────────────────────────────────────────
@@ -403,7 +390,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     final adId = ad['id'].toString();
     final maxV = ad['max_views_per_user'] as int? ?? 1;
     if ((_adViewCounts[adId] ?? 0) >= maxV) {
-      _snack('You\'ve already watched this ad the maximum times.', Colors.orange);
+      _snack('You\'ve already watched this ad the maximum times.', AppColors.warning);
       return;
     }
     final done = await showDialog<bool>(
@@ -493,10 +480,12 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
 
   void _snack(String msg, Color bg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(msg),
-        backgroundColor: bg,
-        duration: const Duration(seconds: 3)));
+    final type = bg == AppColors.danger
+        ? SnackType.error
+        : bg == AppColors.warning
+            ? SnackType.warning
+            : SnackType.success;
+    showAppSnack(context, msg, type: type);
   }
 
   int get _totalLeads =>
@@ -593,7 +582,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                           item.label,
                           style: TextStyle(
                             color: showSelected ? activeColor : inactiveColor,
-                            fontSize: 10,
+                            fontSize: AppText.caption,
                             fontWeight: showSelected
                                 ? FontWeight.w700
                                 : FontWeight.w400,
@@ -628,7 +617,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: _kTeal))
                 : RefreshIndicator(
-              onRefresh: _loadAll,
+              onRefresh: () => _loadAll(quiet: true),
               color: _kTeal,
               child: SingleChildScrollView(
                 controller: _scrollController,
@@ -693,7 +682,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             _userName,
             style: TextStyle(
               color: cs.onSurface,
-              fontSize: 14,
+              fontSize: AppText.body,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -717,7 +706,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         const SizedBox(height: 4),
         Text('Welcome back, $_userName! 👋',
             style: TextStyle(
-                color: cs.onSurface.withOpacity(0.6), fontSize: 14)),
+                color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body)),
       ]),
     );
   }
@@ -730,7 +719,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       child: Container(
         decoration: BoxDecoration(
             color: cs.surface.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: cs.onSurface.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
@@ -748,7 +737,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                         Text('Credit Balance',
                             style: TextStyle(
                                 color: cs.onSurface,
-                                fontSize: 18,
+                                fontSize: AppText.heading,
                                 fontWeight: FontWeight.bold)),
                         Container(
                           padding: const EdgeInsets.all(6),
@@ -771,7 +760,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                           ? 'Use credits to reveal customer leads'
                           : 'Watch ads below to earn credits',
                       style: TextStyle(
-                          color: cs.onSurface.withOpacity(0.6), fontSize: 14)),
+                          color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body)),
                 ]),
           ),
           Divider(color: cs.onSurface.withOpacity(0.1), height: 1),
@@ -779,7 +768,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             onTap: () => setState(() => _referExpanded = !_referExpanded),
             borderRadius: _referExpanded
                 ? BorderRadius.zero
-                : const BorderRadius.vertical(bottom: Radius.circular(18)),
+                : const BorderRadius.vertical(bottom: Radius.circular(AppRadius.lg)),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               child: Row(children: [
@@ -787,7 +776,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 const SizedBox(width: 10),
                 const Text('Refer & Earn Credits',
                     style: TextStyle(
-                        color: _kTeal, fontSize: 15, fontWeight: FontWeight.bold)),
+                        color: _kTeal, fontSize: AppText.body, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 Icon(
                     _referExpanded
@@ -807,7 +796,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     text: TextSpan(
                         style: TextStyle(
                             color: cs.onSurface.withOpacity(0.6),
-                            fontSize: 14,
+                            fontSize: AppText.body,
                             height: 1.6),
                         children: const [
                           TextSpan(text: 'You and your friend both earn '),
@@ -825,7 +814,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                             horizontal: 16, vertical: 16),
                         decoration: BoxDecoration(
                             color: cs.onSurface.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
                             border: Border.all(
                                 color: cs.onSurface.withOpacity(0.1))),
                         child: Text(
@@ -834,7 +823,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                               color: _referralCode.isEmpty
                                   ? cs.onSurface.withOpacity(0.4)
                                   : cs.onSurface,
-                              fontSize: 18,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.bold,
                               letterSpacing: _referralCode.isEmpty ? 0 : 3),
                           textAlign: TextAlign.center,
@@ -851,7 +840,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                           color: cs.onSurface.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(AppRadius.sm)),
                       child: Icon(Icons.copy_rounded,
                           color: cs.onSurface, size: 22),
                     ),
@@ -868,16 +857,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                           'Join KonnectKashmir as a vendor!\nUse my referral code *$code* '
                               'and we both earn +10 credits.\nhttps://konnectkashmir.com');
                     },
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: _tealContainer(context),
-                        foregroundColor: _kTeal,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12))),
+                    style: AppButtons.secondary,
                     icon: const Icon(Icons.share, size: 20),
                     label: const Text('Share with Friends',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                            fontSize: AppText.body, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ]),
@@ -902,7 +886,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       child: Container(
         decoration: BoxDecoration(
             color: cs.surface.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: cs.onSurface.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
@@ -918,13 +902,13 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             Text('Watch Ads for Credits',
                 style: TextStyle(
                     color: cs.onSurface,
-                    fontSize: 18,
+                    fontSize: AppText.heading,
                     fontWeight: FontWeight.bold)),
           ]),
           const SizedBox(height: 4),
           Text('Watch short ads to earn free credits',
               style:
-              TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 13)),
+              TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: AppText.secondary)),
           const SizedBox(height: 16),
           if (watchable.isEmpty)
             _buildAllCaughtUp()
@@ -949,10 +933,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       const SizedBox(height: 12),
       Text('All caught up!',
           style: TextStyle(
-              color: cs.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
+              color: cs.onSurface, fontSize: AppText.body, fontWeight: FontWeight.bold)),
       const SizedBox(height: 4),
       Text('No new ads right now.',
-          style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: 14)),
+          style: TextStyle(color: cs.onSurface.withOpacity(0.5), fontSize: AppText.body)),
       const SizedBox(height: 8),
     ]);
   }
@@ -969,15 +953,15 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
           color: cs.onSurface.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: _kOrange.withOpacity(0.3))),
       child: Row(children: [
         Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-                color: Colors.red.shade800,
-                borderRadius: BorderRadius.circular(10)),
+                color: AppColors.danger,
+                borderRadius: BorderRadius.circular(AppRadius.sm)),
             child: const Icon(Icons.play_arrow, color: Colors.white, size: 26)),
         const SizedBox(width: 12),
         Flexible(
@@ -986,7 +970,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   style: TextStyle(
                       color: cs.onSurface,
                       fontWeight: FontWeight.bold,
-                      fontSize: 15),
+                      fontSize: AppText.body),
                   overflow: TextOverflow.ellipsis),
               const SizedBox(height: 6),
               Wrap(
@@ -999,7 +983,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                           color: _kOrange.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                           border:
                           Border.all(color: _kOrange.withOpacity(0.4))),
                       child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1009,14 +993,14 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                         Text('+$reward credit${reward > 1 ? 's' : ''}',
                             style: const TextStyle(
                                 color: _kOrange,
-                                fontSize: 11,
+                                fontSize: AppText.caption,
                                 fontWeight: FontWeight.bold)),
                       ]),
                     ),
                     Text('${maxV - watched} left',
                         style: TextStyle(
                             color: cs.onSurface.withOpacity(0.4),
-                            fontSize: 11)),
+                            fontSize: AppText.caption)),
                   ]),
             ])),
         const SizedBox(width: 10),
@@ -1026,7 +1010,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
                 color: _tealContainer(context),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
                 border: Border.all(color: _kTeal.withOpacity(0.5))),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const Icon(Icons.monetization_on, color: _kTeal, size: 16),
@@ -1035,7 +1019,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   style: const TextStyle(
                       color: _kTeal,
                       fontWeight: FontWeight.bold,
-                      fontSize: 15)),
+                      fontSize: AppText.body)),
             ]),
           ),
         ),
@@ -1052,7 +1036,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
             color: cs.surface.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(color: _kTeal.withOpacity(0.3)),
             boxShadow: [
               BoxShadow(
@@ -1068,7 +1052,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 child: Text('Enable Lead Notifications',
                     style: TextStyle(
                         color: cs.onSurface,
-                        fontSize: 15,
+                        fontSize: AppText.body,
                         fontWeight: FontWeight.bold))),
             GestureDetector(
                 onTap: () => setState(() => _notifDismissed = true),
@@ -1080,22 +1064,17 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               'Get instant alerts when customers show interest in your business',
               style: TextStyle(
                   color: cs.onSurface.withOpacity(0.6),
-                  fontSize: 13,
+                  fontSize: AppText.secondary,
                   height: 1.5)),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _enableNotifications,
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: _tealContainer(context),
-                  foregroundColor: _kTeal,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12))),
+              style: AppButtons.secondary,
               icon: const Icon(Icons.notifications_active, size: 20),
               label: const Text('Enable Notifications',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: AppText.body, fontWeight: FontWeight.bold)),
             ),
           ),
         ]),
@@ -1129,7 +1108,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       padding: const EdgeInsets.symmetric(vertical: 18),
       decoration: BoxDecoration(
           color: cs.surface.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: cs.onSurface.withOpacity(0.08)),
           boxShadow: [
             BoxShadow(
@@ -1143,12 +1122,12 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         Text(value,
             style: TextStyle(
                 color: cs.onSurface,
-                fontSize: 22,
+                fontSize: AppText.title,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
         Text(label,
             style: TextStyle(
-                color: cs.onSurface.withOpacity(0.4), fontSize: 12),
+                color: cs.onSurface.withOpacity(0.4), fontSize: AppText.caption),
             textAlign: TextAlign.center),
       ]),
     );
@@ -1163,7 +1142,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
             color: cs.surface.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: cs.onSurface.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
@@ -1182,29 +1161,21 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       Text('My Businesses',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 18,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.bold)),
                       Text('Select a business to view its leads',
                           style: TextStyle(
                               color: cs.onSurface.withOpacity(0.4),
-                              fontSize: 12)),
+                              fontSize: AppText.caption)),
                     ])),
             ElevatedButton.icon(
               onPressed: () => Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const ListBusinessScreen()))
                   .then((_) => _fetchBusinessesAndLeads()),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: _tealContainer(context),
-                  foregroundColor: _kTeal,
-                  // Theme minimumSize is full-width; inside a Row that is infinite.
-                  minimumSize: const Size(0, 40),
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12))),
+              style: AppButtons.compact(AppButtons.secondary),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add New',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  style: TextStyle(fontSize: AppText.secondary, fontWeight: FontWeight.bold)),
             ),
           ]),
           const SizedBox(height: 16),
@@ -1218,7 +1189,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                     color: cs.onSurface.withOpacity(0.04),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     border: Border.all(color: cs.onSurface.withOpacity(0.08))),
                 child: Column(children: [
                   Icon(Icons.people_outline,
@@ -1228,12 +1199,12 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       'You have $_totalLeads total lead${_totalLeads != 1 ? 's' : ''}',
                       style: TextStyle(
                           color: cs.onSurface,
-                          fontSize: 15,
+                          fontSize: AppText.body,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   Text('Select a business above to view its leads',
                       style: TextStyle(
-                          color: cs.onSurface.withOpacity(0.4), fontSize: 13)),
+                          color: cs.onSurface.withOpacity(0.4), fontSize: AppText.secondary)),
                 ]),
               ),
             ],
@@ -1252,11 +1223,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       const SizedBox(height: 12),
       Text('No businesses yet',
           style:
-          TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: 15)),
+          TextStyle(color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body)),
       const SizedBox(height: 4),
       Text('Tap "Add New" to list your first business',
           style:
-          TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: 13)),
+          TextStyle(color: cs.onSurface.withOpacity(0.4), fontSize: AppText.secondary)),
       const SizedBox(height: 8),
     ]);
   }
@@ -1298,7 +1269,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           color: isSelected
               ? cs.primary.withOpacity(0.08)
               : cs.onSurface.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
               color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.08),
               width: isSelected ? 1.5 : 1),
@@ -1309,7 +1280,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                   color: _tealContainer(context),
-                  borderRadius: BorderRadius.circular(10)),
+                  borderRadius: BorderRadius.circular(AppRadius.sm)),
               child: Icon(svcIcons[svcType] ?? Icons.storefront,
                   color: _kTeal, size: 22),
             ),
@@ -1321,12 +1292,12 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       Text(name,
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 15,
+                              fontSize: AppText.body,
                               fontWeight: FontWeight.bold)),
                       Text('${_formatSlug(svcType)} • $locality',
                           style: TextStyle(
                               color: cs.onSurface.withOpacity(0.6),
-                              fontSize: 13)),
+                              fontSize: AppText.secondary)),
                     ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Container(
@@ -1334,7 +1305,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                     color: cs.onSurface.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(AppRadius.sm)),
                 child: Text('$leadCount',
                     style: TextStyle(
                         color: cs.onSurface, fontWeight: FontWeight.bold)),
@@ -1345,13 +1316,13 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                     color: isApproved
-                        ? Colors.green.withOpacity(0.15)
-                        : Colors.orange.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8)),
+                        ? AppColors.success.withOpacity(0.15)
+                        : AppColors.warning.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.sm)),
                 child: Text(isApproved ? 'Active' : 'Pending',
                     style: TextStyle(
-                        color: isApproved ? Colors.green : Colors.orange,
-                        fontSize: 11,
+                        color: isApproved ? AppColors.success : AppColors.warning,
+                        fontSize: AppText.caption,
                         fontWeight: FontWeight.bold)),
               ),
             ]),
@@ -1366,16 +1337,9 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       builder: (_) =>
                           ListBusinessScreen(existingVendor: biz)))
                   .then((_) => _fetchBusinessesAndLeads()),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: cs.onSurface.withOpacity(0.08),
-                  foregroundColor: cs.onSurface,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10))),
+              style: AppButtons.secondary,
               icon: const Icon(Icons.edit_outlined, size: 16),
-              label: const Text('Edit', style: TextStyle(fontSize: 13)),
+              label: const Text('Edit', style: TextStyle(fontSize: AppText.secondary)),
             ),
           ),
         ]),
@@ -1399,7 +1363,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
             color: cs.surface,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: cs.onSurface.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
@@ -1418,12 +1382,12 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       Text('Leads for $bizName',
                           style: TextStyle(
                               color: cs.onSurface,
-                              fontSize: 17,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.bold)),
                       Text('Customers who showed interest in this business',
                           style: TextStyle(
                               color: cs.onSurface.withOpacity(0.4),
-                              fontSize: 12)),
+                              fontSize: AppText.caption)),
                     ])),
           ]),
           const SizedBox(height: 16),
@@ -1440,11 +1404,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               const SizedBox(height: 12),
               Text('No leads yet',
                   style: TextStyle(
-                      color: cs.onSurface.withOpacity(0.6), fontSize: 15)),
+                      color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body)),
               const SizedBox(height: 4),
               Text('When customers unlock your contact, they appear here',
                   style: TextStyle(
-                      color: cs.onSurface.withOpacity(0.4), fontSize: 13),
+                      color: cs.onSurface.withOpacity(0.4), fontSize: AppText.secondary),
                   textAlign: TextAlign.center),
               const SizedBox(height: 8),
             ])
@@ -1472,7 +1436,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
           color: cs.onSurface.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: cs.onSurface.withOpacity(0.08))),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -1485,7 +1449,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     Text(name,
                         style: TextStyle(
                             color: cs.onSurface,
-                            fontSize: 15,
+                            fontSize: AppText.body,
                             fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
                     Row(children: [
@@ -1495,7 +1459,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       Text(dateStr,
                           style: TextStyle(
                               color: cs.onSurface.withOpacity(0.4),
-                              fontSize: 12)),
+                              fontSize: AppText.caption)),
                       const SizedBox(width: 10),
                       Icon(Icons.access_time_outlined,
                           color: cs.onSurface.withOpacity(0.4), size: 13),
@@ -1503,7 +1467,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       Text(timeStr,
                           style: TextStyle(
                               color: cs.onSurface.withOpacity(0.4),
-                              fontSize: 12)),
+                              fontSize: AppText.caption)),
                     ]),
                   ])),
           if (isRevealed)
@@ -1520,16 +1484,9 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         const SizedBox(height: 12),
         ElevatedButton.icon(
           onPressed: isReveal ? null : () => _getLead(lead),
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-            isRevealed ? Colors.green.shade800 : _tealContainer(context),
-            foregroundColor: isRevealed ? Colors.white : _kTeal,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            minimumSize: const Size(double.infinity, 44),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-            disabledBackgroundColor: cs.onSurface.withOpacity(0.12),
-          ),
+          style: AppButtons.block(isRevealed
+              ? AppButtons.withBg(AppButtons.primary, AppColors.success)
+              : AppButtons.secondary),
           icon: isReveal
               ? const SizedBox(
               width: 16,
@@ -1542,7 +1499,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           label: Row(mainAxisSize: MainAxisSize.min, children: [
             Text(isRevealed ? 'View Contact' : 'Get Lead',
                 style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.bold)),
+                    fontSize: AppText.body, fontWeight: FontWeight.bold)),
             if (!isRevealed && !isReveal) ...[
               const SizedBox(width: 8),
               Container(
@@ -1550,10 +1507,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(AppRadius.sm)),
                 child: const Text('1',
                     style: TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 13)),
+                        fontWeight: FontWeight.bold, fontSize: AppText.secondary)),
               ),
             ],
           ]),
@@ -1566,7 +1523,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     ? 'Costs 1 credit to reveal contact'
                     : 'Watch an ad to earn credits first',
                 style: TextStyle(
-                    color: cs.onSurface.withOpacity(0.4), fontSize: 11),
+                    color: cs.onSurface.withOpacity(0.4), fontSize: AppText.caption),
               )),
         ],
       ]),
@@ -1582,7 +1539,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
             color: cs.surface.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: cs.onSurface.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
@@ -1597,13 +1554,13 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             Text('Transaction History',
                 style: TextStyle(
                     color: cs.onSurface,
-                    fontSize: 18,
+                    fontSize: AppText.heading,
                     fontWeight: FontWeight.bold)),
           ]),
           const SizedBox(height: 4),
           Text('Your credit activity',
               style: TextStyle(
-                  color: cs.onSurface.withOpacity(0.4), fontSize: 13)),
+                  color: cs.onSurface.withOpacity(0.4), fontSize: AppText.secondary)),
           const SizedBox(height: 16),
           if (_transactions.isEmpty)
             Column(children: [
@@ -1613,7 +1570,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               const SizedBox(height: 12),
               Text('No transactions yet',
                   style: TextStyle(
-                      color: cs.onSurface.withOpacity(0.6), fontSize: 14)),
+                      color: cs.onSurface.withOpacity(0.6), fontSize: AppText.body)),
               const SizedBox(height: 8),
             ])
           else
@@ -1659,13 +1616,13 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
           color: cs.onSurface.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(color: cs.onSurface.withOpacity(0.08))),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
           padding: const EdgeInsets.all(10),
           decoration:
-          BoxDecoration(color: txBg, borderRadius: BorderRadius.circular(10)),
+          BoxDecoration(color: txBg, borderRadius: BorderRadius.circular(AppRadius.sm)),
           child: Icon(txIcon, color: txColor, size: 20),
         ),
         const SizedBox(width: 12),
@@ -1677,11 +1634,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       style: TextStyle(
                           color: cs.onSurface,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14)),
+                          fontSize: AppText.body)),
                   const SizedBox(height: 2),
                   Text(tx['subtitle'] as String,
                       style: TextStyle(
-                          color: cs.onSurface.withOpacity(0.6), fontSize: 13)),
+                          color: cs.onSurface.withOpacity(0.6), fontSize: AppText.secondary)),
                   const SizedBox(height: 6),
                   Row(children: [
                     Icon(Icons.calendar_today_outlined,
@@ -1689,26 +1646,26 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     const SizedBox(width: 4),
                     Text(tx['date'] as String,
                         style: TextStyle(
-                            color: cs.onSurface.withOpacity(0.4), fontSize: 11)),
+                            color: cs.onSurface.withOpacity(0.4), fontSize: AppText.caption)),
                     const SizedBox(width: 10),
                     Icon(Icons.access_time_outlined,
                         color: cs.onSurface.withOpacity(0.4), size: 12),
                     const SizedBox(width: 4),
                     Text(tx['time'] as String,
                         style: TextStyle(
-                            color: cs.onSurface.withOpacity(0.4), fontSize: 11)),
+                            color: cs.onSurface.withOpacity(0.4), fontSize: AppText.caption)),
                   ]),
                 ])),
         Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text(isCredit ? '+$amount' : '$amount',
               style: TextStyle(
                   color: isCredit ? _kOrange : _kTeal,
-                  fontSize: 18,
+                  fontSize: AppText.heading,
                   fontWeight: FontWeight.bold)),
           Text(amount.abs() == 1 ? 'credit' : 'credits',
               style: TextStyle(
                   color: isCredit ? _kOrange : _kTeal,
-                  fontSize: 12,
+                  fontSize: AppText.caption,
                   fontWeight: FontWeight.bold)),
         ]),
       ]),
@@ -1720,10 +1677,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.solid(cs),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: BorderSide(color: cs.onSurface.withOpacity(0.1))),
         title: Text('Sign Out',
             style: TextStyle(
                 color: cs.onSurface, fontWeight: FontWeight.bold)),
@@ -1737,9 +1690,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Sign Out',
-                  style: TextStyle(color: Colors.red))),
-        ],
-      ),
+                  style: TextStyle(color: AppColors.danger))),
+        ]),
     );
     if (ok == true && mounted) {
       await context.read<AuthProvider>().logout();

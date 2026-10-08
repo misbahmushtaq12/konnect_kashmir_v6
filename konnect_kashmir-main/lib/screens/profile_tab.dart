@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_overlays.dart';
+import '../widgets/app_snack.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -10,6 +12,7 @@ import '../static/privacy_screen.dart';
 import '../static/refund_screen.dart';
 import '../static/terms_screen.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_header.dart';
 import '../widgets/app_widgets.dart';
 import 'ad_credits_screen.dart';
 import 'login_screen.dart';
@@ -63,9 +66,8 @@ class _ProfileTabState extends State<ProfileTab> {
     final ctrl = TextEditingController(text: auth.user?.name ?? '');
     bool saving = false;
 
-    await showModalBottomSheet(
+    await showAppSheet(
       context: context,
-      isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
         final cs = Theme.of(ctx).colorScheme;
         return Padding(
@@ -76,13 +78,13 @@ class _ProfileTabState extends State<ProfileTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('Edit profile',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
               const SizedBox(height: 18),
               Text('Full name',
                   style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppText.secondary,
                       fontWeight: FontWeight.w600,
-                      color: cs.onSurface.withValues(alpha: 0.6))),
+                      color: cs.onSurface.withValues(alpha: 0.7))),
               const SizedBox(height: 8),
               TextField(
                 controller: ctrl,
@@ -96,8 +98,8 @@ class _ProfileTabState extends State<ProfileTab> {
               const SizedBox(height: 14),
               Text('Phone: ${auth.user?.phoneNumber ?? ''}',
                   style: TextStyle(
-                      fontSize: 13,
-                      color: cs.onSurface.withValues(alpha: 0.55))),
+                      fontSize: AppText.secondary,
+                      color: cs.onSurface.withValues(alpha: 0.7))),
               const SizedBox(height: 22),
               ElevatedButton(
                 onPressed: saving
@@ -105,8 +107,7 @@ class _ProfileTabState extends State<ProfileTab> {
                     : () async {
                         final name = ctrl.text.trim();
                         if (name.length < 2) {
-                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                              content: Text('Please enter a valid name')));
+                          showAppSnack(ctx, 'Please enter a valid name', type: SnackType.info);
                           return;
                         }
                         setSheet(() => saving = true);
@@ -123,14 +124,11 @@ class _ProfileTabState extends State<ProfileTab> {
                         if (r['success'] == true) {
                           Navigator.pop(ctx);
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Profile updated')));
+                            showAppSnack(context, 'Profile updated', type: SnackType.info);
                           }
                         } else {
                           setSheet(() => saving = false);
-                          ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                              content: Text("Couldn't save. Try again.")));
+                          showAppSnack(ctx, "Couldn't save. Try again.", type: SnackType.info);
                         }
                       },
                 child: saving
@@ -144,8 +142,7 @@ class _ProfileTabState extends State<ProfileTab> {
             ],
           ),
         );
-      }),
-    );
+      }));
     // The sheet is still animating out here; dispose once it is fully gone.
     Future.delayed(const Duration(milliseconds: 500), ctrl.dispose);
   }
@@ -163,7 +160,7 @@ class _ProfileTabState extends State<ProfileTab> {
           },
         );
 
-    showModalBottomSheet(
+    showAppSheet(
       context: context,
       builder: (ctx) => Padding(
         padding: const EdgeInsets.fromLTRB(8, 0, 8, 20),
@@ -173,7 +170,7 @@ class _ProfileTabState extends State<ProfileTab> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text('Legal',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
             ),
           ),
           item(Icons.description_outlined, 'Terms of Service',
@@ -185,30 +182,19 @@ class _ProfileTabState extends State<ProfileTab> {
           item(Icons.support_agent_outlined, 'Grievance Redressal',
               const GrievanceScreen(), ctx),
         ]),
-      ),
-    );
+      ));
   }
 
   // ── Sign out ──────────────────────────────────────────────────────────────
   Future<void> _signOut() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sign out'),
-        content: const Text('Are you sure you want to sign out?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Sign out'),
-          ),
-        ],
-      ),
+    final ok = await showAppConfirm(
+      context,
+      title: 'Sign out',
+      message: 'Are you sure you want to sign out?',
+      confirmLabel: 'Sign out',
+      danger: true,
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     final nav = Navigator.of(context, rootNavigator: true);
     await context.read<AuthProvider>().logout();
     nav.pushAndRemoveUntil(
@@ -238,9 +224,10 @@ class _ProfileTabState extends State<ProfileTab> {
                   parent: BouncingScrollPhysics()),
               padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
               children: [
-                const Text('Profile',
-                    style:
-                        TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+                AppHeader(
+                  title: 'Profile',
+                  actions: [if (_credits != null) CreditChip(_credits!)],
+                ),
                 const SizedBox(height: 16),
                 AppCard(
                   padding: const EdgeInsets.all(18),
@@ -265,32 +252,14 @@ class _ProfileTabState extends State<ProfileTab> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.w800)),
+                                    fontSize: AppText.heading, fontWeight: FontWeight.w800)),
                             const SizedBox(height: 3),
                             Text(auth.user?.phoneNumber ?? '',
                                 style: TextStyle(
                                     color:
-                                        cs.onSurface.withValues(alpha: 0.6))),
+                                        cs.onSurface.withValues(alpha: 0.7))),
                           ]),
                     ),
-                    if (_credits != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.stars_rounded,
-                              size: 16, color: AppColors.primary),
-                          const SizedBox(width: 4),
-                          Text('$_credits',
-                              style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w700)),
-                        ]),
-                      ),
                   ]),
                 ),
                 const SizedBox(height: 18),
@@ -367,13 +336,13 @@ class _ProfileTabState extends State<ProfileTab> {
           Expanded(
             child: Text('Theme',
                 style: TextStyle(
-                    fontSize: 15.5,
+                    fontSize: AppText.body,
                     fontWeight: FontWeight.w600,
                     color: cs.onSurface)),
           ),
           Text(isDark ? 'Dark' : 'Light',
               style: TextStyle(
-                  fontSize: 13.5, color: cs.onSurface.withValues(alpha: 0.6))),
+                  fontSize: AppText.secondary, color: cs.onSurface.withValues(alpha: 0.7))),
           const SizedBox(width: 6),
           Builder(
             builder: (switchContext) => Switch(
@@ -400,7 +369,7 @@ class _ProfileTabState extends State<ProfileTab> {
           Expanded(
             child: Text(label,
                 style: TextStyle(
-                    fontSize: 15.5, fontWeight: FontWeight.w600, color: c)),
+                    fontSize: AppText.body, fontWeight: FontWeight.w600, color: c)),
           ),
           if (chevron)
             Icon(Icons.chevron_right_rounded,

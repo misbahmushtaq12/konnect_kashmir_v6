@@ -29,8 +29,90 @@ class AppColors {
   static Color solid(ColorScheme cs) =>
       cs.brightness == Brightness.dark ? darkSurface : Colors.white;
 
+  // Status colours: use these instead of Colors.red / orange / green / blue.
   static const Color success = Color(0xFF2E9E6B);
+  static const Color warning = Color(0xFFE8A13A);
+  static const Color info = Color(0xFF3F8EDB);
   static const Color danger = Color(0xFFD64545);
+}
+
+/// The app's fixed text scale. Use these (or Theme.of(context).textTheme)
+/// instead of raw font-size numbers.
+class AppText {
+  AppText._();
+  static const double titleLg = 26; // big page titles ("My Business")
+  static const double title = 22; // screen / section titles
+  static const double heading = 18; // card & dialog headings
+  static const double body = 15; // normal text
+  static const double secondary = 13; // supporting text, chips
+  static const double caption = 12; // smallest allowed text
+
+  static const TextTheme theme = TextTheme(
+    headlineMedium:
+        TextStyle(fontSize: titleLg, fontWeight: FontWeight.w800),
+    headlineSmall: TextStyle(fontSize: title, fontWeight: FontWeight.w800),
+    titleLarge: TextStyle(fontSize: heading, fontWeight: FontWeight.w700),
+    bodyLarge: TextStyle(fontSize: body),
+    bodyMedium: TextStyle(fontSize: body),
+    bodySmall: TextStyle(fontSize: secondary),
+    labelSmall: TextStyle(fontSize: caption),
+  );
+}
+
+/// The three button kinds used everywhere. Pick one; don't hand-build styles.
+///   AppButtons.primary   – teal filled (main action)
+///   AppButtons.secondary – teal tinted (everything else)
+///   AppButtons.danger    – red filled (destructive)
+/// Variants: AppButtons.block(style) = full width, AppButtons.compact(style) =
+/// smaller, for use inside rows/banners.
+class AppButtons {
+  AppButtons._();
+
+  static const TextStyle _label =
+      TextStyle(fontSize: AppText.body, fontWeight: FontWeight.w700);
+
+  static ButtonStyle _make(Color bg, Color fg, {BorderSide? side}) => ButtonStyle(
+        side: side == null ? null : WidgetStatePropertyAll(side),
+        backgroundColor: WidgetStateProperty.resolveWith((s) =>
+            s.contains(WidgetState.disabled)
+                ? bg.withValues(alpha: bg.a * 0.5)
+                : bg),
+        foregroundColor: WidgetStateProperty.resolveWith((s) =>
+            s.contains(WidgetState.disabled) ? fg.withValues(alpha: 0.6) : fg),
+        overlayColor: WidgetStatePropertyAll(fg.withValues(alpha: 0.10)),
+        elevation: const WidgetStatePropertyAll(0),
+        shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+        minimumSize: const WidgetStatePropertyAll(Size(0, 48)),
+        padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
+        shape: WidgetStatePropertyAll(RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md))),
+        textStyle: const WidgetStatePropertyAll(_label),
+      );
+
+  static ButtonStyle get primary => _make(AppColors.primary, Colors.white);
+  // Outlined (not filled) so screens with many buttons don't turn solid green.
+  static ButtonStyle get secondary => _make(Colors.transparent, AppColors.primary,
+      side: BorderSide(
+          color: AppColors.primary.withValues(alpha: 0.55), width: 1.2));
+  static ButtonStyle get danger => _make(AppColors.danger, Colors.white);
+
+  /// Full-width version.
+  static ButtonStyle block(ButtonStyle s) => s.copyWith(
+      minimumSize: const WidgetStatePropertyAll(Size(double.infinity, 48)));
+
+  /// Smaller version for rows, banners and cards.
+  static ButtonStyle compact(ButtonStyle s) => s.copyWith(
+        minimumSize: const WidgetStatePropertyAll(Size(0, 40)),
+        padding: const WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+        textStyle: const WidgetStatePropertyAll(TextStyle(
+            fontSize: AppText.secondary, fontWeight: FontWeight.w700)),
+      );
+
+  /// Same style with a different background (e.g. "revealed" = success).
+  static ButtonStyle withBg(ButtonStyle s, Color bg) =>
+      s.copyWith(backgroundColor: WidgetStatePropertyAll(bg));
 }
 
 class AppRadius {
@@ -81,6 +163,7 @@ class AppTheme {
       canvasColor: solidSurface,
       pageTransitionsTheme: _pageTransitions,
       colorScheme: scheme,
+      textTheme: AppText.theme,
 
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -105,18 +188,11 @@ class AppTheme {
         ),
       ),
 
+      // Unstyled ElevatedButtons are the full-width Primary button.
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          minimumSize: const Size.fromHeight(52),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
+        style: AppButtons.block(AppButtons.primary),
       ),
+      filledButtonTheme: FilledButtonThemeData(style: AppButtons.primary),
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -126,7 +202,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: AppText.body, fontWeight: FontWeight.w700),
         ),
       ),
 
@@ -173,6 +249,23 @@ class AppTheme {
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
+      ),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: solidSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          side: BorderSide(color: outline),
+        ),
+        titleTextStyle: TextStyle(
+            color: onSurface,
+            fontSize: AppText.heading,
+            fontWeight: FontWeight.w800),
+        contentTextStyle: TextStyle(
+            color: onSurface.withValues(alpha: 0.8),
+            fontSize: AppText.body,
+            height: 1.4),
       ),
 
       snackBarTheme: SnackBarThemeData(

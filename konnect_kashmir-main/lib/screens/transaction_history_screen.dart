@@ -134,7 +134,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                     const Center(
                         child: Text('No transactions yet',
                             style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w700))),
+                                fontSize: AppText.heading, fontWeight: FontWeight.w700))),
                     const SizedBox(height: 6),
                     Center(
                       child: Text(
@@ -174,11 +174,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                                   Text(d.title,
                                       style: const TextStyle(
                                           fontWeight: FontWeight.w700,
-                                          fontSize: 15)),
+                                          fontSize: AppText.body)),
                                   const SizedBox(height: 2),
                                   Text(_fmt(r['created_at']?.toString()),
                                       style: TextStyle(
-                                          fontSize: 12,
+                                          fontSize: AppText.caption,
                                           color: cs.onSurface
                                               .withValues(alpha: 0.55))),
                                 ]),
@@ -186,7 +186,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                           Text(
                             '${positive ? '+' : ''}$amount',
                             style: TextStyle(
-                              fontSize: 17,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.w800,
                               color: positive
                                   ? AppColors.success

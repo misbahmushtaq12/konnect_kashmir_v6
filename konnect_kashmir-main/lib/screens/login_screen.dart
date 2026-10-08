@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'package:konnect_kashmir/static/terms_screen.dart';
 import 'package:konnect_kashmir/static/privacy_screen.dart';
 import '../services/auth_service.dart';
@@ -150,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Text(
                           "Kashmir's Local Services & Business Directory",
                           style: TextStyle(
-                            fontSize: 14.5,
+                            fontSize: AppText.body,
                             color: textMuted,
                             fontWeight: FontWeight.w400,
                             letterSpacing: 0.2,
@@ -167,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: tealBrand.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                               border: Border.all(
                                 color: tealBrand.withValues(alpha: 0.4),
                               ),
@@ -182,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     widget.redirectMessage!,
                                     style: const TextStyle(
                                       color: tealBrand,
-                                      fontSize: 13,
+                                      fontSize: AppText.secondary,
                                     ),
                                   ),
                                 ),
@@ -196,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
                           decoration: BoxDecoration(
                             color: isDark ? cardBgDark : theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
                             border: Border.all(
                               color: isDark ? cardBorderDark : theme.colorScheme.onSurface.withValues(alpha: 0.08),
                               width: 1.2,
@@ -219,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
                                       color: isDark ? iconBadgeBg : tealBrand.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(AppRadius.sm),
                                     ),
                                     child: const Icon(
                                       Icons.lock_person_rounded,
@@ -231,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   const Text(
                                     'Sign In / Register',
                                     style: TextStyle(
-                                      fontSize: 19,
+                                      fontSize: AppText.heading,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
@@ -242,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const Text(
                                 'Enter your mobile number to get started',
                                 style: TextStyle(
-                                  fontSize: 13.5,
+                                  fontSize: AppText.secondary,
                                   color: textMuted,
                                 ),
                               ),
@@ -250,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               const Text(
                                 'Mobile Number',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: AppText.body,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
@@ -262,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 height: 56,
                                 decoration: BoxDecoration(
                                   color: isDark ? inputBgDark : theme.colorScheme.onSurface.withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(AppRadius.sm),
                                   border: Border.all(
                                     color: inputBorderDark,
                                     width: 1.5,
@@ -277,12 +278,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: const [
-                                          Text('🇮🇳', style: TextStyle(fontSize: 18)),
+                                          Text('🇮🇳', style: TextStyle(fontSize: AppText.heading)),
                                           SizedBox(width: 8),
                                           Text(
                                             '+91',
                                             style: TextStyle(
-                                              fontSize: 16,
+                                              fontSize: AppText.body,
                                               fontWeight: FontWeight.bold,
                                               color: Colors.white,
                                             ),
@@ -302,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         controller: _phoneController,
                                         keyboardType: TextInputType.phone,
                                         style: const TextStyle(
-                                          fontSize: 16,
+                                          fontSize: AppText.body,
                                           letterSpacing: 1.2,
                                           fontWeight: FontWeight.w500,
                                           color: Colors.white,
@@ -312,7 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           hintStyle: TextStyle(
                                             color: Color(0xFF557069),
                                             letterSpacing: 1.2,
-                                            fontSize: 15,
+                                            fontSize: AppText.body,
                                           ),
                                           border: InputBorder.none,
                                           enabledBorder: InputBorder.none,
@@ -331,7 +332,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               if (_error != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
-                                  child: Text(_error!, style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: 12)),
+                                  child: Text(_error!, style: const TextStyle(color: Color(0xFFFF6B6B), fontSize: AppText.caption)),
                                 ),
                               const SizedBox(height: 24),
                               
@@ -340,7 +341,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 width: double.infinity,
                                 height: 54,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
                                   boxShadow: [
                                     BoxShadow(
                                       color: tealBrand.withValues(alpha: 0.35),
@@ -351,15 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 child: ElevatedButton(
                                   onPressed: _isLoading ? null : _sendOTP,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: tealBrand,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                    elevation: 0,
-                                  ),
+                                  style: AppButtons.primary,
                                   child: _isLoading
                                       ? const SizedBox(
                                           height: 24,
@@ -372,7 +365,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                             Text(
                                               'Send Verification OTP',
                                               style: TextStyle(
-                                                fontSize: 16,
+                                                fontSize: AppText.body,
                                                 fontWeight: FontWeight.bold,
                                                 letterSpacing: 0.2,
                                               ),
@@ -395,7 +388,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     Text(
                                       'Safe & secure',
                                       style: TextStyle(
-                                        fontSize: 12.5,
+                                        fontSize: AppText.caption,
                                         color: textFooterMuted,
                                       ),
                                     ),

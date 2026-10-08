@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'privacy_screen.dart';
@@ -51,7 +52,7 @@ class GrievanceScreen extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: borderColor),
       ),
       child: child,
@@ -64,11 +65,11 @@ class GrievanceScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("• ", style: TextStyle(color: textColor, fontSize: 15)),
+          Text("• ", style: TextStyle(color: textColor, fontSize: AppText.body)),
           Expanded(
             child: Text(text,
                 style: TextStyle(
-                    color: textColor, fontSize: 15, height: 1.6)),
+                    color: textColor, fontSize: AppText.body, height: 1.6)),
           ),
         ],
       ),
@@ -84,14 +85,14 @@ class GrievanceScreen extends StatelessWidget {
       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: rowBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
               child: Text(left,
-                  style: TextStyle(color: textColor, fontSize: 15))),
+                  style: TextStyle(color: textColor, fontSize: AppText.body))),
           Text(right,
               style: TextStyle(
                   color: valueColor, fontWeight: FontWeight.w600)),
@@ -105,7 +106,7 @@ class GrievanceScreen extends StatelessWidget {
       padding: const EdgeInsets.only(left: 28, bottom: 10),
       child: Text(text,
           style:
-          TextStyle(color: textColor, fontSize: 15, height: 1.6)),
+          TextStyle(color: textColor, fontSize: AppText.body, height: 1.6)),
     );
   }
 
@@ -158,7 +159,7 @@ class GrievanceScreen extends StatelessWidget {
                           "Back to Home",
                           style: TextStyle(
                               color: strongText,
-                              fontSize: 18,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -195,7 +196,7 @@ class GrievanceScreen extends StatelessWidget {
                             text: TextSpan(
                               style: TextStyle(
                                   color: subtleText,
-                                  fontSize: 15,
+                                  fontSize: AppText.body,
                                   height: 1.6),
                               children: [
                                 const TextSpan(
@@ -248,7 +249,7 @@ class GrievanceScreen extends StatelessWidget {
                             children: [
                               Text("Grievance Officer",
                                   style: TextStyle(
-                                      fontSize: 22,
+                                      fontSize: AppText.title,
                                       fontWeight: FontWeight.bold,
                                       color: strongText)),
                               const SizedBox(height: 16),
@@ -309,7 +310,7 @@ class GrievanceScreen extends StatelessWidget {
                             children: [
                               Text("Response Timeline",
                                   style: TextStyle(
-                                      fontSize: 22,
+                                      fontSize: AppText.title,
                                       fontWeight: FontWeight.bold,
                                       color: strongText)),
                               const SizedBox(height: 20),
@@ -337,7 +338,7 @@ class GrievanceScreen extends StatelessWidget {
 
                         Text("Types of Grievances We Handle",
                             style: TextStyle(
-                                fontSize: 22,
+                                fontSize: AppText.title,
                                 fontWeight: FontWeight.bold,
                                 color: strongText)),
                         const SizedBox(height: 20),
@@ -420,7 +421,7 @@ class GrievanceScreen extends StatelessWidget {
 
                         Text("How to File a Grievance",
                             style: TextStyle(
-                                fontSize: 22,
+                                fontSize: AppText.title,
                                 fontWeight: FontWeight.bold,
                                 color: strongText)),
                         const SizedBox(height: 16),
@@ -429,7 +430,7 @@ class GrievanceScreen extends StatelessWidget {
                           text: TextSpan(
                             style: TextStyle(
                                 color: subtleText,
-                                fontSize: 15,
+                                fontSize: AppText.body,
                                 height: 1.6),
                             children: [
                               const TextSpan(
@@ -470,7 +471,7 @@ class GrievanceScreen extends StatelessWidget {
 
                         Text("Escalation Process",
                             style: TextStyle(
-                                fontSize: 22,
+                                fontSize: AppText.title,
                                 fontWeight: FontWeight.bold,
                                 color: strongText)),
                         const SizedBox(height: 12),
@@ -485,7 +486,7 @@ class GrievanceScreen extends StatelessWidget {
                           text: TextSpan(
                             style: TextStyle(
                                 color: subtleText,
-                                fontSize: 15,
+                                fontSize: AppText.body,
                                 height: 1.6),
                             children: [
                               const TextSpan(
@@ -525,7 +526,7 @@ class GrievanceScreen extends StatelessWidget {
                           text: TextSpan(
                             style: TextStyle(
                                 color: subtleText,
-                                fontSize: 15,
+                                fontSize: AppText.body,
                                 height: 1.6),
                             children: [
                               const TextSpan(
@@ -554,7 +555,7 @@ class GrievanceScreen extends StatelessWidget {
                             children: [
                               Text("Office Address",
                                   style: TextStyle(
-                                      fontSize: 22,
+                                      fontSize: AppText.title,
                                       fontWeight: FontWeight.bold,
                                       color: strongText)),
                               const SizedBox(height: 16),

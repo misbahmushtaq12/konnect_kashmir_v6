@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'legal_accordion.dart';
+import '../theme/app_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:konnect_kashmir/static/privacy_screen.dart';
 import 'package:konnect_kashmir/static/refund_screen.dart';
@@ -71,7 +73,7 @@ class PrivacyScreen extends StatelessWidget {
                             'Back to Home',
                             style: TextStyle(
                               color: strongText,
-                              fontSize: 18,
+                              fontSize: AppText.heading,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -84,7 +86,7 @@ class PrivacyScreen extends StatelessWidget {
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
-                    child: Column(
+                    child: LegalBody(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 24),
@@ -101,7 +103,7 @@ class PrivacyScreen extends StatelessWidget {
                         Text(
                           'Last updated: February 2026',
                           style: TextStyle(
-                              fontSize: 14,
+                              fontSize: AppText.body,
                               color: cs.onSurface.withOpacity(0.45)),
                         ),
                         const SizedBox(height: 32),
@@ -112,7 +114,7 @@ class PrivacyScreen extends StatelessWidget {
                             child: Text(
                               'This Privacy Policy is published in accordance with the Digital Personal Data Protection Act, 2023 (DPDP Act), Information Technology Act, 2000, and Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.',
                               style: TextStyle(
-                                  fontSize: 12, color: subtleText),
+                                  fontSize: AppText.caption, color: subtleText),
                             ),
                           ),
                         ),
@@ -302,18 +304,13 @@ class PrivacyScreen extends StatelessWidget {
     );
   }
 
-  static Widget _sectionTitle(String title, Color color) {
-    return Text(
-      title,
-      style: TextStyle(
-          fontSize: 22, fontWeight: FontWeight.bold, color: color),
-    );
-  }
+  static Widget _sectionTitle(String title, Color color) =>
+      LegalSectionTitle(title);
 
   static Widget _paragraph(String text, Color color) {
     return Text(
       text,
-      style: TextStyle(fontSize: 15, color: color, height: 1.6),
+      style: TextStyle(fontSize: AppText.body, color: color, height: 1.6),
     );
   }
 
@@ -335,7 +332,7 @@ class PrivacyScreen extends StatelessWidget {
             child: Text(
               text,
               style:
-              TextStyle(fontSize: 15, color: textColor, height: 1.6),
+              TextStyle(fontSize: AppText.body, color: textColor, height: 1.6),
             ),
           ),
         ],

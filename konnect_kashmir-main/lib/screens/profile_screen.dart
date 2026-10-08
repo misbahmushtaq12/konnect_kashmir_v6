@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -192,7 +193,7 @@ class _ProfileCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: cs.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: cs.primary.withOpacity(0.35),
           width: 1.2,
@@ -281,15 +282,15 @@ class _ProfileCard extends StatelessWidget {
                           text: 'Your Full Name ',
                           style: TextStyle(
                             color: cs.onSurface,
-                            fontSize: 14,
+                            fontSize: AppText.body,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
                         const TextSpan(
                           text: '*',
                           style: TextStyle(
-                            color: Colors.redAccent,
-                            fontSize: 14,
+                            color: AppColors.danger,
+                            fontSize: AppText.body,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -309,14 +310,14 @@ class _ProfileCard extends StatelessWidget {
                   textInputAction: TextInputAction.done,
                   style: TextStyle(
                     color: cs.onSurface,
-                    fontSize: 15,
+                    fontSize: AppText.body,
                     fontWeight: FontWeight.w500,
                   ),
                   decoration: InputDecoration(
                     hintText: 'Enter your full name',
                     hintStyle: TextStyle(
                       color: cs.onSurface.withOpacity(0.35),
-                      fontSize: 14,
+                      fontSize: AppText.body,
                       fontWeight: FontWeight.normal,
                     ),
                     filled: true,
@@ -324,28 +325,28 @@ class _ProfileCard extends StatelessWidget {
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: BorderSide(
                         color: cs.primary.withOpacity(0.4),
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: BorderSide(
                         color: cs.primary.withOpacity(0.4),
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: BorderSide(
                         color: cs.primary,
                         width: 2,
                       ),
                     ),
                     errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: BorderSide(
-                        color: Colors.red.withOpacity(0.6),
+                        color: AppColors.danger.withOpacity(0.6),
                       ),
                     ),
                   ),
@@ -359,7 +360,7 @@ class _ProfileCard extends StatelessWidget {
                   child: Text(
                     'This will be visible to vendors when you contact them',
                     style: TextStyle(
-                      fontSize: 11.5,
+                      fontSize: AppText.caption,
                       color: cs.onSurface.withOpacity(0.4),
                     ),
                   ),
@@ -371,13 +372,13 @@ class _ProfileCard extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      border: Border.all(color: Colors.red.withOpacity(0.4)),
-                      borderRadius: BorderRadius.circular(8),
+                      color: AppColors.danger.withOpacity(0.1),
+                      border: Border.all(color: AppColors.danger.withOpacity(0.4)),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Text(
                       error!,
-                      style: TextStyle(color: Colors.red[400], fontSize: 13),
+                      style: TextStyle(color: AppColors.danger, fontSize: AppText.secondary),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -389,17 +390,7 @@ class _ProfileCard extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isLoading ? null : onContinue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.primary.withOpacity(0.15),
-                      foregroundColor: cs.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: cs.primary.withOpacity(0.4)),
-                      ),
-                      disabledBackgroundColor: cs.primary.withOpacity(0.08),
-                      elevation: 0,
-                    ),
+                    style: AppButtons.secondary,
                     child: isLoading
                         ? SizedBox(
                       height: 20,
@@ -419,7 +410,7 @@ class _ProfileCard extends StatelessWidget {
                         Text(
                           'Continue',
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppText.body,
                             fontWeight: FontWeight.w700,
                             color: cs.primary,
                             letterSpacing: 0.3,
