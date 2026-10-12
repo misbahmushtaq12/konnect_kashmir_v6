@@ -92,8 +92,8 @@
   },
   "couldntLoadBusiness": "Couldn't load your business",
   "couldntOpenWhatsapp": "Couldn't open WhatsApp",
-  "salam": "Salam",
-  "greeting": "Salam, {name}",
+  "salam": "Aadab",
+  "greeting": "Aadab, {name}",
   "@greeting": {
     "placeholders": {
       "name": {"type": "String"}
@@ -375,5 +375,7 @@
   "deleteAccount": "Delete account",
   "deleteAccountTitle": "Delete your account?",
   "deleteAccountMsg": "This permanently deletes your account, your business listings, leads and credits. This cannot be undone.",
-  "deleteAccountFailed": "We couldn't delete your account right now. Please email info@konnectkashmir.com and we'll do it for you."
+  "deleteAccountFailed": "We couldn't delete your account right now. Please email info@konnectkashmir.com and we'll do it for you.",
+  "filterLabel": "Filter",
+  "textSize": "Text size"
 }

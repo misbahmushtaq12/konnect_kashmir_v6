@@ -239,11 +239,11 @@ class AppLocalizationsHi extends AppLocalizations {
   String get couldntOpenWhatsapp => 'व्हाट्सऐप नहीं खुल सका';
 
   @override
-  String get salam => 'सलाम';
+  String get salam => 'आदाब';
 
   @override
   String greeting(String name) {
-    return 'सलाम, $name';
+    return 'आदाब, $name';
   }
 
   @override
@@ -916,4 +916,10 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get deleteAccountFailed =>
       'अभी आपका अकाउंट नहीं हटाया जा सका। कृपया info@konnectkashmir.com पर ईमेल करें, हम इसे हटा देंगे।';
+
+  @override
+  String get filterLabel => 'फ़िल्टर';
+
+  @override
+  String get textSize => 'टेक्स्ट का आकार';
 }

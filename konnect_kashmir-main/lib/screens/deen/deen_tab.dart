@@ -426,9 +426,17 @@ class _DeenTabState extends State<DeenTab> {
             onTap: _openPrayerSettings,
             borderRadius: BorderRadius.circular(999),
             child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Icon(Icons.tune_rounded,
-                  size: 20, color: cs.onSurface.withValues(alpha: 0.6)),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.filter_alt_outlined,
+                    size: 20, color: cs.onSurface.withValues(alpha: 0.7)),
+                const SizedBox(width: 4),
+                Text(l.filterLabel,
+                    style: TextStyle(
+                        fontSize: AppText.secondary,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface.withValues(alpha: 0.7))),
+              ]),
             ),
           ),
         ]),

@@ -67,8 +67,8 @@
   "snackCouldntRefreshLeads": "لیڈز ریفریش نہیں ہو سکیں۔ {detail}",
   "couldntLoadBusiness": "آپ کا کاروبار لوڈ نہیں ہو سکا",
   "couldntOpenWhatsapp": "واٹس ایپ نہیں کھل سکا",
-  "salam": "سلام",
-  "greeting": "سلام، {name}",
+  "salam": "آداب",
+  "greeting": "آداب، {name}",
   "heroLine1": "قابلِ اعتماد مقامی ماہرین،",
   "heroLine2": "بس ایک ٹیپ کی دوری پر۔",
   "searchVendors": "وینڈرز تلاش کریں...",
@@ -273,5 +273,7 @@
   "deleteAccount": "اکاؤنٹ حذف کریں",
   "deleteAccountTitle": "اپنا اکاؤنٹ حذف کریں؟",
   "deleteAccountMsg": "اس سے آپ کا اکاؤنٹ، آپ کے کاروبار، لیڈز اور کریڈٹس ہمیشہ کے لیے حذف ہو جائیں گے۔ اسے واپس نہیں کیا جا سکتا۔",
-  "deleteAccountFailed": "ابھی آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہِ کرم info@konnectkashmir.com پر ای میل کریں، ہم اسے حذف کر دیں گے۔"
+  "deleteAccountFailed": "ابھی آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہِ کرم info@konnectkashmir.com پر ای میل کریں، ہم اسے حذف کر دیں گے۔",
+  "filterLabel": "فلٹر",
+  "textSize": "متن کا سائز"
 }

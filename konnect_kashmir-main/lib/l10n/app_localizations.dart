@@ -505,13 +505,13 @@ abstract class AppLocalizations {
   /// No description provided for @salam.
   ///
   /// In en, this message translates to:
-  /// **'Salam'**
+  /// **'Aadab'**
   String get salam;
 
   /// No description provided for @greeting.
   ///
   /// In en, this message translates to:
-  /// **'Salam, {name}'**
+  /// **'Aadab, {name}'**
   String greeting(String name);
 
   /// No description provided for @heroLine1.
@@ -1743,6 +1743,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We couldn\'t delete your account right now. Please email info@konnectkashmir.com and we\'ll do it for you.'**
   String get deleteAccountFailed;
+
+  /// No description provided for @filterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter'**
+  String get filterLabel;
+
+  /// No description provided for @textSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get textSize;
 }
 
 class _AppLocalizationsDelegate

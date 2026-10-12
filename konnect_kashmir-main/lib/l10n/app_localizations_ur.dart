@@ -241,11 +241,11 @@ class AppLocalizationsUr extends AppLocalizations {
   String get couldntOpenWhatsapp => 'واٹس ایپ نہیں کھل سکا';
 
   @override
-  String get salam => 'سلام';
+  String get salam => 'آداب';
 
   @override
   String greeting(String name) {
-    return 'سلام، $name';
+    return 'آداب، $name';
   }
 
   @override
@@ -922,4 +922,10 @@ class AppLocalizationsUr extends AppLocalizations {
   @override
   String get deleteAccountFailed =>
       'ابھی آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہِ کرم info@konnectkashmir.com پر ای میل کریں، ہم اسے حذف کر دیں گے۔';
+
+  @override
+  String get filterLabel => 'فلٹر';
+
+  @override
+  String get textSize => 'متن کا سائز';
 }

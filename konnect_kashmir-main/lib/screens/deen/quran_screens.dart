@@ -5,6 +5,8 @@ import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/error_retry.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../widgets/app_overlays.dart';
 import 'quran_service.dart';
 
 /// All 114 surahs, with search. Tapping one opens the reader.
@@ -166,12 +168,72 @@ class _SurahReaderScreenState extends State<SurahReaderScreen> {
   late int _from = (widget.startAyah - 1).clamp(0, 1 << 20);
   int _reached = 0;
   Timer? _saveTimer;
+  double _scale = 1.0; // reading text size (saved on the phone)
 
   @override
   void initState() {
     super.initState();
     _reached = widget.startAyah;
     _load();
+    _loadScale();
+  }
+
+  Future<void> _loadScale() async {
+    try {
+      final v = (await SharedPreferences.getInstance()).getDouble('quran_text_scale');
+      if (v != null && mounted) setState(() => _scale = v.clamp(0.8, 1.8));
+    } catch (_) {}
+  }
+
+  Future<void> _saveScale() async {
+    try {
+      await (await SharedPreferences.getInstance())
+          .setDouble('quran_text_scale', _scale);
+    } catch (_) {}
+  }
+
+  /// Text size: a slider with A- / A+, applied to the verses as it moves.
+  void _openTextSize() {
+    showAppSheet<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
+        void set(double v) {
+          setState(() => _scale = v.clamp(0.8, 1.8));
+          setSheet(() {});
+          _saveScale();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(context.l10n.textSize,
+                  style: const TextStyle(
+                      fontSize: AppText.title, fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(height: 12),
+            Row(children: [
+              IconButton(
+                  onPressed: () => set(_scale - 0.1),
+                  icon: const Icon(Icons.text_decrease_rounded)),
+              Expanded(
+                child: Slider(
+                  value: _scale,
+                  min: 0.8,
+                  max: 1.8,
+                  divisions: 10,
+                  onChanged: set,
+                ),
+              ),
+              IconButton(
+                  onPressed: () => set(_scale + 0.1),
+                  icon: const Icon(Icons.text_increase_rounded)),
+            ]),
+          ]),
+        );
+      }),
+    );
   }
 
   @override
@@ -219,7 +281,16 @@ class _SurahReaderScreenState extends State<SurahReaderScreen> {
     final hasEarlier = _from > 0;
 
     return Scaffold(
-      appBar: AppBar(title: Text('${s.number}. ${s.english}')),
+      appBar: AppBar(
+        title: Text('${s.number}. ${s.english}'),
+        actions: [
+          IconButton(
+            tooltip: context.l10n.textSize,
+            onPressed: _openTextSize,
+            icon: const Icon(Icons.text_fields_rounded),
+          ),
+        ],
+      ),
       body: _loading
           ? ListView(padding: const EdgeInsets.all(20), children: [
               for (var i = 0; i < 4; i++) ...[
@@ -274,14 +345,14 @@ class _SurahReaderScreenState extends State<SurahReaderScreen> {
                                 child: Text(a.arabic,
                                     textDirection: TextDirection.rtl,
                                     textAlign: TextAlign.right,
-                                    style: const TextStyle(
-                                        fontSize: 26, height: 2.0)),
+                                    style: TextStyle(
+                                        fontSize: 26 * _scale, height: 2.0)),
                               ),
                               const SizedBox(height: 10),
                               Text(a.english,
                                   textDirection: TextDirection.ltr,
                                   style: TextStyle(
-                                      fontSize: AppText.body,
+                                      fontSize: AppText.body * _scale,
                                       height: 1.5,
                                       color:
                                           cs.onSurface.withValues(alpha: 0.8))),
