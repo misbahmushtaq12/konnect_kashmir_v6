@@ -110,7 +110,12 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       final slug = (e['slug'] ?? e['id'] ?? '').toString();
       final name = (e['name'] ?? '').toString();
       if (slug.isEmpty || name.isEmpty || !seen.add(name)) continue;
-      final meta = CategoryMeta.of(slug);
+      final meta = CategoryMeta.of(
+        slug,
+        name: name,
+        iconName: e['icon']?.toString() ?? e['icon_name']?.toString(),
+        colorHex: e['color']?.toString() ?? e['color_hex']?.toString(),
+      );
       out.add(_ServiceOption(
           name: name, icon: meta.icon, iconColor: meta.color, slug: slug));
     }

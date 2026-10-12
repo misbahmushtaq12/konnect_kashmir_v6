@@ -7,7 +7,104 @@ class CategoryMeta {
   final Color color;
   const CategoryMeta(this.icon, this.color);
 
-  static const CategoryMeta fallback = CategoryMeta(Icons.miscellaneous_services, Color(0xFF8A9A98));
+  /// Default common icon & brand color when a category has no specific icon.
+  static const CategoryMeta fallback = CategoryMeta(
+    Icons.category_rounded,
+    Color(0xFF339985),
+  );
+
+  static const List<Color> _palette = [
+    Color(0xFF339985), // Konnect Teal
+    Color(0xFF43A857), // Green
+    Color(0xFF29A3E0), // Sky Blue
+    Color(0xFFE0652E), // Orange
+    Color(0xFF9B59D0), // Purple
+    Color(0xFFF2B01E), // Amber
+    Color(0xFF1BB5C9), // Cyan
+    Color(0xFFE8508C), // Pink
+    Color(0xFF4A5FC1), // Indigo
+    Color(0xFFC07B3E), // Brown/Wood
+    Color(0xFF6C63D9), // Violet
+    Color(0xFF5F7D95), // Slate
+  ];
+
+  /// Generates a consistent, harmonious palette color for new categories.
+  static Color dynamicColor(String seed) {
+    if (seed.isEmpty) return fallback.color;
+    final hash = seed.codeUnits.fold(0, (acc, c) => acc + c);
+    return _palette[hash.abs() % _palette.length];
+  }
+
+  /// Parses hex color strings like "#339985" or "339985".
+  static Color? tryParseHex(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    final clean = hex.replaceAll('#', '').trim();
+    if (clean.length == 6) {
+      final val = int.tryParse('0xFF$clean');
+      if (val != null) return Color(val);
+    } else if (clean.length == 8) {
+      final val = int.tryParse('0x$clean');
+      if (val != null) return Color(val);
+    }
+    return null;
+  }
+
+  static const Map<String, IconData> _namedIcons = {
+    'category': Icons.category_rounded,
+    'services': Icons.home_repair_service,
+    'home': Icons.home_repair_service,
+    'electrician': Icons.bolt,
+    'bolt': Icons.bolt,
+    'plumber': Icons.plumbing,
+    'plumbing': Icons.plumbing,
+    'carpenter': Icons.handyman,
+    'handyman': Icons.handyman,
+    'build': Icons.build,
+    'painter': Icons.format_paint,
+    'paint': Icons.format_paint,
+    'mason': Icons.foundation,
+    'labour': Icons.engineering,
+    'gardener': Icons.park,
+    'park': Icons.park,
+    'tailor': Icons.content_cut,
+    'cleaner': Icons.cleaning_services,
+    'cleaning': Icons.cleaning_services,
+    'tutor': Icons.school,
+    'school': Icons.school,
+    'education': Icons.menu_book,
+    'doctor': Icons.medical_services,
+    'hospital': Icons.local_hospital,
+    'medical': Icons.medical_services,
+    'health': Icons.monitor_heart,
+    'pharmacy': Icons.medical_services,
+    'laptop': Icons.devices,
+    'mobile': Icons.phone_android,
+    'repair': Icons.build,
+    'car': Icons.directions_car,
+    'driver': Icons.directions_car,
+    'food': Icons.restaurant,
+    'restaurant': Icons.restaurant,
+    'lawyer': Icons.balance,
+    'property': Icons.real_estate_agent,
+    'camera': Icons.camera_alt,
+    'photography': Icons.camera_alt,
+    'pet': Icons.pets,
+    'pets': Icons.pets,
+    'gym': Icons.fitness_center,
+    'fitness': Icons.fitness_center,
+    'security': Icons.security,
+    'cctv': Icons.videocam,
+    'solar': Icons.solar_power,
+    'event': Icons.celebration,
+    'wedding': Icons.favorite,
+    'hotel': Icons.hotel,
+    'travel': Icons.flight_takeoff,
+    'spa': Icons.spa,
+    'beauty': Icons.palette,
+    'shopping': Icons.shopping_bag,
+    'store': Icons.storefront,
+    'work': Icons.work,
+  };
 
   static const Map<String, CategoryMeta> _map = {
     'all': CategoryMeta(Icons.grid_view_rounded, Color(0xFF43A857)),
@@ -71,7 +168,44 @@ class CategoryMeta {
     'other': CategoryMeta(Icons.more_horiz, Color(0xFF8A9A98)),
   };
 
-  static CategoryMeta of(String? slug) => _map[slug] ?? fallback;
+  /// Resolves the icon and color for a category.
+  /// If the category is known, returns its dedicated icon and color.
+  /// If unknown or new, checks for an explicit iconName, keyword matches,
+  /// or falls back to a common clean category icon with a harmonious palette color.
+  static CategoryMeta of(
+    String? slug, {
+    String? name,
+    String? iconName,
+    String? colorHex,
+  }) {
+    // 1. If slug exists in our predefined map, use it
+    if (slug != null && _map.containsKey(slug)) {
+      return _map[slug]!;
+    }
+
+    // 2. Resolve custom/parsed color if provided, or generate dynamically
+    final parsedColor = tryParseHex(colorHex);
+    final chosenColor = parsedColor ?? dynamicColor(slug ?? name ?? '');
+
+    // 3. If explicit iconName was passed from backend
+    if (iconName != null && iconName.isNotEmpty) {
+      final normalized = iconName.toLowerCase().trim();
+      if (_namedIcons.containsKey(normalized)) {
+        return CategoryMeta(_namedIcons[normalized]!, chosenColor);
+      }
+    }
+
+    // 4. Keyword heuristic based on slug or category name
+    final text = '${slug ?? ''} ${name ?? ''}'.toLowerCase();
+    for (final entry in _namedIcons.entries) {
+      if (entry.key != 'category' && text.contains(entry.key)) {
+        return CategoryMeta(entry.value, chosenColor);
+      }
+    }
+
+    // 5. Default common category icon with vibrant theme/palette color
+    return CategoryMeta(Icons.category_rounded, chosenColor);
+  }
 
   static const List<Map<String, dynamic>> allCategories = [
     {'slug': 'home_services', 'name': 'Home Services'},

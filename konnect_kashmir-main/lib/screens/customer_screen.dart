@@ -1749,6 +1749,8 @@ class _HomeScreenState extends State<CustomerScreen>
       ...sourceList.map((e) => {
         'slug': e['slug']?.toString() ?? e['id']?.toString() ?? '',
         'name': e['name']?.toString() ?? 'Service',
+        'icon': e['icon']?.toString() ?? e['icon_name']?.toString(),
+        'color': e['color']?.toString() ?? e['color_hex']?.toString(),
       })
     ];
 
@@ -1786,7 +1788,9 @@ class _HomeScreenState extends State<CustomerScreen>
     final cs = Theme.of(context).colorScheme;
     final slug = c['slug']?.toString();
     final name = c['name']?.toString() ?? 'Service';
-    final meta = CategoryMeta.of(slug);
+    final iconName = c['icon']?.toString() ?? c['icon_name']?.toString();
+    final colorHex = c['color']?.toString() ?? c['color_hex']?.toString();
+    final meta = CategoryMeta.of(slug, name: name, iconName: iconName, colorHex: colorHex);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isAll = slug == 'all';
@@ -2123,7 +2127,14 @@ class _HomeScreenState extends State<CustomerScreen>
               chip['slug'] as String? ?? chip['id']?.toString() ?? 'default';
           final name = chip['name'] as String? ?? 'Service';
           final isAll = slug == 'all';
-          final meta = isAll ? null : CategoryMeta.of(slug);
+          final meta = isAll
+              ? null
+              : CategoryMeta.of(
+                  slug,
+                  name: name,
+                  iconName: chip['icon']?.toString() ?? chip['icon_name']?.toString(),
+                  colorHex: chip['color']?.toString() ?? chip['color_hex']?.toString(),
+                );
           final isSelected = isAll
               ? selectedBrowseCategory == null
               : selectedBrowseCategory == slug;
@@ -2471,7 +2482,7 @@ class _HomeScreenState extends State<CustomerScreen>
         .join();
 
     final String slug = vendor['service_type']?.toString() ?? '';
-    final meta = CategoryMeta.of(slug);
+    final meta = CategoryMeta.of(slug, name: vendor['service_type']?.toString());
     final localityDisplay = vendor['localities'] is Map
         ? vendor['localities']['name']?.toString() ?? ''
         : vendor['locality']?.toString() ?? '';
