@@ -6,7 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/error_retry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../widgets/app_overlays.dart';
+import '../../widgets/text_size_sheet.dart';
 import 'quran_service.dart';
 
 /// All 114 surahs, with search. Tapping one opens the reader.
@@ -192,48 +192,11 @@ class _SurahReaderScreenState extends State<SurahReaderScreen> {
     } catch (_) {}
   }
 
-  /// Text size: a slider with A- / A+, applied to the verses as it moves.
   void _openTextSize() {
-    showAppSheet<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(builder: (ctx, setSheet) {
-        void set(double v) {
-          setState(() => _scale = v.clamp(0.8, 1.8));
-          setSheet(() {});
-          _saveScale();
-        }
-
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(context.l10n.textSize,
-                  style: const TextStyle(
-                      fontSize: AppText.title, fontWeight: FontWeight.w800)),
-            ),
-            const SizedBox(height: 12),
-            Row(children: [
-              IconButton(
-                  onPressed: () => set(_scale - 0.1),
-                  icon: const Icon(Icons.text_decrease_rounded)),
-              Expanded(
-                child: Slider(
-                  value: _scale,
-                  min: 0.8,
-                  max: 1.8,
-                  divisions: 10,
-                  onChanged: set,
-                ),
-              ),
-              IconButton(
-                  onPressed: () => set(_scale + 0.1),
-                  icon: const Icon(Icons.text_increase_rounded)),
-            ]),
-          ]),
-        );
-      }),
-    );
+    showTextSizeSheet(context, value: _scale, onChanged: (v) {
+      setState(() => _scale = v);
+      _saveScale();
+    });
   }
 
   @override

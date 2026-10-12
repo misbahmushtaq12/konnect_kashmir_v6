@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/l10n.dart';
@@ -274,157 +273,6 @@ class _ProfileTabState extends State<ProfileTab> {
     );
   }
 
-  // ── Side drawer (opened by tapping the profile icon/card) ─────────────────
-  void _openDrawer() {
-    showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 220),
-      pageBuilder: (ctx, _, __) => Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: _drawerPanel(ctx),
-      ),
-      transitionBuilder: (ctx, anim, _, child) {
-        final rtl = Directionality.of(ctx) == TextDirection.rtl;
-        return SlideTransition(
-          position: Tween<Offset>(
-                  begin: Offset(rtl ? 1 : -1, 0), end: Offset.zero)
-              .animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
-          child: child,
-        );
-      },
-    );
-  }
-
-  Widget _drawerPanel(BuildContext ctx) {
-    final cs = Theme.of(ctx).colorScheme;
-    final auth = ctx.read<AuthProvider>();
-    final name = (auth.user?.name ?? '').trim();
-    final width = math.min(320.0, MediaQuery.of(ctx).size.width * 0.82);
-
-    // Close the drawer first, then do what the item says.
-    Widget item(IconData icon, String label, VoidCallback action,
-        {Color? color, Widget? trailing}) {
-      final c = color ?? cs.onSurface;
-      return InkWell(
-        onTap: () {
-          Navigator.pop(ctx);
-          action();
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          child: Row(children: [
-            Icon(icon, color: color ?? AppColors.primary, size: 22),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(label,
-                  style: TextStyle(
-                      fontSize: AppText.body,
-                      fontWeight: FontWeight.w600,
-                      color: c)),
-            ),
-            if (trailing != null) trailing,
-          ]),
-        ),
-      );
-    }
-
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    final language = ctx.watch<LocaleProvider>().nativeName;
-
-    return Material(
-      color: AppColors.solid(cs),
-      child: SizedBox(
-        width: width,
-        height: double.infinity,
-        child: SafeArea(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
-              child: Row(children: [
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: AppColors.primary,
-                  child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800)),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(name.isEmpty ? ctx.l10n.yourName : name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: AppText.heading,
-                                fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 2),
-                        Text(auth.user?.phoneNumber ?? '',
-                            style: TextStyle(
-                                color: cs.onSurface.withValues(alpha: 0.7))),
-                      ]),
-                ),
-              ]),
-            ),
-            Divider(height: 1, color: cs.onSurface.withValues(alpha: 0.08)),
-            item(Icons.person_outline_rounded, ctx.l10n.navProfile, _editProfile),
-            item(
-              Icons.translate_rounded,
-              ctx.l10n.language,
-              () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const LanguageScreen(isSettings: true))),
-              trailing: Text(language,
-                  style: TextStyle(
-                      fontSize: AppText.secondary,
-                      color: cs.onSurface.withValues(alpha: 0.7))),
-            ),
-            // Theme: the switch changes it in place, the drawer stays open.
-            SizedBox(
-              height: 54,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 20, right: 12),
-                child: Row(children: [
-                  Icon(isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
-                      color: AppColors.primary, size: 22),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(ctx.l10n.theme,
-                        style: TextStyle(
-                            fontSize: AppText.body,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface)),
-                  ),
-                  Builder(
-                    builder: (switchContext) => Switch(
-                      value: isDark,
-                      onChanged: (v) => ThemeReveal.setDark(switchContext, v),
-                    ),
-                  ),
-                ]),
-              ),
-            ),
-            item(Icons.mail_outline_rounded, ctx.l10n.contactUs,
-                () => _push(const ContactScreen())),
-            item(Icons.gavel_rounded, ctx.l10n.legal, _showLegal),
-            const Spacer(),
-            Divider(height: 1, color: cs.onSurface.withValues(alpha: 0.08)),
-            item(Icons.logout_rounded, ctx.l10n.signOut, _signOut,
-                color: AppColors.danger),
-            const SizedBox(height: 8),
-          ]),
-        ),
-      ),
-    );
-  }
-
   // ── UI ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -460,7 +308,6 @@ class _ProfileTabState extends State<ProfileTab> {
                 const SizedBox(height: 16),
                 AppCard(
                   padding: const EdgeInsets.all(18),
-                  onTap: _openDrawer,
                   child: Row(children: [
                     CircleAvatar(
                       radius: 30,
@@ -478,11 +325,29 @@ class _ProfileTabState extends State<ProfileTab> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(name.isEmpty ? context.l10n.yourName : name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                    fontSize: AppText.heading, fontWeight: FontWeight.w800)),
+                            Row(children: [
+                              Flexible(
+                                child: Text(
+                                    name.isEmpty ? context.l10n.yourName : name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: AppText.heading,
+                                        fontWeight: FontWeight.w800)),
+                              ),
+                              const SizedBox(width: 4),
+                              // Edit profile: tap the pencil next to the name.
+                              InkWell(
+                                borderRadius: BorderRadius.circular(999),
+                                onTap: _editProfile,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: Icon(Icons.edit_rounded,
+                                      size: 18,
+                                      color: AppColors.primary),
+                                ),
+                              ),
+                            ]),
                             const SizedBox(height: 3),
                             Text(auth.user?.phoneNumber ?? '',
                                 style: TextStyle(
@@ -492,11 +357,6 @@ class _ProfileTabState extends State<ProfileTab> {
                     ),
                   ]),
                 ),
-                const SizedBox(height: 18),
-                _group([
-                  _row(Icons.person_outline_rounded, context.l10n.editProfile,
-                      onTap: _editProfile),
-                ]),
                 const SizedBox(height: 18),
                 // Add Credit, right on the Profile screen.
                 AddCreditSection(key: _addCredit),

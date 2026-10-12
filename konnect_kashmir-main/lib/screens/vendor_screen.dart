@@ -585,17 +585,57 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
 
   // ── Service category multi-selector ──────────────────────────────────────
   Widget _buildServiceCategorySelector() {
-    final openBg   = _isDark ? const Color(0xFFA0522D).withOpacity(0.75) : _cs.secondaryContainer;
-    final openBord = _isDark ? const Color(0xFFA0522D) : _cs.secondary;
-    final listBg   = _isDark ? const Color(0xFF1A1A1A) : AppColors.solid(_cs);
-    final selBg    = _isDark
-        ? const Color(0xFF8B1A1A).withOpacity(0.85)
-        : _cs.primaryContainer.withOpacity(0.6);
+    final selBg = AppColors.primary.withOpacity(0.12);
+
+    _ServiceOption? byName(String n) {
+      for (final o in _serviceOptions) {
+        if (o.name == n) return o;
+      }
+      return null;
+    }
+
+    Widget chip(String name) {
+      final o = byName(name);
+      return Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(10, 5, 6, 5),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.14),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (o != null) ...[
+            Icon(o.icon, size: 15, color: o.iconColor),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Text(
+              categoryName(context, _slugForService(name), name),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  color: _onSurface,
+                  fontSize: AppText.secondary,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 4),
+          InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: () => setState(() => _selectedServiceTypes.remove(name)),
+            child: Padding(
+              padding: const EdgeInsets.all(2),
+              child: Icon(Icons.close_rounded, size: 16, color: _onSurfaceMuted),
+            ),
+          ),
+        ]),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GestureDetector(
+        // The field: placeholder, or the chosen categories as removable chips.
+        InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           onTap: () => setState(() {
             _serviceDropdownOpen = !_serviceDropdownOpen;
             if (!_serviceDropdownOpen) {
@@ -604,161 +644,177 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
             }
             _serviceTypeError = false;
           }),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 10, 12),
+            constraints: const BoxConstraints(minHeight: 54),
             decoration: BoxDecoration(
-              color: _serviceDropdownOpen ? openBg : _inputFill,
-              borderRadius: _serviceDropdownOpen
-                  ? const BorderRadius.vertical(top: Radius.circular(AppRadius.sm))
-                  : BorderRadius.circular(AppRadius.sm),
+              color: _inputFill,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(
                 color: _serviceTypeError
                     ? AppColors.danger
                     : _serviceDropdownOpen
-                    ? openBord
-                    : _borderColor,
-                width: _serviceTypeError ? 1.5 : 1,
+                        ? AppColors.primary
+                        : _borderColor,
+                width: (_serviceTypeError || _serviceDropdownOpen) ? 1.5 : 1,
               ),
             ),
             child: Row(children: [
               Expanded(
-                child: Text(
-                  _selectedServiceTypes.isEmpty
-                      ? context.l10n.selectUpTo3
-                      : _selectedServiceTypes
-                          .map((n) => categoryName(context, _slugForService(n), n))
-                          .join(', '),
-                  style: TextStyle(
-                    color: _selectedServiceTypes.isEmpty ? _onSurfaceMuted : _onSurface,
-                    fontSize: _rs(0.037, min: 13, max: 16),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: _selectedServiceTypes.isEmpty
+                    ? Text(
+                        context.l10n.selectUpTo3,
+                        style: TextStyle(
+                          color: _onSurfaceMuted,
+                          fontSize: _rs(0.037, min: 13, max: 16),
+                        ),
+                      )
+                    : Wrap(spacing: 8, runSpacing: 8, children: [
+                        for (final n in _selectedServiceTypes) chip(n),
+                      ]),
               ),
-              Icon(
-                _serviceDropdownOpen
-                    ? Icons.keyboard_arrow_up
-                    : Icons.keyboard_arrow_down,
-                color: _onSurfaceMuted,
+              AnimatedRotation(
+                turns: _serviceDropdownOpen ? 0.5 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Icon(Icons.keyboard_arrow_down_rounded,
+                    color: _onSurfaceMuted),
               ),
             ]),
           ),
         ),
-        if (_serviceDropdownOpen)
-          Container(
-            decoration: BoxDecoration(
-              color: listBg,
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppRadius.sm)),
-              border: Border.all(color: _subtleBorder),
-            ),
-            child: Column(children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: TextField(
-                  controller: _searchController,
-                  style: TextStyle(color: _onSurface, fontSize: AppText.body),
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: InputDecoration(
-                    hintText: context.l10n.searchCategories,
-                    hintStyle: TextStyle(color: _onSurfaceMuted, fontSize: AppText.body),
-                    prefixIcon: Icon(Icons.search, color: _onSurfaceMuted, size: 20),
-                    filled: true,
-                    fillColor: _inputFill,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                      borderSide: BorderSide.none,
-                    ),
+        // The list: a separate card under the field, in the app's own colours.
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: !_serviceDropdownOpen
+              ? const SizedBox(width: double.infinity)
+              : Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.solid(_cs),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: _subtleBorder),
                   ),
-                ),
-              ),
-              Divider(color: _subtleBorder, height: 1),
-              // ── CHANGE 11: Dropdown list height scales with screen height ─
-              // Was a fixed 260 px — on a 568 px iPhone SE that consumed 46 %
-              // of the visible area. Now it adapts between 180 and 300 px.
-              SizedBox(
-                height: _rs(0.35, min: 180, max: 300),
-                child: ListView.separated(
-                  padding: EdgeInsets.zero,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _filteredOptions.length,
-                  separatorBuilder: (_, __) => Divider(color: _subtleBorder, height: 1),
-                  itemBuilder: (context, index) {
-                    final option     = _filteredOptions[index];
-                    final isSelected = _selectedServiceTypes.contains(option.name);
-                    final isDisabled = !isSelected && _selectedServiceTypes.length >= 3;
-
-                    return InkWell(
-                      onTap: isDisabled
-                          ? null
-                          : () => setState(() {
-                        if (isSelected) {
-                          _selectedServiceTypes.remove(option.name);
-                        } else {
-                          _selectedServiceTypes.add(option.name);
-                          // Picked a category: close the dropdown.
-                          _serviceDropdownOpen = false;
-                          _searchController.clear();
-                          _searchQuery = '';
-                        }
-                      }),
-                      child: Container(
-                        color: isSelected ? selBg : Colors.transparent,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: _rs(0.035, min: 11, max: 16),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                      child: TextField(
+                        controller: _searchController,
+                        style: TextStyle(color: _onSurface, fontSize: AppText.body),
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                        decoration: InputDecoration(
+                          hintText: context.l10n.searchCategories,
+                          hintStyle: TextStyle(
+                              color: _onSurfaceMuted, fontSize: AppText.body),
+                          prefixIcon:
+                              Icon(Icons.search, color: _onSurfaceMuted, size: 20),
+                          filled: true,
+                          fillColor: _inputFill,
+                          isDense: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 11),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
-                        child: Row(children: [
-                          Container(
-                            width: 22, height: 22,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected
-                                    ? _onSurface
-                                    : isDisabled
-                                    ? _onSurface.withOpacity(0.25)
-                                    : _onSurface.withOpacity(0.5),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: isSelected
-                                ? Center(
-                              child: CircleAvatar(
-                                radius: 5,
-                                backgroundColor: _onSurface,
-                              ),
-                            )
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(
-                            option.icon,
-                            color: isDisabled
-                                ? _onSurface.withOpacity(0.25)
-                                : option.iconColor,
-                            size: _rs(0.05, min: 16, max: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              categoryName(context, option.slug, option.name),
-                              style: TextStyle(
-                                color: isDisabled
-                                    ? _onSurface.withOpacity(0.35)
-                                    : _onSurface,
-                                fontSize: _rs(0.037, min: 13, max: 16),
-                              ),
-                            ),
-                          ),
-                        ]),
                       ),
-                    );
-                  },
+                    ),
+                    // Height follows the screen (180 to 300 px).
+                    SizedBox(
+                      height: _rs(0.35, min: 180, max: 300),
+                      child: _filteredOptions.isEmpty
+                          ? Center(
+                              child: Text(context.l10n.noProvidersFound,
+                                  style: TextStyle(color: _onSurfaceMuted)))
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: _filteredOptions.length,
+                              itemBuilder: (context, index) {
+                                final option = _filteredOptions[index];
+                                final isSelected =
+                                    _selectedServiceTypes.contains(option.name);
+                                final isDisabled = !isSelected &&
+                                    _selectedServiceTypes.length >= 3;
+
+                                return InkWell(
+                                  onTap: isDisabled
+                                      ? null
+                                      : () => setState(() {
+                                            if (isSelected) {
+                                              _selectedServiceTypes
+                                                  .remove(option.name);
+                                            } else {
+                                              _selectedServiceTypes.add(option.name);
+                                              // Picked a category: close the list.
+                                              _serviceDropdownOpen = false;
+                                              _searchController.clear();
+                                              _searchQuery = '';
+                                            }
+                                          }),
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: _rs(0.025, min: 8, max: 12),
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? selBg
+                                          : Colors.transparent,
+                                      borderRadius:
+                                          BorderRadius.circular(AppRadius.sm),
+                                    ),
+                                    child: Row(children: [
+                                      Container(
+                                        width: 36,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: option.iconColor.withOpacity(
+                                              isDisabled ? 0.06 : 0.14),
+                                          borderRadius: BorderRadius.circular(11),
+                                        ),
+                                        child: Icon(
+                                          option.icon,
+                                          size: 20,
+                                          color: isDisabled
+                                              ? _onSurface.withOpacity(0.25)
+                                              : option.iconColor,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          categoryName(
+                                              context, option.slug, option.name),
+                                          style: TextStyle(
+                                            color: isDisabled
+                                                ? _onSurface.withOpacity(0.35)
+                                                : _onSurface,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                            fontSize: _rs(0.037, min: 13, max: 16),
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Icon(Icons.check_circle_rounded,
+                                            color: AppColors.primary, size: 22),
+                                    ]),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ]),
                 ),
-              ),
-            ]),
-          ),
+        ),
         const SizedBox(height: 6),
         Text(
           context.l10n.categoriesSelected(_selectedServiceTypes.length),
@@ -769,7 +825,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         ),
         if (_serviceTypeError)
           Padding(
-            padding: EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: 2),
             child: Text(context.l10n.selectAtLeastOneService,
                 style: TextStyle(color: AppColors.danger, fontSize: AppText.caption)),
           ),
