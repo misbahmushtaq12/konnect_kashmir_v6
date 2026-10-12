@@ -24,6 +24,7 @@ import 'screens/role_selection.dart';
 import 'package:facebook_app_events/facebook_app_events.dart';
 import 'theme/app_theme.dart';
 import 'widgets/theme_reveal.dart';
+import 'widgets/force_ltr.dart';
 
 final facebookAppEvents = FacebookAppEvents();
 
@@ -102,7 +103,11 @@ class KonnectKashmirApp extends StatelessWidget {
         themeMode: themeState.mode,
         // The reveal overlay handles the visual change; no per-frame colour lerp.
         themeAnimationDuration: Duration.zero,
-        builder: (context, child) => ThemeReveal(child: child!),
+        // The layout (icons, nav bar, cards, arrows) never mirrors, in any language.
+        // Urdu words still run right-to-left inside their text, and the Arabic of
+        // the Quran and duas sets its own direction.
+        builder: (context, child) =>
+            ForceLtr(child: ThemeReveal(child: child!)),
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
 

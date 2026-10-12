@@ -368,7 +368,7 @@ class _ProfileTabState extends State<ProfileTab> {
                 _group([
                   _themeRow(),
                   _languageRow(),
-                  _row(Icons.gavel_rounded, context.l10n.legal, onTap: _showLegal),
+                  _row(Icons.policy_rounded, context.l10n.legal, onTap: _showLegal),
                   _row(Icons.mail_outline_rounded, context.l10n.contactUs,
                       onTap: () => _push(const ContactScreen())),
                 ]),

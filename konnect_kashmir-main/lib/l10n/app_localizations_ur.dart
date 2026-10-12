@@ -84,7 +84,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get couldntSave => 'محفوظ نہیں ہو سکا۔ دوبارہ کوشش کریں۔';
 
   @override
-  String get legal => 'قانونی';
+  String get legal => 'شرائط و پالیسیاں';
 
   @override
   String get termsOfService => 'سروس کی شرائط';

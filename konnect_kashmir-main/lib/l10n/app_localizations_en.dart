@@ -83,7 +83,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldntSave => 'Couldn\'t save. Try again.';
 
   @override
-  String get legal => 'Legal';
+  String get legal => 'Terms & Policies';
 
   @override
   String get termsOfService => 'Terms of Service';

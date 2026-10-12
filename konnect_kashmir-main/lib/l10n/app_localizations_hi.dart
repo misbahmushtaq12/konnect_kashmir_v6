@@ -83,7 +83,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get couldntSave => 'सहेजा नहीं जा सका। फिर कोशिश करें।';
 
   @override
-  String get legal => 'कानूनी';
+  String get legal => 'नियम और नीतियां';
 
   @override
   String get termsOfService => 'सेवा की शर्तें';

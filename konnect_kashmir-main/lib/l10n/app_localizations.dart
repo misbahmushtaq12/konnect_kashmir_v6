@@ -247,7 +247,7 @@ abstract class AppLocalizations {
   /// No description provided for @legal.
   ///
   /// In en, this message translates to:
-  /// **'Legal'**
+  /// **'Terms & Policies'**
   String get legal;
 
   /// No description provided for @termsOfService.
