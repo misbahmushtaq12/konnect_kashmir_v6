@@ -269,5 +269,9 @@
   "deenGreeting": "السلام علیکم",
   "deenQiblaTurnTo": "قبلے کی طرف مڑیں",
   "deenVerseN": "آیت {verse}",
-  "deenContinue": "جاری رکھیں"
+  "deenContinue": "جاری رکھیں",
+  "deleteAccount": "اکاؤنٹ حذف کریں",
+  "deleteAccountTitle": "اپنا اکاؤنٹ حذف کریں؟",
+  "deleteAccountMsg": "اس سے آپ کا اکاؤنٹ، آپ کے کاروبار، لیڈز اور کریڈٹس ہمیشہ کے لیے حذف ہو جائیں گے۔ اسے واپس نہیں کیا جا سکتا۔",
+  "deleteAccountFailed": "ابھی آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہِ کرم info@konnectkashmir.com پر ای میل کریں، ہم اسے حذف کر دیں گے۔"
 }

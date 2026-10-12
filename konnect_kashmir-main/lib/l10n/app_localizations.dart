@@ -1719,6 +1719,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue'**
   String get deenContinue;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete your account?'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes your account, your business listings, leads and credits. This cannot be undone.'**
+  String get deleteAccountMsg;
+
+  /// No description provided for @deleteAccountFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t delete your account right now. Please email info@konnectkashmir.com and we\'ll do it for you.'**
+  String get deleteAccountFailed;
 }
 
 class _AppLocalizationsDelegate

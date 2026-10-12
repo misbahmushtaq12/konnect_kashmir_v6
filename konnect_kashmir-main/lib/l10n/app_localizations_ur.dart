@@ -908,4 +908,18 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get deenContinue => 'جاری رکھیں';
+
+  @override
+  String get deleteAccount => 'اکاؤنٹ حذف کریں';
+
+  @override
+  String get deleteAccountTitle => 'اپنا اکاؤنٹ حذف کریں؟';
+
+  @override
+  String get deleteAccountMsg =>
+      'اس سے آپ کا اکاؤنٹ، آپ کے کاروبار، لیڈز اور کریڈٹس ہمیشہ کے لیے حذف ہو جائیں گے۔ اسے واپس نہیں کیا جا سکتا۔';
+
+  @override
+  String get deleteAccountFailed =>
+      'ابھی آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہِ کرم info@konnectkashmir.com پر ای میل کریں، ہم اسے حذف کر دیں گے۔';
 }

@@ -371,5 +371,9 @@
       "verse": {"type": "String"}
     }
   },
-  "deenContinue": "Continue"
+  "deenContinue": "Continue",
+  "deleteAccount": "Delete account",
+  "deleteAccountTitle": "Delete your account?",
+  "deleteAccountMsg": "This permanently deletes your account, your business listings, leads and credits. This cannot be undone.",
+  "deleteAccountFailed": "We couldn't delete your account right now. Please email info@konnectkashmir.com and we'll do it for you."
 }

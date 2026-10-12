@@ -8,7 +8,11 @@ import 'package:intl/intl.dart' show DateFormat;
 
 import '../../l10n/l10n.dart';
 import '../../theme/app_theme.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/live_sync.dart';
 import '../../widgets/app_chip.dart';
+import '../../widgets/app_header.dart';
 import '../../widgets/app_overlays.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/error_retry.dart';
@@ -59,6 +63,7 @@ class _DeenTabState extends State<DeenTab> {
     });
     _loadLastRead();
     _bootstrap();
+    context.read<LiveSync>().refreshCredits();
     if (widget.isActive) _startCompass();
   }
 
@@ -273,10 +278,14 @@ class _DeenTabState extends State<DeenTab> {
     );
   }
 
-  /// "DEEN" + a greeting, over a very faint mosque silhouette.
+  /// "DEEN" + a greeting, over a very faint mosque silhouette. The user's credit
+  /// balance sits at the top right, like on the other tabs.
   Widget _header() {
     final cs = Theme.of(context).colorScheme;
     final l = context.l10n;
+    final credits = context.watch<LiveSync>().credits;
+    final first =
+        (context.watch<AuthProvider>().user?.name ?? '').trim().split(' ').first;
     return Stack(children: [
       Positioned.fill(
         child: IgnorePointer(
@@ -287,23 +296,31 @@ class _DeenTabState extends State<DeenTab> {
       ),
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(l.navDeen.toUpperCase(),
-              style: const TextStyle(
-                  fontSize: AppText.titleLg,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.6)),
-          const SizedBox(height: 4),
-          Text(l.deenGreeting,
-              style: TextStyle(
-                  fontSize: AppText.body,
-                  color: cs.onSurface.withValues(alpha: 0.65))),
+        child: Row(children: [
+          Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(l.navDeen.toUpperCase(),
+                  style: const TextStyle(
+                      fontSize: AppText.titleLg,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.6)),
+              const SizedBox(height: 4),
+              Text(first.isEmpty ? l.deenGreeting : '${l.deenGreeting}, $first',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppText.body,
+                      color: cs.onSurface.withValues(alpha: 0.65))),
+            ]),
+          ),
+          if (credits != null) CreditChip(credits),
         ]),
       ),
     ]);
   }
 
-  // ââ Prayer settings ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  // -- Prayer settings --------------------------------------------------------
 
   /// Saves the new choice and recalculates the times on screen right away.
   Future<void> _applySettings(PrayerSettings next) async {
@@ -333,6 +350,7 @@ class _DeenTabState extends State<DeenTab> {
       ),
     );
   }
+
 
   static const List<IconData> _prayerIcons = [
     Icons.wb_twilight_rounded, // Fajr

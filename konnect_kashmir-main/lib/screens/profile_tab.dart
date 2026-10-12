@@ -186,6 +186,57 @@ class _ProfileTabState extends State<ProfileTab> {
       ));
   }
 
+  // -- Delete account ---------------------------------------------------------
+
+  /// Asks first, then asks the backend (the existing `delete-user` function) to
+  /// delete this account. The app signs out only after the backend says it is
+  /// done; if the backend refuses, the account stays and the user is told how to
+  /// ask for it by email.
+  Future<void> _deleteAccount() async {
+    final l = context.l10n;
+    final ok = await showAppConfirm(
+      context,
+      title: l.deleteAccountTitle,
+      message: l.deleteAccountMsg,
+      confirmLabel: l.deleteAccount,
+      danger: true,
+    );
+    if (!ok || !mounted) return;
+
+    final auth = context.read<AuthProvider>();
+    final nav = Navigator.of(context, rootNavigator: true);
+    final failedMsg = l.deleteAccountFailed;
+
+    // Block the screen while the request runs, so it cannot be sent twice.
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    );
+    Map<String, dynamic> r;
+    try {
+      r = await ApiService(token: auth.accessToken, userId: auth.userId)
+          .deleteUser(auth.userId ?? '');
+    } catch (_) {
+      r = {'success': false};
+    }
+    nav.pop(); // the progress dialog
+
+    if (r['success'] == true) {
+      await auth.logout();
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+      return;
+    }
+    if (mounted) showAppSnack(context, failedMsg, type: SnackType.error);
+  }
+
   // ── Sign out ──────────────────────────────────────────────────────────────
   Future<void> _signOut() async {
     final ok = await showAppConfirm(
@@ -448,6 +499,13 @@ class _ProfileTabState extends State<ProfileTab> {
                       color: AppColors.danger,
                       chevron: false,
                       onTap: _signOut),
+                ]),
+                const SizedBox(height: 14),
+                _group([
+                  _row(Icons.delete_forever_outlined, context.l10n.deleteAccount,
+                      color: AppColors.danger,
+                      chevron: false,
+                      onTap: _deleteAccount),
                 ]),
               ],
             ),

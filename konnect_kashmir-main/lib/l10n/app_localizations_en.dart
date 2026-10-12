@@ -903,4 +903,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deenContinue => 'Continue';
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get deleteAccountTitle => 'Delete your account?';
+
+  @override
+  String get deleteAccountMsg =>
+      'This permanently deletes your account, your business listings, leads and credits. This cannot be undone.';
+
+  @override
+  String get deleteAccountFailed =>
+      'We couldn\'t delete your account right now. Please email info@konnectkashmir.com and we\'ll do it for you.';
 }

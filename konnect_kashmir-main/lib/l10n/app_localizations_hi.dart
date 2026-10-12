@@ -902,4 +902,18 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get deenContinue => 'जारी रखें';
+
+  @override
+  String get deleteAccount => 'अकाउंट हटाएँ';
+
+  @override
+  String get deleteAccountTitle => 'अपना अकाउंट हटाएँ?';
+
+  @override
+  String get deleteAccountMsg =>
+      'इससे आपका अकाउंट, आपके व्यवसाय, लीड्स और क्रेडिट हमेशा के लिए हट जाएँगे। इसे वापस नहीं किया जा सकता।';
+
+  @override
+  String get deleteAccountFailed =>
+      'अभी आपका अकाउंट नहीं हटाया जा सका। कृपया info@konnectkashmir.com पर ईमेल करें, हम इसे हटा देंगे।';
 }
