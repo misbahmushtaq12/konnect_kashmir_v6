@@ -940,4 +940,116 @@ class AppLocalizationsUr extends AppLocalizations {
   @override
   String get deleteAccountBadPhone =>
       'اس اکاؤنٹ کا 10 ہندسوں کا فون نمبر درج کریں۔';
+
+  @override
+  String get watchAdsTitle => 'کریڈٹ کمانے کے لیے اشتہار دیکھیں';
+
+  @override
+  String get watchAdsSubtitle =>
+      'مفت کریڈٹ کمانے کے لیے ایک مختصر ویڈیو دیکھیں';
+
+  @override
+  String plusCredits(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count کریڈٹ',
+      one: '+1 کریڈٹ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adsLeft(int count) {
+    return '$count باقی';
+  }
+
+  @override
+  String creditsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count کریڈٹ',
+      one: '1 کریڈٹ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get findServices => 'سروسز تلاش کریں';
+
+  @override
+  String hiName(String name) {
+    return 'ہیلو، $name';
+  }
+
+  @override
+  String get searchByNameOrService => 'نام یا سروس سے تلاش کریں';
+
+  @override
+  String get filterVerifiedOnly => 'صرف تصدیق شدہ';
+
+  @override
+  String get filterSaved => 'محفوظ';
+
+  @override
+  String creditsEarned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count کریڈٹ ملے!',
+      one: '+1 کریڈٹ ملا!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String creditsEarnedBalance(int count, int balance) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count کریڈٹ ملے! اب آپ کے پاس $balance کریڈٹ ہیں۔',
+      one: '+1 کریڈٹ ملا! اب آپ کے پاس $balance کریڈٹ ہیں۔',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get couldntAddCredits => 'کریڈٹ شامل نہیں ہو سکے۔ دوبارہ کوشش کریں۔';
+
+  @override
+  String callingPhone(String phone) {
+    return '+91 $phone پر کال ہو رہی ہے…';
+  }
+
+  @override
+  String get creditUnlocksOne => '1 کریڈٹ سے 1 فراہم کنندہ کا رابطہ کھلتا ہے۔';
+
+  @override
+  String adRewardProgress(int reward, int watched, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      reward,
+      locale: localeName,
+      other: '+$reward کریڈٹ',
+      one: '+1 کریڈٹ',
+    );
+    return '$_temp0 · $watched/$max دیکھے';
+  }
+
+  @override
+  String creditsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count کریڈٹ شامل ہو گئے!',
+      one: '+1 کریڈٹ شامل ہو گیا!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get seeMore => 'مزید دیکھیں';
+
+  @override
+  String get seeLess => 'کم دیکھیں';
 }

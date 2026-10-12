@@ -23,6 +23,7 @@ import '../widgets/app_chip.dart';
 import '../widgets/app_header.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/error_retry.dart';
+import '../widgets/expandable_text.dart';
 import '../widgets/category_meta.dart';
 import 'ad_watch_dialog.dart';
 
@@ -911,7 +912,7 @@ class _HomeScreenState extends State<CustomerScreen>
     if (result['success'] == false) {
       if (mounted) {
         showAppSnack(context,
-            (result['error'] ?? "Couldn't add credits. Try again.").toString(),
+            (result['error'] ?? context.l10n.couldntAddCredits).toString(),
             type: SnackType.error);
       }
       return;
@@ -927,7 +928,7 @@ class _HomeScreenState extends State<CustomerScreen>
     _syncBalance(newBalance);
 
     showAppSnack(context,
-        '+$credits credit${credits > 1 ? 's' : ''} earned! You now have $newBalance credits.',
+        context.l10n.creditsEarnedBalance(credits, newBalance),
         type: SnackType.success);
   }
 
@@ -958,12 +959,12 @@ class _HomeScreenState extends State<CustomerScreen>
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Watch Ads to Earn Credits',
+                        Text(context.l10n.watchAdsTitle,
                             style: TextStyle(
                                 color: cs.onSurface,
                                 fontSize: AppText.heading,
                                 fontWeight: FontWeight.bold)),
-                        Text('Watch a short video to earn free credits',
+                        Text(context.l10n.watchAdsSubtitle,
                             style: TextStyle(
                                 color: cs.onSurface.withOpacity(0.6),
                                 fontSize: AppText.secondary)),
@@ -1024,7 +1025,7 @@ class _HomeScreenState extends State<CustomerScreen>
                                           color: AppColors.warning, size: 13),
                                       const SizedBox(width: 3),
                                       Text(
-                                          '+$credits credit${credits > 1 ? 's' : ''}',
+                                          context.l10n.plusCredits(credits),
                                           style: const TextStyle(
                                               color: AppColors.warning,
                                               fontSize: AppText.caption,
@@ -1032,7 +1033,7 @@ class _HomeScreenState extends State<CustomerScreen>
                                     ]),
                               ),
                               const SizedBox(width: 8),
-                              Text('$remaining left',
+                              Text(context.l10n.adsLeft(remaining),
                                   style: TextStyle(
                                       color: cs.onSurface.withOpacity(0.5),
                                       fontSize: AppText.caption)),
@@ -1044,8 +1045,8 @@ class _HomeScreenState extends State<CustomerScreen>
                       await _watchAdForCredits(ad);
                     },
                     style: AppButtons.primary,
-                    child: const Text('Watch',
-                        style: TextStyle(
+                    child: Text(context.l10n.watchBtn,
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: AppText.body)),
                   ),
                 ]),
@@ -2045,7 +2046,7 @@ class _HomeScreenState extends State<CustomerScreen>
             const Icon(Icons.stars_rounded,
                 size: 18, color: AppColors.primary),
             const SizedBox(width: 6),
-            Text('$userCredits ${userCredits == 1 ? 'credit' : 'credits'}',
+            Text(context.l10n.creditsCount(userCredits),
                 style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: AppText.secondary,
@@ -2074,10 +2075,10 @@ class _HomeScreenState extends State<CustomerScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Find services',
-                  style: TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
+              Text(context.l10n.findServices,
+                  style: const TextStyle(fontSize: AppText.title, fontWeight: FontWeight.w800)),
               if (auth.isAuthenticated && first.isNotEmpty)
-                Text('Hi, $first',
+                Text(context.l10n.hiName(first),
                     style: TextStyle(
                         fontSize: AppText.caption,
                         color: cs.onSurface.withValues(alpha: 0.68))),
@@ -2202,7 +2203,7 @@ class _HomeScreenState extends State<CustomerScreen>
             textInputAction: TextInputAction.search,
             style: TextStyle(color: cs.onSurface),
             decoration: InputDecoration(
-              hintText: 'Search by name or service',
+              hintText: context.l10n.searchByNameOrService,
               hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.62)),
               prefixIcon: Icon(Icons.search,
                   color: cs.onSurface.withValues(alpha: 0.66)),
@@ -2281,12 +2282,12 @@ class _HomeScreenState extends State<CustomerScreen>
           _loadVendors();
         }),
       if (verifiedOnly)
-        _buildFilterChip('Verified only', Icons.verified_outlined, () {
+        _buildFilterChip(context.l10n.filterVerifiedOnly, Icons.verified_outlined, () {
           setState(() => verifiedOnly = false);
           _loadVendors();
         }),
       if (_favoritesOnly)
-        _buildFilterChip('Saved', Icons.favorite_border_rounded, () {
+        _buildFilterChip(context.l10n.filterSaved, Icons.favorite_border_rounded, () {
           setState(() => _favoritesOnly = false);
           _loadVendors();
         }),
@@ -2622,9 +2623,9 @@ class _HomeScreenState extends State<CustomerScreen>
         ]),
         if (desc.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text(desc,
+          ExpandableText(desc,
+              key: ValueKey('desc_$vendorId'),
               maxLines: 2,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                   fontSize: AppText.secondary,
                   height: 1.4,
@@ -2751,7 +2752,7 @@ class _HomeScreenState extends State<CustomerScreen>
     final uri = Uri(scheme: 'tel', path: number);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
     if (!mounted) return;
-    showAppSnack(context, 'Calling +91 $phone…', type: SnackType.info, duration: const Duration(seconds: 2));
+    showAppSnack(context, context.l10n.callingPhone(phone), type: SnackType.info, duration: const Duration(seconds: 2));
   }
 
   Future<void> _revealContact(dynamic vendor) async {
@@ -2787,7 +2788,7 @@ class _HomeScreenState extends State<CustomerScreen>
     if (adResult['success'] == false) {
       if (mounted) {
         showAppSnack(context,
-            (adResult['error'] ?? "Couldn't add credits. Try again.").toString(),
+            (adResult['error'] ?? context.l10n.couldntAddCredits).toString(),
             type: SnackType.error);
       }
       return;
@@ -2802,7 +2803,7 @@ class _HomeScreenState extends State<CustomerScreen>
     });
     _syncBalance(newAdBalance);
 
-    showAppSnack(context, '+$adCreditReward credit${adCreditReward > 1 ? 's' : ''} earned!',
+    showAppSnack(context, context.l10n.creditsEarned(adCreditReward),
         type: SnackType.success, duration: const Duration(seconds: 2));
 
     if (userCredits > 0) {

@@ -1773,6 +1773,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter the 10-digit phone number of this account.'**
   String get deleteAccountBadPhone;
+
+  /// No description provided for @watchAdsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch Ads to Earn Credits'**
+  String get watchAdsTitle;
+
+  /// No description provided for @watchAdsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch a short video to earn free credits'**
+  String get watchAdsSubtitle;
+
+  /// No description provided for @plusCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{+1 credit} other{+{count} credits}}'**
+  String plusCredits(int count);
+
+  /// No description provided for @adsLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} left'**
+  String adsLeft(int count);
+
+  /// No description provided for @creditsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 credit} other{{count} credits}}'**
+  String creditsCount(int count);
+
+  /// No description provided for @findServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Find services'**
+  String get findServices;
+
+  /// No description provided for @hiName.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi, {name}'**
+  String hiName(String name);
+
+  /// No description provided for @searchByNameOrService.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or service'**
+  String get searchByNameOrService;
+
+  /// No description provided for @filterVerifiedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified only'**
+  String get filterVerifiedOnly;
+
+  /// No description provided for @filterSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get filterSaved;
+
+  /// No description provided for @creditsEarned.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{+1 credit earned!} other{+{count} credits earned!}}'**
+  String creditsEarned(int count);
+
+  /// No description provided for @creditsEarnedBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{+1 credit earned! You now have {balance} credits.} other{+{count} credits earned! You now have {balance} credits.}}'**
+  String creditsEarnedBalance(int count, int balance);
+
+  /// No description provided for @couldntAddCredits.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add credits. Try again.'**
+  String get couldntAddCredits;
+
+  /// No description provided for @callingPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling +91 {phone}…'**
+  String callingPhone(String phone);
+
+  /// No description provided for @creditUnlocksOne.
+  ///
+  /// In en, this message translates to:
+  /// **'1 credit unlocks 1 provider contact.'**
+  String get creditUnlocksOne;
+
+  /// No description provided for @adRewardProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{reward, plural, =1{+1 credit} other{+{reward} credits}} · {watched}/{max} watched'**
+  String adRewardProgress(int reward, int watched, int max);
+
+  /// No description provided for @creditsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{+1 credit added!} other{+{count} credits added!}}'**
+  String creditsAdded(int count);
+
+  /// No description provided for @seeMore.
+  ///
+  /// In en, this message translates to:
+  /// **'See more'**
+  String get seeMore;
+
+  /// No description provided for @seeLess.
+  ///
+  /// In en, this message translates to:
+  /// **'See less'**
+  String get seeLess;
 }
 
 class _AppLocalizationsDelegate

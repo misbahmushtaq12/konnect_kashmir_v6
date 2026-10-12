@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:konnect_kashmir/l10n/l10n.dart';
 import 'package:konnect_kashmir/widgets/force_ltr.dart';
+import 'package:konnect_kashmir/widgets/expandable_text.dart';
 import 'package:konnect_kashmir/screens/login_screen.dart';
 import 'package:konnect_kashmir/screens/otp_ver.dart';
 import 'package:konnect_kashmir/screens/language_screen.dart';
@@ -24,6 +25,7 @@ Widget _app(Locale locale, Widget home) => MaterialApp(
 
 void main() {
   layoutTests();
+  expandableTests();
   testWidgets('Sign-in screen stays English and left-to-right in Urdu',
       (tester) async {
     await tester.pumpWidget(_app(const Locale('ur'), const LoginScreen()));
@@ -130,5 +132,53 @@ void layoutTests() {
     // The icon stays on the left of the label, as in English.
     expect(tester.getTopLeft(find.byKey(const Key('first'))).dx,
         lessThan(tester.getTopLeft(find.byKey(const Key('second'))).dx));
+  });
+}
+
+void expandableTests() {
+  testWidgets('long descriptions get See more / See less', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: SizedBox(
+            width: 200,
+            child: ExpandableText(
+              List.filled(40, 'plumber').join(' '),
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ),
+      ),
+    ));
+    expect(find.text('See more'), findsOneWidget);
+    await tester.tap(find.text('See more'));
+    await tester.pump();
+    expect(find.text('See less'), findsOneWidget);
+  });
+
+  testWidgets('short descriptions have no link', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      home: const Scaffold(
+        body: SizedBox(
+          width: 300,
+          child: ExpandableText('Short text', style: TextStyle(fontSize: 14)),
+        ),
+      ),
+    ));
+    expect(find.text('See more'), findsNothing);
   });
 }

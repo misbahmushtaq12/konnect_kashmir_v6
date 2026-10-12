@@ -380,5 +380,72 @@
   "textSize": "Text size",
   "deleteAccountEnterPhone": "Enter your registered phone number to confirm",
   "deleteAccountDone": "Account deleted successfully. You can sign up again anytime.",
-  "deleteAccountBadPhone": "Enter the 10-digit phone number of this account."
+  "deleteAccountBadPhone": "Enter the 10-digit phone number of this account.",
+  "watchAdsTitle": "Watch Ads to Earn Credits",
+  "watchAdsSubtitle": "Watch a short video to earn free credits",
+  "plusCredits": "{count, plural, =1{+1 credit} other{+{count} credits}}",
+  "@plusCredits": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "adsLeft": "{count} left",
+  "@adsLeft": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "creditsCount": "{count, plural, =1{1 credit} other{{count} credits}}",
+  "@creditsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "findServices": "Find services",
+  "hiName": "Hi, {name}",
+  "@hiName": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "searchByNameOrService": "Search by name or service",
+  "filterVerifiedOnly": "Verified only",
+  "filterSaved": "Saved",
+  "creditsEarned": "{count, plural, =1{+1 credit earned!} other{+{count} credits earned!}}",
+  "@creditsEarned": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "creditsEarnedBalance": "{count, plural, =1{+1 credit earned! You now have {balance} credits.} other{+{count} credits earned! You now have {balance} credits.}}",
+  "@creditsEarnedBalance": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "balance": {"type": "int"}
+    }
+  },
+  "couldntAddCredits": "Couldn't add credits. Try again.",
+  "callingPhone": "Calling +91 {phone}…",
+  "@callingPhone": {
+    "placeholders": {
+      "phone": {"type": "String"}
+    }
+  },
+  "creditUnlocksOne": "1 credit unlocks 1 provider contact.",
+  "adRewardProgress": "{reward, plural, =1{+1 credit} other{+{reward} credits}} · {watched}/{max} watched",
+  "@adRewardProgress": {
+    "placeholders": {
+      "reward": {"type": "int"},
+      "watched": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "creditsAdded": "{count, plural, =1{+1 credit added!} other{+{count} credits added!}}",
+  "@creditsAdded": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "seeMore": "See more",
+  "seeLess": "See less"
 }

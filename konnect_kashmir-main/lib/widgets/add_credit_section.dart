@@ -89,7 +89,7 @@ class AddCreditSectionState extends State<AddCreditSection> {
     setState(() => _claimingId = null);
 
     if (result['success'] == false) {
-      showAppSnack(context, (result['error'] ?? "Couldn't add credits. Try again.")
+      showAppSnack(context, (result['error'] ?? context.l10n.couldntAddCredits)
             .toString(), type: SnackType.error);
       return;
     }
@@ -103,7 +103,7 @@ class AddCreditSectionState extends State<AddCreditSection> {
     final live = context.read<LiveSync>();
     live.setCredits(_credits!);
     live.transactionHappened();
-    showAppSnack(context, '+$reward credit${reward > 1 ? 's' : ''} added!', type: SnackType.success);
+    showAppSnack(context, context.l10n.creditsAdded(reward), type: SnackType.success);
   }
 
   /// Reloads the ads and the balance (used by pull-to-refresh).
@@ -147,7 +147,7 @@ class AddCreditSectionState extends State<AddCreditSection> {
                           )
                         else
                           Text(
-                            '$_credits credits',
+                            context.l10n.creditsCount(_credits!),
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 28,
@@ -158,7 +158,7 @@ class AddCreditSectionState extends State<AddCreditSection> {
               ]),
             ),
             const SizedBox(height: 8),
-            Text('1 credit unlocks 1 provider contact.',
+            Text(context.l10n.creditUnlocksOne,
                 style: TextStyle(
                     fontSize: AppText.caption,
                     color: cs.onSurface.withValues(alpha: 0.6))),
@@ -258,7 +258,7 @@ class AddCreditSectionState extends State<AddCreditSection> {
                   style: const TextStyle(
                       fontWeight: FontWeight.w700, fontSize: AppText.body)),
               const SizedBox(height: 3),
-              Text('+$reward credit${reward > 1 ? 's' : ''} · $watched/$max watched',
+              Text(context.l10n.adRewardProgress(reward, watched, max),
                   style: TextStyle(
                       fontSize: AppText.caption,
                       color: cs.onSurface.withValues(alpha: 0.6))),

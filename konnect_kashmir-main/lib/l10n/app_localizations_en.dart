@@ -935,4 +935,115 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteAccountBadPhone =>
       'Enter the 10-digit phone number of this account.';
+
+  @override
+  String get watchAdsTitle => 'Watch Ads to Earn Credits';
+
+  @override
+  String get watchAdsSubtitle => 'Watch a short video to earn free credits';
+
+  @override
+  String plusCredits(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count credits',
+      one: '+1 credit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String adsLeft(int count) {
+    return '$count left';
+  }
+
+  @override
+  String creditsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count credits',
+      one: '1 credit',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get findServices => 'Find services';
+
+  @override
+  String hiName(String name) {
+    return 'Hi, $name';
+  }
+
+  @override
+  String get searchByNameOrService => 'Search by name or service';
+
+  @override
+  String get filterVerifiedOnly => 'Verified only';
+
+  @override
+  String get filterSaved => 'Saved';
+
+  @override
+  String creditsEarned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count credits earned!',
+      one: '+1 credit earned!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String creditsEarnedBalance(int count, int balance) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count credits earned! You now have $balance credits.',
+      one: '+1 credit earned! You now have $balance credits.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get couldntAddCredits => 'Couldn\'t add credits. Try again.';
+
+  @override
+  String callingPhone(String phone) {
+    return 'Calling +91 $phone…';
+  }
+
+  @override
+  String get creditUnlocksOne => '1 credit unlocks 1 provider contact.';
+
+  @override
+  String adRewardProgress(int reward, int watched, int max) {
+    String _temp0 = intl.Intl.pluralLogic(
+      reward,
+      locale: localeName,
+      other: '+$reward credits',
+      one: '+1 credit',
+    );
+    return '$_temp0 · $watched/$max watched';
+  }
+
+  @override
+  String creditsAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count credits added!',
+      one: '+1 credit added!',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get seeMore => 'See more';
+
+  @override
+  String get seeLess => 'See less';
 }
