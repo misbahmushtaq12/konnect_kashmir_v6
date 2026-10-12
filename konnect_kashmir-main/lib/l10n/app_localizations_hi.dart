@@ -922,4 +922,16 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get textSize => 'टेक्स्ट का आकार';
+
+  @override
+  String get deleteAccountEnterPhone =>
+      'पुष्टि के लिए अपना रजिस्टर्ड फ़ोन नंबर दर्ज करें';
+
+  @override
+  String get deleteAccountDone =>
+      'अकाउंट सफलतापूर्वक हटा दिया गया। आप कभी भी दोबारा साइन अप कर सकते हैं।';
+
+  @override
+  String get deleteAccountBadPhone =>
+      'इस अकाउंट का 10 अंकों का फ़ोन नंबर दर्ज करें।';
 }

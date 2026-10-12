@@ -377,5 +377,8 @@
   "deleteAccountMsg": "This permanently deletes your account, your business listings, leads and credits. This cannot be undone.",
   "deleteAccountFailed": "We couldn't delete your account right now. Please email info@konnectkashmir.com and we'll do it for you.",
   "filterLabel": "Filter",
-  "textSize": "Text size"
+  "textSize": "Text size",
+  "deleteAccountEnterPhone": "Enter your registered phone number to confirm",
+  "deleteAccountDone": "Account deleted successfully. You can sign up again anytime.",
+  "deleteAccountBadPhone": "Enter the 10-digit phone number of this account."
 }

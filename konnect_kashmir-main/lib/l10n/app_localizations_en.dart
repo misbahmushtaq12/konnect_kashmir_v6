@@ -923,4 +923,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get textSize => 'Text size';
+
+  @override
+  String get deleteAccountEnterPhone =>
+      'Enter your registered phone number to confirm';
+
+  @override
+  String get deleteAccountDone =>
+      'Account deleted successfully. You can sign up again anytime.';
+
+  @override
+  String get deleteAccountBadPhone =>
+      'Enter the 10-digit phone number of this account.';
 }

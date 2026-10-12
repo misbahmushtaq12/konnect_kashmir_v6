@@ -1755,6 +1755,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Text size'**
   String get textSize;
+
+  /// No description provided for @deleteAccountEnterPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your registered phone number to confirm'**
+  String get deleteAccountEnterPhone;
+
+  /// No description provided for @deleteAccountDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deleted successfully. You can sign up again anytime.'**
+  String get deleteAccountDone;
+
+  /// No description provided for @deleteAccountBadPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 10-digit phone number of this account.'**
+  String get deleteAccountBadPhone;
 }
 
 class _AppLocalizationsDelegate

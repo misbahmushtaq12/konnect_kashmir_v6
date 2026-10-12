@@ -285,6 +285,32 @@ class ApiService {
     }
   }
 
+  /// Permanently deletes the signed-in user's own account and its data
+  /// (`delete-my-account`). The server checks the phone number against the
+  /// account, so [phone10] must be the registered 10-digit number.
+  Future<Map<String, dynamic>> deleteMyAccount(String phone10) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$_baseUrl/functions/v1/delete-my-account'),
+            headers: _headers,
+            body: jsonEncode({'confirm_phone': phone10}),
+          )
+          .timeout(const Duration(seconds: 30));
+      Map<String, dynamic>? data;
+      try {
+        final d = jsonDecode(res.body);
+        if (d is Map<String, dynamic>) data = d;
+      } catch (_) {}
+      if (res.statusCode == 200 && data?['success'] == true) return _ok(data);
+      final r = _err((data?['error'] ?? 'Failed to delete account').toString());
+      r['status'] = res.statusCode; // 401 = session expired, 400 = wrong phone
+      return r;
+    } catch (e) {
+      return _err('Network error. Please check your internet and try again.');
+    }
+  }
+
   Future<Map<String, dynamic>> deleteUser(String userId) async {
     try {
       final res = await http.post(

@@ -928,4 +928,16 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get textSize => 'متن کا سائز';
+
+  @override
+  String get deleteAccountEnterPhone =>
+      'تصدیق کے لیے اپنا رجسٹرڈ فون نمبر درج کریں';
+
+  @override
+  String get deleteAccountDone =>
+      'اکاؤنٹ کامیابی سے حذف ہو گیا۔ آپ کسی بھی وقت دوبارہ سائن اپ کر سکتے ہیں۔';
+
+  @override
+  String get deleteAccountBadPhone =>
+      'اس اکاؤنٹ کا 10 ہندسوں کا فون نمبر درج کریں۔';
 }

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../l10n/l10n.dart';
 import '../widgets/app_overlays.dart';
 import '../widgets/app_snack.dart';
@@ -188,24 +189,31 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // -- Delete account ---------------------------------------------------------
 
-  /// Asks first, then asks the backend (the existing `delete-user` function) to
-  /// delete this account. The app signs out only after the backend says it is
-  /// done; if the backend refuses, the account stays and the user is told how to
-  /// ask for it by email.
+  /// Warns, asks for the registered phone number, then calls the backend
+  /// (`delete-my-account`). The app signs out only after the backend confirms the
+  /// deletion; on any error the user stays signed in and can try again.
   Future<void> _deleteAccount() async {
     final l = context.l10n;
-    final ok = await showAppConfirm(
-      context,
-      title: l.deleteAccountTitle,
-      message: l.deleteAccountMsg,
-      confirmLabel: l.deleteAccount,
-      danger: true,
-    );
-    if (!ok || !mounted) return;
-
     final auth = context.read<AuthProvider>();
+    final expected = _tenDigits(auth.user?.phoneNumber ?? '');
+
+    final phone = await showDialog<String>(
+      context: context,
+      builder: (_) => _DeleteAccountDialog(
+        title: l.deleteAccountTitle,
+        message: l.deleteAccountMsg,
+        hint: l.deleteAccountEnterPhone,
+        invalid: l.deleteAccountBadPhone,
+        cancelLabel: l.cancel,
+        confirmLabel: l.deleteAccount,
+        prefill: expected,
+      ),
+    );
+    if (phone == null || !mounted) return;
+
     final nav = Navigator.of(context, rootNavigator: true);
-    final failedMsg = l.deleteAccountFailed;
+    final doneMsg = l.deleteAccountDone;
+    final signInAgain = l.sessionExpiredMsg;
 
     // Block the screen while the request runs, so it cannot be sent twice.
     showDialog<void>(
@@ -217,16 +225,18 @@ class _ProfileTabState extends State<ProfileTab> {
         child: Center(child: CircularProgressIndicator()),
       ),
     );
-    Map<String, dynamic> r;
-    try {
-      r = await ApiService(token: auth.accessToken, userId: auth.userId)
-          .deleteUser(auth.userId ?? '');
-    } catch (_) {
-      r = {'success': false};
+
+    ApiService api() =>
+        ApiService(token: auth.accessToken, userId: auth.userId);
+    var r = await api().deleteMyAccount(phone);
+    // An expired session is refused before anything is deleted: refresh, retry.
+    if (r['success'] != true && r['status'] == 401 && await auth.refreshToken()) {
+      r = await api().deleteMyAccount(phone);
     }
     nav.pop(); // the progress dialog
 
     if (r['success'] == true) {
+      if (mounted) showAppSnack(context, doneMsg, type: SnackType.success);
       await auth.logout();
       nav.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -234,7 +244,16 @@ class _ProfileTabState extends State<ProfileTab> {
       );
       return;
     }
-    if (mounted) showAppSnack(context, failedMsg, type: SnackType.error);
+    if (!mounted) return;
+    showAppSnack(
+        context, r['status'] == 401 ? signInAgain : '${r['error']}',
+        type: SnackType.error);
+  }
+
+  /// The 10 digits of a stored number ("+91 98765 43210" -> "9876543210").
+  String _tenDigits(String raw) {
+    final d = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    return d.length > 10 ? d.substring(d.length - 10) : d;
   }
 
   // ── Sign out ──────────────────────────────────────────────────────────────
@@ -634,6 +653,89 @@ class _ProfileTabState extends State<ProfileTab> {
                 color: cs.onSurface.withValues(alpha: 0.35)),
         ]),
       ),
+    );
+  }
+}
+
+/// Delete-account confirmation: the warning plus the phone number field (the
+/// controller lives and dies with this dialog).
+class _DeleteAccountDialog extends StatefulWidget {
+  final String title, message, hint, invalid, cancelLabel, confirmLabel, prefill;
+  const _DeleteAccountDialog({
+    required this.title,
+    required this.message,
+    required this.hint,
+    required this.invalid,
+    required this.cancelLabel,
+    required this.confirmLabel,
+    required this.prefill,
+  });
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final TextEditingController _ctrl = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final v = _ctrl.text.trim();
+    if (!RegExp(r'^\d{10}$').hasMatch(v)) {
+      setState(() => _error = widget.invalid);
+      return;
+    }
+    Navigator.pop(context, v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(widget.message),
+            const SizedBox(height: 14),
+            Text(widget.hint,
+                style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _ctrl,
+              keyboardType: TextInputType.number,
+              maxLength: 10,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                counterText: '',
+                prefixText: '+91  ',
+                errorText: _error,
+              ),
+              onChanged: (_) {
+                if (_error != null) setState(() => _error = null);
+              },
+              onSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.cancelLabel)),
+        TextButton(
+          onPressed: _submit,
+          style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+          child: Text(widget.confirmLabel),
+        ),
+      ],
     );
   }
 }
