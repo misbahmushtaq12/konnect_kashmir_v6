@@ -66,6 +66,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   bool _isSubmitting         = false;
 
   bool get _isEditing => widget.existingVendor != null;
+  bool _whatsappSame = false; // WhatsApp uses the business number
 
   /// The phone number this account signed in with (verified by OTP), as the 10
   /// digits used everywhere else. Null if the session does not have it.
@@ -201,6 +202,8 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         _phoneController.text = _verifiedPhone ?? '';
       }
       _whatsappController.text            = v['whatsapp_number']   as String? ?? '';
+      _whatsappSame = _whatsappController.text.trim().isNotEmpty &&
+          _whatsappController.text.trim() == _phoneController.text.trim();
       _emailController.text               = v['email']             as String? ?? '';
       _addressController.text             = v['address']           as String? ?? '';
       _homeServiceAvailable = v['provides_home_service']  as bool? ?? false;
@@ -278,12 +281,12 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 pinned: false,
-                toolbarHeight: kToolbarHeight + (_topPad > 0 ? 0 : 8),
+                toolbarHeight: 72,
                 leading: IconButton(
                   icon: Icon(Icons.arrow_back, color: _onSurface),
                   onPressed: () => Navigator.pop(context),
                 ),
-                title: _adaptiveLogo(),
+                title: _adaptiveLogo(height: 56),
               ),
               SliverToBoxAdapter(
                 child: Divider(color: _subtleBorder, height: 1),
@@ -435,10 +438,47 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 const SizedBox(width: 8),
                                 Text(context.l10n.whatsapp, style: TextStyle(color: _onSurfaceMuted)),
                               ]),
+                              // Tick to use the business number for WhatsApp too.
+                              InkWell(
+                                borderRadius: BorderRadius.circular(AppRadius.sm),
+                                onTap: () => setState(() {
+                                  _whatsappSame = !_whatsappSame;
+                                  _whatsappController.text =
+                                      _whatsappSame ? _phoneController.text.trim() : '';
+                                }),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(children: [
+                                    SizedBox(
+                                      width: 28,
+                                      height: 28,
+                                      child: Checkbox(
+                                        value: _whatsappSame,
+                                        activeColor: AppColors.primary,
+                                        visualDensity: VisualDensity.compact,
+                                        onChanged: (v) => setState(() {
+                                          _whatsappSame = v ?? false;
+                                          _whatsappController.text = _whatsappSame
+                                              ? _phoneController.text.trim()
+                                              : '';
+                                        }),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(context.l10n.sameAsBusinessNumber,
+                                          style: TextStyle(
+                                              color: _onSurface,
+                                              fontSize: AppText.secondary)),
+                                    ),
+                                  ]),
+                                ),
+                              ),
                               const SizedBox(height: 6),
                               _buildPhoneRow(
                                 controller: _whatsappController,
                                 hintText: context.l10n.sameOrDifferent,
+                                readOnly: _whatsappSame,
                               ),
                               const SizedBox(height: 14),
                               Row(children: [

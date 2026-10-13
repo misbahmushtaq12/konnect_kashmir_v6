@@ -1868,7 +1868,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
           AppHeader(
-            leading: _adaptiveLogo(height: 58),
+            leading: _adaptiveLogo(height: 56),
             actions: [
               if (auth.isAuthenticated) ...[
               CreditChip(userCredits,
@@ -2645,13 +2645,6 @@ class _HomeScreenState extends State<CustomerScreen>
               ],
             ),
           ),
-          const SizedBox(width: 4),
-          AnimatedRotation(
-            turns: cardOpen ? 0.5 : 0,
-            duration: const Duration(milliseconds: 220),
-            child: Icon(Icons.keyboard_arrow_down_rounded,
-                size: 26, color: cs.onSurface.withValues(alpha: 0.6)),
-          ),
         ]),
         ),
         ),
@@ -2861,6 +2854,7 @@ class _HomeScreenState extends State<CustomerScreen>
   /// not carry: ask the backend for it (an unlocked vendor is never charged
   /// again).
   Future<void> _resolveUnlockedPhone(dynamic vendorId) async {
+    if (!mounted) return; // this runs after the frame; the screen may be gone
     try {
       final r = await _api.unlockVendorContact(vendorId.toString());
       final phone = r['phone']?.toString() ?? '';

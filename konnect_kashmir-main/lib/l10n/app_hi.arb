@@ -297,5 +297,6 @@
   "adRewardProgress": "{reward, plural, =1{+1 क्रेडिट} other{+{reward} क्रेडिट}} · {watched}/{max} देखे",
   "creditsAdded": "{count, plural, =1{+1 क्रेडिट जुड़ गया!} other{+{count} क्रेडिट जुड़ गए!}}",
   "seeMore": "और देखें",
-  "seeLess": "कम देखें"
+  "seeLess": "कम देखें",
+  "sameAsBusinessNumber": "व्यवसाय नंबर जैसा ही"
 }

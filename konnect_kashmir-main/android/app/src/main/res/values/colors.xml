@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand teal, used to tint the small notification icon. -->
+    <color name="notification_color">#339985</color>
+</resources>

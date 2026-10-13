@@ -1046,4 +1046,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get seeLess => 'कम देखें';
+
+  @override
+  String get sameAsBusinessNumber => 'व्यवसाय नंबर जैसा ही';
 }

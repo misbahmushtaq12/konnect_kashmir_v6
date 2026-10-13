@@ -1887,6 +1887,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'See less'**
   String get seeLess;
+
+  /// No description provided for @sameAsBusinessNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as business number'**
+  String get sameAsBusinessNumber;
 }
 
 class _AppLocalizationsDelegate

@@ -28,7 +28,7 @@ Future<void> _initLocal({void Function(String? payload)? onTap}) async {
   if (_localReady) return;
   await _local.initialize(
     settings: const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      android: AndroidInitializationSettings('@drawable/ic_notification'),
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -60,7 +60,10 @@ Future<void> _showLocal(RemoteMessage m) async {
         channelDescription: _channel.description,
         importance: Importance.high,
         priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/ic_notification',
+        color: const Color(0xFF339985),
+        // The full-colour app icon beside the text (the small icon must be one colour).
+        largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
       ),
     ),
     payload: jsonEncode(m.data),
@@ -255,7 +258,14 @@ class NotificationService {
         .toString()
         .toLowerCase();
     int? tab;
-    if (kind.contains('lead') || kind.contains('call') || kind.contains('whatsapp')) {
+    if (kind.contains('lead') ||
+        kind.contains('call') ||
+        kind.contains('whatsapp') ||
+        kind.contains('approv') ||
+        kind.contains('reject') ||
+        kind.contains('listing') ||
+        kind.contains('business') ||
+        kind.contains('vendor')) {
       tab = MainShell.tabMyBusiness;
     } else if (kind.contains('credit') || kind.contains('transaction')) {
       tab = MainShell.tabProfile;

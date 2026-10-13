@@ -1046,4 +1046,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get seeLess => 'See less';
+
+  @override
+  String get sameAsBusinessNumber => 'Same as business number';
 }

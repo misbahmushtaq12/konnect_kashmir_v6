@@ -1052,4 +1052,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get seeLess => 'کم دیکھیں';
+
+  @override
+  String get sameAsBusinessNumber => 'کاروباری نمبر جیسا ہی';
 }

@@ -52,7 +52,17 @@ class PrivacyScreen extends StatelessWidget {
                       horizontal: 16, vertical: 12),
                   child: Row(
                     children: [
-                      _adaptiveLogo(context, height: 40),
+                      // Back arrow (no text) and the logo, the same size on every screen.
+                      IconButton(
+                        icon: Icon(Icons.arrow_back,
+                            color: Theme.of(context).colorScheme.onSurface),
+                        onPressed: () => Navigator.pop(context),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const SizedBox(width: 12),
+                      _adaptiveLogo(context, height: 56),
                     ],
                   ),
                 ),
@@ -60,32 +70,6 @@ class PrivacyScreen extends StatelessWidget {
                 Divider(color: dividerColor, height: 1, thickness: 1),
                 const SizedBox(height: 24),
 
-                // ── Back button ───────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.arrow_back,
-                              color: strongText, size: 24),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Back to Home',
-                            style: TextStyle(
-                              color: strongText,
-                              fontSize: AppText.heading,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
 
                 Expanded(
                   child: SingleChildScrollView(

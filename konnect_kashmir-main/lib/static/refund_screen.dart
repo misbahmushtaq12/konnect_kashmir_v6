@@ -52,9 +52,10 @@ class RefundPolicy extends StatelessWidget {
                   icon: Icon(Icons.arrow_back, color: cs.onSurface),
                   onPressed: () => Navigator.pop(context),
                 ),
+                toolbarHeight: 72,
                 title: Row(
                   children: [
-                    _adaptiveLogo(context, height: 40),
+                    _adaptiveLogo(context, height: 56),
                   ],
                 ),
                 bottom: PreferredSize(
