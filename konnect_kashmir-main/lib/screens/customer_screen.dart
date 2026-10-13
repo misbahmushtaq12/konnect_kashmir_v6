@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:konnect_kashmir/services/api_service.dart';
 import '../services/live_sync.dart';
+import '../services/analytics_service.dart';
 import '../services/customer_location.dart';
 import '../providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/dashboard_screen.dart';
@@ -407,6 +408,7 @@ class _HomeScreenState extends State<CustomerScreen>
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _analyticsTimer?.cancel();
     _coveringRoute?.removeStatusListener(_onRouteCovered);
     _searchFocus.removeListener(_onSearchFocusChange);
     _scrollController.removeListener(_onScrollTick);
@@ -660,6 +662,7 @@ class _HomeScreenState extends State<CustomerScreen>
     if (!mounted) return;
     final reqId = ++_vendorReq;
     final reqQuery = searchQuery;
+    _analyticsTimer?.cancel(); // a newer search replaces the one waiting to be counted
     bool finished = false;
     if (hold == null) {
       setState(() => _refreshingVendors = true);
@@ -672,7 +675,10 @@ class _HomeScreenState extends State<CustomerScreen>
     }
     try {
       await _fetchVendors(reqId, hold);
-      if (mounted && reqId == _vendorReq) _vendorsError = null;
+      if (mounted && reqId == _vendorReq) {
+        _vendorsError = null;
+        _scheduleSearchAnalytics(reqId, reqQuery);
+      }
     } catch (e) {
       // Keep the old list, but show "No internet / Retry" instead of silently
       // pretending there are no providers.
@@ -686,6 +692,49 @@ class _HomeScreenState extends State<CustomerScreen>
         });
       }
     }
+  }
+
+  // ── Search analytics ───────────────────────────────────────────────────────
+  Timer? _analyticsTimer;
+  String? _lastTrackedSearch;
+
+  /// Counts a text search once its results are on screen. It waits a moment so
+  /// that "pl" -> "plumber" is recorded as one search, not two, and it skips a
+  /// repeat of the search that was just recorded (a refresh, a re-list after the
+  /// location check...). Clearing the box makes the same search countable again.
+  void _scheduleSearchAnalytics(int reqId, String query) {
+    _analyticsTimer?.cancel();
+    if (query.trim().length < 2) {
+      _lastTrackedSearch = null;
+      return;
+    }
+    _analyticsTimer = Timer(const Duration(milliseconds: 1200), () {
+      if (!mounted || reqId != _vendorReq || searchQuery != query) return;
+      final filters = <String, dynamic>{
+        if (verifiedOnly) 'verifiedOnly': true,
+        if (_favoritesOnly) 'savedOnly': true,
+        if (_sort != 'newest') 'sort': _sort,
+      };
+      final category = selectedServiceSlug ?? selectedBrowseCategory;
+      final key = [
+        query,
+        category,
+        selectedDistrictName,
+        selectedLocalityName,
+        for (final e in filters.entries) '${e.key}=${e.value}',
+      ].join('|');
+      if (key == _lastTrackedSearch) return;
+      _lastTrackedSearch = key;
+      AnalyticsService.trackSearch(
+        token: context.read<AuthProvider>().accessToken,
+        query: query,
+        resultsCount: _vendorTotal ?? vendors.length,
+        category: category,
+        district: selectedDistrictName,
+        location: selectedLocalityName,
+        filters: filters,
+      );
+    });
   }
 
   String get _vendorOrder => switch (_sort) {
