@@ -4,6 +4,7 @@ import '../theme/app_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'privacy_screen.dart';
+import 'legal_chrome.dart';
 import 'terms_screen.dart';
 
 class GrievanceScreen extends StatelessWidget {
@@ -13,23 +14,6 @@ class GrievanceScreen extends StatelessWidget {
   // Asset is a BLACK logo on transparent background.
   // Light mode → show as-is (black logo on light bg) ✅
   // Dark mode  → invert to white (white logo on dark bg) ✅
-  static Widget _adaptiveLogo(BuildContext context, {double height = 60}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (isDark) {
-      return ColorFiltered(
-        colorFilter: const ColorFilter.matrix([
-          -1,  0,  0, 0, 255,
-          0, -1,  0, 0, 255,
-          0,  0, -1, 0, 255,
-          0,  0,  0, 1,   0,
-        ]),
-        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height),
-      );
-    } else {
-      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
-    }
-  }
-
   Future<void> _launchEmail(String email) async {
     final Uri uri = Uri(scheme: 'mailto', path: email);
     await launchUrl(uri);
@@ -94,6 +78,7 @@ class GrievanceScreen extends StatelessWidget {
           Expanded(
               child: Text(left,
                   style: TextStyle(color: textColor, fontSize: AppText.body))),
+          const SizedBox(width: 12),
           Text(right,
               style: TextStyle(
                   color: valueColor, fontWeight: FontWeight.w600)),
@@ -124,9 +109,9 @@ class GrievanceScreen extends StatelessWidget {
     final strongText = cs.onSurface;
     final subtleText = cs.onSurface.withOpacity(0.6);
     final faintText = cs.onSurface.withOpacity(0.4);
+    final dividerColor = cs.onSurface.withOpacity(0.15);
     final teal = cs.primary;
     final borderColor = cs.onSurface.withOpacity(0.15);
-    final dividerColor = cs.onSurface.withOpacity(0.15);
     final rowBg = cs.onSurface.withOpacity(isDark ? 0.08 : 0.04);
 
     return Scaffold(
@@ -135,54 +120,20 @@ class GrievanceScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // ── Logo bar ─────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      // Back arrow (no text) and the logo, the same size on every screen.
-                      IconButton(
-                        icon: Icon(Icons.arrow_back,
-                            color: Theme.of(context).colorScheme.onSurface),
-                        onPressed: () => Navigator.pop(context),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      const SizedBox(width: 12),
-                      _adaptiveLogo(context, height: 56),
-                    ],
-                  ),
-                ),
-
-                Divider(color: dividerColor, height: 1, thickness: 1),
-                const SizedBox(height: 24),
-
+                const LegalAppBar(),
 
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: kLegalPagePadding,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 24),
-
-                        Text(
-                          "Grievance Redressal",
-                          style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                              color: strongText),
+                        const LegalHeader(
+                          title: 'Grievance Redressal',
+                          subtitle:
+                              'As per the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, we have established a grievance redressal mechanism for users.',
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          "As per the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, we have established a grievance redressal mechanism for users.",
-                          style: TextStyle(color: subtleText, height: 1.6),
-                        ),
-                        const SizedBox(height: 24),
 
-                        // Pre-read note
                         _card(
                           borderColor: borderColor,
                           child: RichText(

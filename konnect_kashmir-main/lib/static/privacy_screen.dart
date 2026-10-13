@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/force_ltr.dart';
 import 'legal_accordion.dart';
+import 'legal_chrome.dart';
 import '../theme/app_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:konnect_kashmir/static/privacy_screen.dart';
@@ -8,23 +9,6 @@ import 'package:konnect_kashmir/static/refund_screen.dart';
 
 class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});
-
-  static Widget _adaptiveLogo(BuildContext context, {double height = 40}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (isDark) {
-      return ColorFiltered(
-        colorFilter: const ColorFilter.matrix([
-          -1,  0,  0, 0, 255,
-          0, -1,  0, 0, 255,
-          0,  0, -1, 0, 255,
-          0,  0,  0, 1,   0,
-        ]),
-        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height),
-      );
-    } else {
-      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
-    }
-  }
 
   @override
   Widget build(BuildContext context) =>
@@ -37,7 +21,6 @@ class PrivacyScreen extends StatelessWidget {
     final strongText = cs.onSurface;
     final subtleText = cs.onSurface.withOpacity(0.7);
     final teal = cs.primary;
-    final dividerColor = cs.onSurface.withOpacity(0.15);
     final bulletColor = teal;
 
     return Scaffold(
@@ -46,68 +29,20 @@ class PrivacyScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // ── Logo bar ──────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      // Back arrow (no text) and the logo, the same size on every screen.
-                      IconButton(
-                        icon: Icon(Icons.arrow_back,
-                            color: Theme.of(context).colorScheme.onSurface),
-                        onPressed: () => Navigator.pop(context),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      const SizedBox(width: 12),
-                      _adaptiveLogo(context, height: 56),
-                    ],
-                  ),
-                ),
-
-                Divider(color: dividerColor, height: 1, thickness: 1),
-                const SizedBox(height: 24),
-
+                const LegalAppBar(),
 
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: kLegalPagePadding,
                     child: LegalBody(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 24),
-
-                        Text(
-                          'Privacy Policy',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: strongText,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Last updated: February 2026',
-                          style: TextStyle(
-                              fontSize: AppText.body,
-                              color: cs.onSurface.withOpacity(0.45)),
-                        ),
-                        const SizedBox(height: 32),
-
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
+                        const LegalHeader(
+                          title: 'Privacy Policy',
+                          updated: 'Last updated: February 2026',
+                          note:
                               'This Privacy Policy is published in accordance with the Digital Personal Data Protection Act, 2023 (DPDP Act), Information Technology Act, 2000, and Information Technology (Reasonable Security Practices and Procedures and Sensitive Personal Data or Information) Rules, 2011.',
-                              style: TextStyle(
-                                  fontSize: AppText.caption, color: subtleText),
-                            ),
-                          ),
                         ),
-
-                        const SizedBox(height: 16),
 
                         _sectionTitle('1. Data Fiduciary Information', strongText),
                         const SizedBox(height: 16),

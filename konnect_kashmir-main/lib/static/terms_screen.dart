@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/force_ltr.dart';
 import 'legal_accordion.dart';
+import 'legal_chrome.dart';
 import '../theme/app_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:konnect_kashmir/static/privacy_screen.dart';
@@ -9,23 +10,6 @@ import 'package:konnect_kashmir/static/refund_screen.dart';
 class TermsScreen extends StatelessWidget {
   const TermsScreen({super.key});
 
-
-  static Widget _adaptiveLogo(BuildContext context, {double height = 40}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (isDark) {
-      return ColorFiltered(
-        colorFilter: const ColorFilter.matrix([
-          -1,  0,  0, 0, 255,
-          0, -1,  0, 0, 255,
-          0,  0, -1, 0, 255,
-          0,  0,  0, 1,   0,
-        ]),
-        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height),
-      );
-    } else {
-      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
-    }
-  }
 
   @override
   Widget build(BuildContext context) =>
@@ -43,82 +27,20 @@ class TermsScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // ── App Bar
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      // Back arrow (no text) and the logo, the same size on every screen.
-                      IconButton(
-                        icon: Icon(Icons.arrow_back,
-                            color: Theme.of(context).colorScheme.onSurface),
-                        onPressed: () => Navigator.pop(context),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      const SizedBox(width: 12),
-                      _adaptiveLogo(context, height: 56),
-                    ],
-                  ),
-                ),
-
-                // ── CHANGE: divider colour from outline
-                Container(
-                  height: 1,
-                  color: cs.outline.withOpacity(0.2),
-                ),
-
-                const SizedBox(height: 24),
-
+                const LegalAppBar(),
 
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: kLegalPagePadding,
                     child: LegalBody(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 24),
-
-                        // ── Page title
-                        Text(
-                          'Terms of Service',
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            // ── CHANGE: title from onSurface
-                            color: cs.onSurface,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        Text(
-                          'Last updated: February 2026',
-                          style: TextStyle(
-                            fontSize: AppText.body,
-                            // ── CHANGE: date text from onSurface with opacity
-                            color: cs.onSurface.withOpacity(0.5),
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
+                        const LegalHeader(
+                          title: 'Terms of Service',
+                          updated: 'Last updated: February 2026',
+                          note:
                               'These Terms of Service are published in accordance with the Information Technology Act, 2000, Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, and Consumer Protection (E-Commerce) Rules, 2020.',
-                              style: TextStyle(
-                                fontSize: AppText.caption,
-                                // ── CHANGE: note text from onSurface
-                                color: cs.onSurface,
-                              ),
-                            ),
-                          ),
                         ),
-
-                        const SizedBox(height: 32),
 
                         _buildSectionTitle('1. Introduction and Acceptance', cs),
                         const SizedBox(height: 16),

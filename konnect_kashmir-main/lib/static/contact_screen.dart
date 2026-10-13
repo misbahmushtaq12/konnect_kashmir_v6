@@ -2,26 +2,10 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'legal_chrome.dart';
 
 class ContactScreen extends StatelessWidget {
   const ContactScreen({super.key});
-
-  static Widget _adaptiveLogo(BuildContext context, {double height = 40}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (isDark) {
-      return ColorFiltered(
-        colorFilter: const ColorFilter.matrix([
-          -1,  0,  0, 0, 255,
-          0, -1,  0, 0, 255,
-          0,  0, -1, 0, 255,
-          0,  0,  0, 1,   0,
-        ]),
-        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height),
-      );
-    } else {
-      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +17,6 @@ class ContactScreen extends StatelessWidget {
     final strongText = cs.onSurface;
     final subtleText = cs.onSurface.withOpacity(0.55);
     final teal = cs.primary;
-    final dividerColor = cs.onSurface.withOpacity(0.15);
     final cardBorder = cs.onSurface.withOpacity(0.1);
 
     return Scaffold(
@@ -42,53 +25,18 @@ class ContactScreen extends StatelessWidget {
           SafeArea(
             child: Column(
               children: [
-                // ── Logo bar ───────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      // Back arrow (no text) and the logo, the same size on every screen.
-                      IconButton(
-                        icon: Icon(Icons.arrow_back,
-                            color: Theme.of(context).colorScheme.onSurface),
-                        onPressed: () => Navigator.pop(context),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      const SizedBox(width: 12),
-                      _adaptiveLogo(context, height: 56),
-                    ],
-                  ),
-                ),
-
-                Divider(color: dividerColor, height: 1, thickness: 1),
-                const SizedBox(height: 24),
-
+                const LegalAppBar(),
 
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: kLegalPagePadding,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 24),
-
-                        Text(
-                          context.l10n.contactUs,
-                          style: TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            color: strongText,
-                          ),
+                        LegalHeader(
+                          title: context.l10n.contactUs,
+                          subtitle: 'We\'re here to help. Reach out to us anytime!',
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'We\'re here to help. Reach out to us anytime!',
-                          style: TextStyle(fontSize: AppText.body, color: subtleText),
-                        ),
-                        const SizedBox(height: 40),
 
                         _buildContactCard(
                           icon: Icons.location_on,
@@ -98,6 +46,7 @@ class ContactScreen extends StatelessWidget {
                           teal: teal,
                           strongText: strongText,
                           cardBorder: cardBorder,
+                          surface: cs.surface,
                           onTap: () => _openMap(),
                         ),
                         const SizedBox(height: 16),
@@ -108,6 +57,7 @@ class ContactScreen extends StatelessWidget {
                           teal: teal,
                           strongText: strongText,
                           cardBorder: cardBorder,
+                          surface: cs.surface,
                           onTap: () =>
                               _sendEmail('info@konnectkashmir.com'),
                         ),
@@ -119,6 +69,7 @@ class ContactScreen extends StatelessWidget {
                           teal: teal,
                           strongText: strongText,
                           cardBorder: cardBorder,
+                          surface: cs.surface,
                           onTap: () => _makeCall('+919055566624'),
                         ),
                         const SizedBox(height: 16),
@@ -129,6 +80,7 @@ class ContactScreen extends StatelessWidget {
                           teal: teal,
                           strongText: strongText,
                           cardBorder: cardBorder,
+                          surface: cs.surface,
                           onTap: () => _openWhatsApp('+919055566624'),
                         ),
                         const SizedBox(height: 16),
@@ -160,43 +112,60 @@ class ContactScreen extends StatelessWidget {
     required Color teal,
     required Color strongText,
     required Color cardBorder,
+    required Color surface,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: cardBorder, width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: teal, size: 28),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: AppText.heading,
-                    fontWeight: FontWeight.bold,
-                    color: strongText,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: onTap,
-                  child: Text(
-                    content,
-                    style: TextStyle(
-                        fontSize: AppText.body, color: teal, height: 1.4),
-                  ),
-                ),
-              ],
-            ),
+    final radius = BorderRadius.circular(AppRadius.lg);
+    return Material(
+      color: surface,
+      borderRadius: radius,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: radius,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(color: cardBorder, width: 1),
           ),
-        ],
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: teal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(icon, color: teal, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: AppText.heading,
+                        fontWeight: FontWeight.bold,
+                        color: strongText,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      content,
+                      style: TextStyle(
+                          fontSize: AppText.body, color: teal, height: 1.4),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_ios_rounded,
+                  size: 16, color: strongText.withValues(alpha: 0.35)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -211,20 +180,37 @@ class ContactScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: cardBorder, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.l10n.businessHours,
-            style: TextStyle(
-              fontSize: AppText.heading,
-              fontWeight: FontWeight.bold,
-              color: strongText,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: const Icon(Icons.schedule_rounded,
+                    color: AppColors.primary, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  context.l10n.businessHours,
+                  style: TextStyle(
+                    fontSize: AppText.heading,
+                    fontWeight: FontWeight.bold,
+                    color: strongText,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(

@@ -47,6 +47,8 @@ class _LegalBodyState extends State<LegalBody> {
   // outside the dropdowns as a normal block.
   static final RegExp _numberedTitle = RegExp(r'^\s*\d+\s*\.');
   static bool _isNumbered(String title) => _numberedTitle.hasMatch(title);
+  static final RegExp _numberAndTitle =
+      RegExp(r'^\s*(\d+)\s*\.\s*(.*)$', dotAll: true);
 
   // Spacers between widgets are re-added by the card, so trim the edges.
   static bool _isSpacer(Widget w) => w is SizedBox && w.child == null;
@@ -94,7 +96,7 @@ class _LegalBodyState extends State<LegalBody> {
         Text(s.title,
             style: TextStyle(
                 fontSize: AppText.heading,
-                fontWeight: FontWeight.w400,
+                fontWeight: FontWeight.w700,
                 color: cs.onSurface)),
         const SizedBox(height: 12),
         ...s.body,
@@ -105,11 +107,18 @@ class _LegalBodyState extends State<LegalBody> {
   Widget _card(BuildContext context, int i, _Section s) {
     final cs = Theme.of(context).colorScheme;
     final open = _open == i;
+    final m = _numberAndTitle.firstMatch(s.title);
+    final number = m?.group(1);
+    final title = m?.group(2) ?? s.title;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: open
+            ? Color.alphaBlend(
+                AppColors.primary.withValues(alpha: 0.06), cs.surface)
+            : cs.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: open
@@ -122,13 +131,33 @@ class _LegalBodyState extends State<LegalBody> {
         InkWell(
           onTap: () => setState(() => _open = open ? null : i),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 14, 16),
+            padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
             child: Row(children: [
+              if (number != null) ...[
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: open
+                        ? AppColors.primary
+                        : AppColors.primary.withValues(alpha: 0.12),
+                  ),
+                  child: Text(number,
+                      style: TextStyle(
+                          fontSize: AppText.secondary,
+                          fontWeight: FontWeight.w700,
+                          color: open ? Colors.white : AppColors.primary)),
+                ),
+                const SizedBox(width: 12),
+              ],
               Expanded(
-                child: Text(s.title,
+                child: Text(title,
                     style: TextStyle(
                         fontSize: AppText.heading,
-                        fontWeight: FontWeight.w400,
+                        fontWeight: FontWeight.w600,
                         height: 1.25,
                         color: cs.onSurface)),
               ),
@@ -155,7 +184,13 @@ class _LegalBodyState extends State<LegalBody> {
             padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: s.body),
+                children: [
+                  Divider(
+                      height: 1,
+                      color: cs.onSurface.withValues(alpha: 0.08)),
+                  const SizedBox(height: 14),
+                  ...s.body,
+                ]),
           ),
         ),
       ]),
