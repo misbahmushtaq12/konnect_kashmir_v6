@@ -92,6 +92,13 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
         widget.ad['reward'] as int? ?? widget.ad['credits_reward'] as int? ?? 1;
     final String title = widget.ad['title'] as String? ?? 'Ad';
 
+    // The video area takes all the room between the header and the claim
+    // button (the video is centred in it); the player shrinks if this is
+    // slightly more than what is free.
+    final mq = MediaQuery.of(context);
+    final freeHeight = mq.size.height - mq.padding.vertical - 190;
+    final playerRatio = (mq.size.width / freeHeight).clamp(0.5, 16 / 9);
+
     return YoutubePlayerBuilder(
       onEnterFullScreen: () {
         setState(() => _isFullScreen = true);
@@ -108,6 +115,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
       },
       player: YoutubePlayer(
         controller: _controller,
+        aspectRatio: playerRatio.toDouble(),
         showVideoProgressIndicator: true,
         progressIndicatorColor: AppColors.danger,
         progressColors: ProgressBarColors(
