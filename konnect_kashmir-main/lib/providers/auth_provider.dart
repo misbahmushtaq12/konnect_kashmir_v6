@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../services/shared_http.dart';
 import 'package:flutter/widgets.dart';
 import '../services/auth_service.dart';
 import '../services/backend_config.dart';
@@ -172,7 +172,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
 
     try {
-      final verifyResponse = await http.post(
+      final verifyResponse = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/verify-otp'),
         headers: {
           'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
         return {'success': false, 'error': _error};
       }
 
-      final signInResponse = await http.post(
+      final signInResponse = await sharedHttp.post(
         Uri.parse('$_baseUrl/auth/v1/token?grant_type=password'),
         headers: {'Content-Type': 'application/json', 'apikey': _anonKey},
         body: jsonEncode({'email': email, 'password': password}),
@@ -231,7 +231,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       String role = 'customer';
       try {
-        final rolesResponse = await http.get(
+        final rolesResponse = await sharedHttp.get(
           Uri.parse('$_baseUrl/rest/v1/user_roles?user_id=eq.$authUserId&select=role'),
           headers: {
             'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       String displayName = '';
       try {
-        final profileResponse = await http.get(
+        final profileResponse = await sharedHttp.get(
           Uri.parse('$_baseUrl/rest/v1/profiles?id=eq.$authUserId&select=full_name,role'),
           headers: {
             'Content-Type': 'application/json',
@@ -321,7 +321,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       debugPrint('[AuthProvider] refreshToken — attempting refresh');
 
-      final response = await http.post(
+      final response = await sharedHttp.post(
         Uri.parse('$_baseUrl/auth/v1/token?grant_type=refresh_token'),
         headers: {'Content-Type': 'application/json', 'apikey': _anonKey},
         body: jsonEncode({'refresh_token': storedRefreshToken}),
@@ -382,7 +382,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (_) {}
     try {
       if (_user?.token != null) {
-        await http.post(
+        await sharedHttp.post(
           Uri.parse('$_baseUrl/auth/v1/logout?scope=local'),
           headers: authHeaders,
         ).timeout(const Duration(seconds: 10));
@@ -499,7 +499,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> refreshProfile() async {
     if (_user?.id == null || _user?.token == null) return;
     try {
-      final response = await http.get(
+      final response = await sharedHttp.get(
         Uri.parse('$_baseUrl/rest/v1/profiles?id=eq.${_user!.id}&select=full_name,role'),
         headers: authHeaders,
       ).timeout(const Duration(seconds: 10));

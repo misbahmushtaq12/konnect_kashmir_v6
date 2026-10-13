@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../../l10n/l10n.dart';
+import '../../services/customer_location.dart';
 import '../../theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -97,8 +98,42 @@ class _DeenTabState extends State<DeenTab> {
     });
     try {
       _settings = await PrayerSettings.load();
+
+      // Start from the last known place: today's saved times appear at once, and
+      // the fresh location below only replaces them if it is a different place.
+      PrayerDay? shown;
+      final known = await CustomerLocation.lastKnown();
+      if (known != null && mounted) {
+        final p = Position(
+          latitude: known.lat,
+          longitude: known.lng,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          altitudeAccuracy: 0,
+          heading: 0,
+          headingAccuracy: 0,
+          speed: 0,
+          speedAccuracy: 0,
+        );
+        shown = await PrayerService.cached(known.lat, known.lng, _settings);
+        if (!mounted) return;
+        setState(() {
+          _pos = p;
+          _qibla = qiblaBearing(known.lat, known.lng);
+          if (shown != null) {
+            _day = shown;
+            _loading = false;
+          }
+        });
+        PrayerService.placeName(known.lat, known.lng).then((n) {
+          if (mounted && n != null) setState(() => _place = n);
+        });
+      }
+
       final pos = await PrayerService.position(ask: ask);
       if (!mounted) return;
+      CustomerLocation.remember(pos.latitude, pos.longitude);
       setState(() {
         _pos = pos;
         _qibla = qiblaBearing(pos.latitude, pos.longitude);
@@ -109,13 +144,15 @@ class _DeenTabState extends State<DeenTab> {
         if (mounted && n != null) setState(() => _place = n);
       });
 
-      // Today's saved times first, so the screen is useful immediately.
-      final cached = await PrayerService.cached(pos.latitude, pos.longitude, _settings);
+      // Today's saved times for this place: nothing more to fetch.
+      final cached = shown ??
+          await PrayerService.cached(pos.latitude, pos.longitude, _settings);
       if (cached != null && mounted) {
         setState(() {
           _day = cached;
           _loading = false;
         });
+        return;
       }
       final fresh = await PrayerService.fetch(pos.latitude, pos.longitude, _settings);
       if (!mounted) return;

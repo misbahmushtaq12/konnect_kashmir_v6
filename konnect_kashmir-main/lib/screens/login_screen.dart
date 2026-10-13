@@ -98,7 +98,7 @@ class _LoginScreenState extends State<_LoginBody> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     Widget logo = Image.asset(
       'assets/images/konnectkashmir.png',
-      height: height,
+      cacheHeight: 384, height: height,
     );
     if (isDark) {
       return ColorFiltered(

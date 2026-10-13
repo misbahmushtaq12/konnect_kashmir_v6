@@ -41,6 +41,17 @@ class CustomerLocation {
     }
   }
 
+  /// Remembers a position found elsewhere (for example on the Deen screen), so
+  /// the next launch can start from it without waiting for the GPS.
+  static Future<void> remember(double lat, double lng) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('cust_lat', lat);
+      await prefs.setDouble('cust_lng', lng);
+      await prefs.setInt('cust_loc_at', DateTime.now().millisecondsSinceEpoch);
+    } catch (_) {}
+  }
+
   /// The customer's current position (asks for the permission when needed).
   static Future<Position?> current() {
     final p = _pos;

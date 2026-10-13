@@ -69,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
 
-    Widget logo = Image.asset('assets/images/konnectkashmir.png', width: 220);
+    Widget logo = Image.asset('assets/images/konnectkashmir.png', cacheWidth: 660, width: 220);
     if (isDark) {
       logo = ColorFiltered(
         colorFilter: const ColorFilter.matrix([

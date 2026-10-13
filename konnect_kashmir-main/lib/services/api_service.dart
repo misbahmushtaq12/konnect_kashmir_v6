@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
+import 'shared_http.dart';
 
 class ApiService {
   static const String _baseUrl = 'https://fmmpsqnpezjofsluirrv.supabase.co';
@@ -36,7 +36,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> verifyOTPWithWidget(String widgetToken) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/verify-otp'),
         headers: _headers,
         body: jsonEncode({
@@ -57,7 +57,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getOTPWidgetConfig() async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/get-otp-widget-config'),
         headers: _headers,
         body: '{}',
@@ -75,7 +75,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> phoneAuthFix(String phone, String otp) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/phone-auth-fix'),
         headers: _headers,
         body: jsonEncode({'phone': phone, 'otp': otp}),
@@ -106,7 +106,7 @@ class ApiService {
         if (newPin != null) 'newPin': newPin,
         if (widgetToken != null) 'widgetToken': widgetToken,
       };
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/admin-pin-auth'),
         headers: _headers,
         body: jsonEncode(body),
@@ -129,7 +129,7 @@ class ApiService {
   void trackCallClick(String vendorId, String action) {
     final uid = userId;
     if (uid == null || token == null || vendorId.isEmpty) return;
-    http
+    sharedHttp
         .post(
           Uri.parse('$_baseUrl/rest/v1/call_clicks'),
           headers: _headersMinimalReturn,
@@ -146,7 +146,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> unlockVendorContact(String vendorId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/unlock-vendor-contact'),
         headers: _headers,
         body: jsonEncode({'vendorId': vendorId, 'source': 'app'}),
@@ -162,7 +162,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> claimAdCredits(String adId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/claim-ad-credits'),
         headers: _headers,
         body: jsonEncode({'adId': adId}),
@@ -187,7 +187,7 @@ class ApiService {
         if (referralCode != null) 'referralCode': referralCode,
         if (userRole != null) 'userRole': userRole,
       };
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/process-referral'),
         headers: _headers,
         body: jsonEncode(body),
@@ -206,7 +206,7 @@ class ApiService {
   Future<Map<String, dynamic>> sendLeadSMS(
       String vendorId, String vendorPhone, String vendorName) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/send-lead-sms'),
         headers: _headers,
         body: jsonEncode({
@@ -228,7 +228,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> sendApprovalSMS(String vendorId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/send-approval-sms'),
         headers: _headers,
         body: jsonEncode({'vendorId': vendorId}),
@@ -247,7 +247,7 @@ class ApiService {
   Future<Map<String, dynamic>> sendWhatsAppMsg(String phoneNumber,
       {required String message, String? url}) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/send-whatsapp-msg91'),
         headers: _headers,
         body: jsonEncode({
@@ -269,7 +269,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> syncToSheets() async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/sync-to-sheets'),
         headers: _headers,
         body: '{}',
@@ -290,7 +290,7 @@ class ApiService {
   /// account, so [phone10] must be the registered 10-digit number.
   Future<Map<String, dynamic>> deleteMyAccount(String phone10) async {
     try {
-      final res = await http
+      final res = await sharedHttp
           .post(
             Uri.parse('$_baseUrl/functions/v1/delete-my-account'),
             headers: _headers,
@@ -313,7 +313,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> deleteUser(String userId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/delete-user'),
         headers: _headers,
         body: jsonEncode({'userId': userId}),
@@ -331,7 +331,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> syncPendingAdmins() async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/sync-pending-admins'),
         headers: _headers,
         body: '{}',
@@ -349,7 +349,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getLeadNames(List<String> vendorIds) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/get-lead-names'),
         headers: _headers,
         // The live function still asks for the vendor ids.
@@ -382,7 +382,7 @@ class ApiService {
   Future<Map<String, dynamic>> revealLeadPhone(String leadUserId,
       [String? vendorId]) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/reveal-lead-phone'),
         headers: _headers,
         // Both spellings, so it works with the new and the earlier function.
@@ -413,7 +413,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> getUserPhones(List<String> userIds) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/get-user-phones'),
         headers: _headers,
         body: jsonEncode({'userIds': userIds}),
@@ -431,7 +431,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> findUserByPhone(String phone) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/find-user-by-phone'),
         headers: _headers,
         body: jsonEncode({'phone': phone}),
@@ -476,18 +476,12 @@ class ApiService {
         return [];
       }
       final String? effectiveService = serviceSlug ?? browseCategory ?? service;
-      List<String>? districtLocalityIds;
-      if (localityId == null && districtId != null) {
-        districtLocalityIds = await _getLocalityIdsByDistrict(districtId,
-            throwOnError: throwOnError);
-        if (districtLocalityIds.isEmpty) {
-          onTotal?.call(0);
-          return [];
-        }
-      }
+      // A district filter is done by the database in the same request (joined to
+      // the localities table), not by first fetching the district's locality ids.
+      final byDistrict = localityId == null && districtId != null;
       final params = <String, String>{
         'select': 'id,business_name,service_type,locality_id,'
-            'localities(name),'
+            '${byDistrict ? 'localities!inner(name,district_id)' : 'localities(name)'},'
             'description,is_verified,logo_url,created_at,'
             'min_price,max_price,experience_years,'
             'provides_home_service,accepts_online_payment,'
@@ -501,12 +495,11 @@ class ApiService {
         if (effectiveService != null) 'service_type': 'eq.$effectiveService',
         if (verifiedOnly) 'is_verified': 'eq.true',
         if (localityId != null) 'locality_id': 'eq.$localityId',
-        if (districtLocalityIds != null && districtLocalityIds.isNotEmpty)
-          'locality_id': 'in.(${districtLocalityIds.join(',')})',
+        if (byDistrict) 'localities.district_id': 'eq.$districtId',
       };
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors_public')
           .replace(queryParameters: params);
-      final res = await http.get(uri,
+      final res = await sharedHttp.get(uri,
           headers: onTotal == null
               ? _headers
               : {..._headers, 'Prefer': 'count=exact'});
@@ -540,7 +533,7 @@ class ApiService {
       final uri = Uri.parse('$_baseUrl/rest/v1/localities').replace(
         queryParameters: {'district_id': 'eq.$districtId', 'select': 'id'},
       );
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200) {
         final list = List<Map<String, dynamic>>.from(jsonDecode(res.body));
         final ids = list.map((l) => l['id'].toString()).toList();
@@ -559,7 +552,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors_public')
           .replace(queryParameters: {'id': 'eq.$vendorId'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as List;
         if (data.isNotEmpty) return data.first as Map<String, dynamic>;
@@ -572,7 +565,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> createVendor(Map<String, dynamic> data) async {
     try {
-      final res = await http.post(Uri.parse('$_baseUrl/rest/v1/vendors'),
+      final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/vendors'),
           headers: _headersWithPreference, body: jsonEncode(data));
       if (res.statusCode == 201) {
         final resData = jsonDecode(res.body);
@@ -590,7 +583,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors')
           .replace(queryParameters: {'id': 'eq.$vendorId'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference, body: jsonEncode(updates));
       if (res.statusCode == 200) return _ok(jsonDecode(res.body));
       return _err('Update failed (${res.statusCode})');
@@ -605,7 +598,7 @@ class ApiService {
       final ids = vendorIds.map((id) => '"$id"').join(',');
       final uri = Uri.parse('$_baseUrl/rest/v1/vendor_categories')
           .replace(queryParameters: {'vendor_id': 'in.($ids)'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -617,7 +610,7 @@ class ApiService {
   Future<Map<String, dynamic>> addVendorCategory(
       String vendorId, String categorySlug) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/vendor_categories'),
           headers: _headersWithPreference,
           body: jsonEncode(
@@ -637,7 +630,7 @@ class ApiService {
             'vendor_id': 'eq.$vendorId',
             'category_slug': 'eq.$categorySlug'
           });
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Category remove failed (${res.statusCode})');
     } catch (e) {
@@ -652,7 +645,7 @@ class ApiService {
             'is_active': 'eq.true',
             'order': 'display_order.asc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -669,7 +662,7 @@ class ApiService {
             'is_featured': 'eq.true',
             'order': 'featured_order.asc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -681,7 +674,7 @@ class ApiService {
   Future<Map<String, dynamic>> createServiceCategory(
       Map<String, dynamic> data) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/service_categories'),
           headers: _headersWithPreference,
           body: jsonEncode(data));
@@ -697,7 +690,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/service_categories')
           .replace(queryParameters: {'id': 'eq.$categoryId'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference, body: jsonEncode(updates));
       if (res.statusCode == 200) return _ok(jsonDecode(res.body));
       return _err('Update failed (${res.statusCode})');
@@ -710,7 +703,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/service_categories')
           .replace(queryParameters: {'id': 'eq.$categoryId'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Delete failed (${res.statusCode})');
     } catch (e) {
@@ -734,7 +727,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'id': 'eq.$userId'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as List;
         if (data.isNotEmpty) return data.first as Map<String, dynamic>;
@@ -750,7 +743,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'id': 'eq.$userId'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference, body: jsonEncode(updates));
       if (res.statusCode == 200) {
         // PostgREST returns the updated rows as a list; empty means no row changed.
@@ -777,7 +770,7 @@ class ApiService {
             'limit': '$limit',
             'offset': '$offset'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -793,7 +786,7 @@ class ApiService {
             'is_active': 'eq.true',
             'order': 'created_at.desc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -804,7 +797,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> recordAdView(String adId) async {
     try {
-      final res = await http.post(Uri.parse('$_baseUrl/rest/v1/ad_views'),
+      final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/ad_views'),
           headers: _headersWithPreference,
           body: jsonEncode({'user_id': userId, 'ad_id': adId}));
       if (res.statusCode == 201 || res.statusCode == 200) return _ok();
@@ -818,7 +811,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendor_reviews_public')
           .replace(queryParameters: {'vendor_id': 'eq.$vendorId'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -830,7 +823,7 @@ class ApiService {
   Future<Map<String, dynamic>> submitReview(
       String vendorId, int rating, String reviewText) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/vendor_reviews'),
           headers: _headersWithPreference,
           body: jsonEncode({
@@ -850,7 +843,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendor_reviews')
           .replace(queryParameters: {'id': 'eq.$reviewId'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Delete failed (${res.statusCode})');
     } catch (e) {
@@ -871,7 +864,7 @@ class ApiService {
       };
       final uri =
       Uri.parse('$_baseUrl/rest/v1/jobs').replace(queryParameters: params);
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -884,7 +877,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/jobs')
           .replace(queryParameters: {'id': 'eq.$jobId'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as List;
         if (data.isNotEmpty) return data.first as Map<String, dynamic>;
@@ -897,7 +890,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> createJob(Map<String, dynamic> data) async {
     try {
-      final res = await http.post(Uri.parse('$_baseUrl/rest/v1/jobs'),
+      final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/jobs'),
           headers: _headersWithPreference, body: jsonEncode(data));
       if (res.statusCode == 201 || res.statusCode == 200) return _ok();
       return _err('Job creation failed (${res.statusCode})');
@@ -911,7 +904,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/jobs')
           .replace(queryParameters: {'id': 'eq.$jobId'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference, body: jsonEncode(updates));
       if (res.statusCode == 200) return _ok(jsonDecode(res.body));
       return _err('Update failed (${res.statusCode})');
@@ -924,7 +917,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/jobs')
           .replace(queryParameters: {'id': 'eq.$jobId'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Delete failed (${res.statusCode})');
     } catch (e) {
@@ -940,7 +933,7 @@ class ApiService {
       if (userId != null) params['user_id'] = 'eq.$userId';
       final uri = Uri.parse('$_baseUrl/rest/v1/job_applications')
           .replace(queryParameters: params);
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -952,7 +945,7 @@ class ApiService {
   Future<Map<String, dynamic>> applyToJob(String jobId, String applicantName,
       String applicantPhone, String applicantEmail, String coverLetter) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/job_applications'),
           headers: _headersWithPreference,
           body: jsonEncode({
@@ -975,7 +968,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/job_applications')
           .replace(queryParameters: {'id': 'eq.$applicationId'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'status': status}));
       if (res.statusCode == 200) return _ok(jsonDecode(res.body));
@@ -989,7 +982,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/districts')
           .replace(queryParameters: {'order': 'name.asc'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1005,7 +998,7 @@ class ApiService {
             'district_id': 'eq.$districtId',
             'order': 'name.asc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1016,7 +1009,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> createDistrict(String name) async {
     try {
-      final res = await http.post(Uri.parse('$_baseUrl/rest/v1/districts'),
+      final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/districts'),
           headers: _headersWithPreference, body: jsonEncode({'name': name}));
       if (res.statusCode == 201 || res.statusCode == 200) return _ok();
       return _err('Creation failed (${res.statusCode})');
@@ -1028,7 +1021,7 @@ class ApiService {
   Future<Map<String, dynamic>> createLocality(
       String districtId, String name) async {
     try {
-      final res = await http.post(Uri.parse('$_baseUrl/rest/v1/localities'),
+      final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/localities'),
           headers: _headersWithPreference,
           body: jsonEncode({'district_id': districtId, 'name': name}));
       if (res.statusCode == 201 || res.statusCode == 200) return _ok();
@@ -1042,7 +1035,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/districts')
           .replace(queryParameters: {'id': 'eq.$districtId'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Delete failed (${res.statusCode})');
     } catch (e) {
@@ -1054,7 +1047,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/localities')
           .replace(queryParameters: {'id': 'eq.$localityId'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Delete failed (${res.statusCode})');
     } catch (e) {
@@ -1072,7 +1065,7 @@ class ApiService {
       };
       final uri = Uri.parse('$_baseUrl/rest/v1/reports')
           .replace(queryParameters: params);
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1107,7 +1100,7 @@ class ApiService {
       // Normalise the display label to a DB-safe enum value.
       final String normalisedType = _normaliseReportType(reportType);
 
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/rest/v1/reports'),
         headers: _headersMinimalReturn,
         body: jsonEncode({
@@ -1150,7 +1143,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/reports')
           .replace(queryParameters: {'id': 'eq.$reportId'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'status': status, 'admin_notes': adminNotes}));
       if (res.statusCode == 200) return _ok(jsonDecode(res.body));
@@ -1166,7 +1159,7 @@ class ApiService {
           queryParameters: {
             'or': '(referrer_user_id.eq.$userId,referred_user_id.eq.$userId)'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1177,7 +1170,7 @@ class ApiService {
 
   Future<int> getUserCreditsRPC() async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/rpc/get_user_credits'),
           headers: _headers,
           body: '{}');
@@ -1200,7 +1193,7 @@ class ApiService {
 
   Future<bool> isAdminRPC(String userId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/rpc/is_admin'),
           headers: _headers,
           body: jsonEncode({'_user_id': userId}));
@@ -1213,7 +1206,7 @@ class ApiService {
 
   Future<bool> isSuperAdminRPC(String userId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/rpc/is_super_admin'),
           headers: _headers,
           body: jsonEncode({'_user_id': userId}));
@@ -1226,7 +1219,7 @@ class ApiService {
 
   Future<bool> hasRoleRPC(String userId, String role) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/rpc/has_role'),
           headers: _headers,
           body: jsonEncode({'_user_id': userId, '_role': role}));
@@ -1239,7 +1232,7 @@ class ApiService {
 
   Future<bool> hasUnlockedVendorRPC(String vendorId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/rpc/has_unlocked_vendor'),
           headers: _headers,
           body: jsonEncode({'vendor_uuid': vendorId}));
@@ -1252,7 +1245,7 @@ class ApiService {
 
   Future<bool> userOwnsVendorRPC(String vendorId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/rpc/user_owns_vendor'),
           headers: _headers,
           body: jsonEncode({'vendor_uuid': vendorId}));
@@ -1265,7 +1258,7 @@ class ApiService {
 
   Future<bool> canAccessVendorContactRPC(String vendorId) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/rpc/can_access_vendor_contact'),
           headers: _headers,
           body: jsonEncode({'vendor_uuid': vendorId}));
@@ -1280,7 +1273,7 @@ class ApiService {
       String fileName, Uint8List fileData) async {
     try {
       final path = 'vendor-images/$fileName';
-      final res = await http.post(
+      final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/storage/v1/object/$path'),
           headers: {
             'apikey': _anonKey,
@@ -1301,7 +1294,7 @@ class ApiService {
   Future<Map<String, dynamic>> deleteVendorImage(String fileName) async {
     try {
       final path = 'vendor-images/$fileName';
-      final res = await http.delete(
+      final res = await sharedHttp.delete(
           Uri.parse('$_baseUrl/storage/v1/object/$path'),
           headers: {
             'apikey': _anonKey,
@@ -1322,7 +1315,7 @@ class ApiService {
             'user_id': 'eq.$userId',
             'order': 'created_at.desc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1335,7 +1328,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/user_roles')
           .replace(queryParameters: {'user_id': 'eq.$userId'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1355,7 +1348,7 @@ class ApiService {
       };
       final uri = Uri.parse('$_baseUrl/rest/v1/activity_logs')
           .replace(queryParameters: params);
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1366,14 +1359,14 @@ class ApiService {
 
   Future<Map<String, dynamic>> getPlatformStats() async {
     try {
-      final vendors = await http.get(
+      final vendors = await sharedHttp.get(
           Uri.parse(
               '$_baseUrl/rest/v1/vendors_public?select=id&is_approved=eq.true'),
           headers: _headers);
-      final districts = await http.get(
+      final districts = await sharedHttp.get(
           Uri.parse('$_baseUrl/rest/v1/districts?select=id'),
           headers: _headers);
-      final categories = await http.get(
+      final categories = await sharedHttp.get(
           Uri.parse(
               '$_baseUrl/rest/v1/service_categories?select=id&is_active=eq.true'),
           headers: _headers);
@@ -1394,7 +1387,7 @@ class ApiService {
 
   Future<Map<String, List<String>>> getAdminDistricts() async {
     try {
-      final districtRes = await http.get(
+      final districtRes = await sharedHttp.get(
           Uri.parse('$_baseUrl/rest/v1/districts?order=name.asc'),
           headers: _headers);
       if (districtRes.statusCode != 200) return {};
@@ -1404,7 +1397,7 @@ class ApiService {
       for (final d in districtList) {
         final districtId = d['id'].toString();
         final districtName = d['name'] as String;
-        final localityRes = await http.get(
+        final localityRes = await sharedHttp.get(
             Uri.parse(
                 '$_baseUrl/rest/v1/localities?district_id=eq.$districtId&order=name.asc'),
             headers: _headers);
@@ -1433,7 +1426,7 @@ class ApiService {
             'is_approved': 'eq.false',
             'order': 'created_at.desc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1449,7 +1442,7 @@ class ApiService {
             'is_approved': 'eq.true',
             'order': 'created_at.desc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1462,7 +1455,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendor_reviews')
           .replace(queryParameters: {'order': 'created_at.desc'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1475,7 +1468,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/reports')
           .replace(queryParameters: {'order': 'created_at.desc'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1488,7 +1481,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'order': 'created_at.desc'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1501,7 +1494,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/ads')
           .replace(queryParameters: {'order': 'created_at.desc'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1514,7 +1507,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/jobs')
           .replace(queryParameters: {'order': 'created_at.desc'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return [];
@@ -1531,7 +1524,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors')
           .replace(queryParameters: {'id': 'eq.${vendorId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'is_approved': true}));
       if (res.statusCode == 200) return _ok();
@@ -1545,7 +1538,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors')
           .replace(queryParameters: {'id': 'eq.${vendorId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'is_approved': false}));
       if (res.statusCode == 200) return _ok();
@@ -1559,7 +1552,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors')
           .replace(queryParameters: {'id': 'eq.${vendorId.toString()}'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Delete failed (${res.statusCode})');
     } catch (e) {
@@ -1570,7 +1563,7 @@ class ApiService {
   Future<Map<String, dynamic>> createAdminVendor(
       Map<String, dynamic> data) async {
     try {
-      final res = await http.post(Uri.parse('$_baseUrl/rest/v1/vendors'),
+      final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/vendors'),
           headers: _headersWithPreference,
           body: jsonEncode({...data, 'is_approved': true}));
       if (res.statusCode == 201) {
@@ -1589,7 +1582,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendor_reviews')
           .replace(queryParameters: {'id': 'eq.${reviewId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'is_approved': true}));
       if (res.statusCode == 200) return _ok();
@@ -1603,7 +1596,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendor_reviews')
           .replace(queryParameters: {'id': 'eq.${reviewId.toString()}'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Delete failed (${res.statusCode})');
     } catch (e) {
@@ -1618,7 +1611,7 @@ class ApiService {
   Future<Map<String, dynamic>> updateUserCredits(
       dynamic userId, int delta) async {
     try {
-      final profileRes = await http.get(
+      final profileRes = await sharedHttp.get(
           Uri.parse(
               '$_baseUrl/rest/v1/profiles?id=eq.${userId.toString()}&select=credit_balance'),
           headers: _headers);
@@ -1630,7 +1623,7 @@ class ApiService {
       final newBalance = (current + delta).clamp(0, 9999);
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'id': 'eq.${userId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'credit_balance': newBalance}));
       if (res.statusCode == 200) return _ok({'newBalance': newBalance});
@@ -1644,7 +1637,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'id': 'eq.${userId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({
             'is_blocked': true,
@@ -1661,7 +1654,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'id': 'eq.${userId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'is_blocked': false, 'blocked_at': null}));
       if (res.statusCode == 200) return _ok();
@@ -1682,7 +1675,7 @@ class ApiService {
       if (updates.isEmpty) return _ok();
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'id': 'eq.${userId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference, body: jsonEncode(updates));
       if (res.statusCode == 200) return _ok();
       return _err('Edit failed (${res.statusCode})');
@@ -1693,7 +1686,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> createAdminAd(Map<String, dynamic> data) async {
     try {
-      final res = await http.post(Uri.parse('$_baseUrl/rest/v1/ads'),
+      final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/ads'),
           headers: _headersWithPreference,
           body: jsonEncode({
             'title': data['title'],
@@ -1732,7 +1725,7 @@ class ApiService {
       if (dbUpdates.isEmpty) return _ok();
       final uri = Uri.parse('$_baseUrl/rest/v1/ads')
           .replace(queryParameters: {'id': 'eq.${adId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference, body: jsonEncode(dbUpdates));
       if (res.statusCode == 200) return _ok();
       return _err('Ad update failed (${res.statusCode})');
@@ -1745,7 +1738,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/ads')
           .replace(queryParameters: {'id': 'eq.${adId.toString()}'});
-      final res = await http.delete(uri, headers: _headers);
+      final res = await sharedHttp.delete(uri, headers: _headers);
       if (res.statusCode == 204 || res.statusCode == 200) return _ok();
       return _err('Ad delete failed (${res.statusCode})');
     } catch (e) {
@@ -1757,7 +1750,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/jobs')
           .replace(queryParameters: {'id': 'eq.${jobId.toString()}'});
-      final res = await http.patch(uri,
+      final res = await sharedHttp.patch(uri,
           headers: _headersWithPreference,
           body: jsonEncode({'is_approved': true}));
       if (res.statusCode == 200) return _ok();
@@ -1777,7 +1770,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/districts').replace(
           queryParameters: {'name': 'eq.$districtName', 'select': 'id'});
-      final lookupRes = await http.get(uri, headers: _headers);
+      final lookupRes = await sharedHttp.get(uri, headers: _headers);
       if (lookupRes.statusCode != 200) return _err('District lookup failed');
       final list =
       List<Map<String, dynamic>>.from(jsonDecode(lookupRes.body));
@@ -1793,7 +1786,7 @@ class ApiService {
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/districts').replace(
           queryParameters: {'name': 'eq.$districtName', 'select': 'id'});
-      final lookupRes = await http.get(uri, headers: _headers);
+      final lookupRes = await sharedHttp.get(uri, headers: _headers);
       if (lookupRes.statusCode != 200) return _err('District lookup failed');
       final list =
       List<Map<String, dynamic>>.from(jsonDecode(lookupRes.body));
@@ -1809,7 +1802,7 @@ class ApiService {
     try {
       final districtUri = Uri.parse('$_baseUrl/rest/v1/districts').replace(
           queryParameters: {'name': 'eq.$districtName', 'select': 'id'});
-      final districtRes = await http.get(districtUri, headers: _headers);
+      final districtRes = await sharedHttp.get(districtUri, headers: _headers);
       if (districtRes.statusCode != 200) return _err('District lookup failed');
       final districts =
       List<Map<String, dynamic>>.from(jsonDecode(districtRes.body));
@@ -1821,7 +1814,7 @@ class ApiService {
             'name': 'eq.$localityName',
             'select': 'id'
           });
-      final localityRes = await http.get(localityUri, headers: _headers);
+      final localityRes = await sharedHttp.get(localityUri, headers: _headers);
       if (localityRes.statusCode != 200) return _err('Locality lookup failed');
       final localities =
       List<Map<String, dynamic>>.from(jsonDecode(localityRes.body));
@@ -1850,7 +1843,7 @@ class ApiService {
 
   Future<Map<String, String>> buildLocalityLookup() async {
     try {
-      final res = await http.get(
+      final res = await sharedHttp.get(
           Uri.parse('$_baseUrl/rest/v1/localities?select=id,name'),
           headers: _headers);
       if (res.statusCode == 200) {
@@ -1874,7 +1867,7 @@ class ApiService {
             'id,vendor_id,user_id,rating,review_text,is_approved,created_at,vendors(business_name),profiles(full_name)',
             'order': 'created_at.desc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return await getAdminReviews();
@@ -1890,7 +1883,7 @@ class ApiService {
             'select': 'id,reporter_id,reported_vendor_id,report_type,description,status,admin_notes,created_at,vendors(business_name,phone)',
             'order': 'created_at.desc'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200) {
         final reports = List<Map<String, dynamic>>.from(jsonDecode(res.body));
 
@@ -1937,7 +1930,7 @@ class ApiService {
       };
       final uri = Uri.parse('$_baseUrl/rest/v1/activity_logs')
           .replace(queryParameters: params);
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return List<Map<String, dynamic>>.from(jsonDecode(res.body));
       return await getAdminLogs(action: action, role: role, limit: limit);
@@ -1956,7 +1949,7 @@ class ApiService {
             'vendor_id': 'eq.$vendorId',
             'select': 'id'
           });
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200)
         return (jsonDecode(res.body) as List).isNotEmpty;
       return false;
@@ -1979,7 +1972,7 @@ class ApiService {
       if (userId == null) return {};
       final uri = Uri.parse('$_baseUrl/rest/v1/ad_views').replace(
           queryParameters: {'user_id': 'eq.$userId', 'select': 'ad_id'});
-      final res = await http.get(uri, headers: _headers);
+      final res = await sharedHttp.get(uri, headers: _headers);
       if (res.statusCode == 200) {
         final list = List<Map<String, dynamic>>.from(jsonDecode(res.body));
         final counts = <String, int>{};
@@ -1998,7 +1991,7 @@ class ApiService {
     try {
       // Supabase Auth allows a user to delete themselves
       // via DELETE /auth/v1/user with their own Bearer token
-      final res = await http.delete(
+      final res = await sharedHttp.delete(
         Uri.parse('$_baseUrl/auth/v1/user'),
         headers: _headers,
       );

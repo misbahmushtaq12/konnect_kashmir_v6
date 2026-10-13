@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
+import '../../services/shared_http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// The Kaaba, Makkah.
@@ -203,6 +203,12 @@ class PrayerService {
 
   /// A short place name ("Srinagar, Jammu & Kashmir"), or null if unavailable.
   static Future<String?> placeName(double lat, double lng) async {
+    final key = 'place_${lat.toStringAsFixed(1)}_${lng.toStringAsFixed(1)}';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(key);
+      if (saved != null) return saved;
+    } catch (_) {}
     try {
       final p = (await Geocoding().placemarkFromCoordinates(lat, lng)).firstOrNull;
       if (p == null) return null;
@@ -211,7 +217,12 @@ class PrayerService {
         if ((p.administrativeArea ?? '').isNotEmpty) p.administrativeArea!,
       ];
       if (parts.isEmpty && (p.country ?? '').isNotEmpty) parts.add(p.country!);
-      return parts.isEmpty ? null : parts.join(', ');
+      if (parts.isEmpty) return null;
+      final name = parts.join(', ');
+      try {
+        await (await SharedPreferences.getInstance()).setString(key, name);
+      } catch (_) {}
+      return name;
     } catch (_) {
       return null;
     }
@@ -239,10 +250,15 @@ class PrayerService {
 
   static Future<PrayerDay> fetch(double lat, double lng,
       [PrayerSettings st = const PrayerSettings()]) async {
-    final uri = Uri.parse('https://api.aladhan.com/v1/timings'
+    // The date is in the address, so the server answers directly instead of
+    // first redirecting to today's address (one round trip less).
+    final now = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final dateInPath = '${two(now.day)}-${two(now.month)}-${now.year}';
+    final uri = Uri.parse('https://api.aladhan.com/v1/timings/$dateInPath'
         '?latitude=$lat&longitude=$lng'
         '&method=${st.effectiveMethod}&school=${st.school}');
-    final res = await http.get(uri).timeout(const Duration(seconds: 15));
+    final res = await sharedHttp.get(uri).timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) {
       throw Exception('Prayer times unavailable (${res.statusCode})');
     }

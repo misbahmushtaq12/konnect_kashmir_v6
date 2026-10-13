@@ -348,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final name = auth.user?.name ?? '';
 
-    Widget logo = Image.asset('assets/images/konnectkashmir.png', height: 42);
+    Widget logo = Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: 42);
     if (isDark) {
       logo = ColorFiltered(
         colorFilter: const ColorFilter.matrix([

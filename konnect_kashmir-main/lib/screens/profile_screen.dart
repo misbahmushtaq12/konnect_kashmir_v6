@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
-import 'package:http/http.dart' as http;
+import '../services/shared_http.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
@@ -65,7 +65,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       final uri = Uri.parse('$_baseUrl/rest/v1/profiles')
           .replace(queryParameters: {'id': 'eq.${widget.userId}'});
 
-      final res = await http.patch(
+      final res = await sharedHttp.patch(
         uri,
         headers: {
           'Content-Type': 'application/json',

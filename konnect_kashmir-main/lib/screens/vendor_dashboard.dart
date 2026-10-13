@@ -5,7 +5,7 @@ import '../widgets/force_ltr.dart';
 import '../widgets/app_overlays.dart';
 import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
+import '../services/shared_http.dart';
 import 'package:konnect_kashmir/screens/profile2.dart';
 import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:provider/provider.dart';
@@ -87,7 +87,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   Future<dynamic> _get(String path) async {
     try {
       final res =
-      await http.get(Uri.parse('$_supabaseUrl$path'), headers: _headers);
+      await sharedHttp.get(Uri.parse('$_supabaseUrl$path'), headers: _headers);
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (e) {
       debugPrint('GET $path: $e');
@@ -106,10 +106,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           0,  0, -1, 0, 255,
           0,  0,  0, 1,   0,
         ]),
-        child: Image.asset('assets/images/konnectkashmir.png', height: height),
+        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height),
       );
     } else {
-      return Image.asset('assets/images/konnectkashmir.png', height: height);
+      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
     }
   }
 

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../widgets/force_ltr.dart';
 import '../widgets/app_snack.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
+import '../services/shared_http.dart';
 import 'package:konnect_kashmir/screens/customer_screen.dart';
 import 'package:konnect_kashmir/static/grevience_screen.dart';
 import 'package:konnect_kashmir/screens/profile2.dart';
@@ -92,10 +92,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           0, 0, -1, 0, 255,
           0, 0, 0, 1, 0,
         ]),
-        child: Image.asset('assets/images/konnectkashmir.png', height: h),
+        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: h),
       );
     } else {
-      return Image.asset('assets/images/konnectkashmir.png', height: h);
+      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: h);
     }
   }
 
@@ -107,7 +107,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<dynamic> _get(String path, String? token) async {
     try {
-      final res = await http.get(
+      final res = await sharedHttp.get(
         Uri.parse('$_supabaseUrl$path'),
         headers: _authHeaders(token),
       );
@@ -122,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<dynamic> _rpc(String fn, Map<String, dynamic> body, String? token) async {
     try {
-      final res = await http.post(
+      final res = await sharedHttp.post(
         Uri.parse('$_supabaseUrl/rest/v1/rpc/$fn'),
         headers: _authHeaders(token),
         body: jsonEncode(body),
@@ -280,7 +280,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _fetchStats(String? token) async {
     try {
       Future<int> countTable(String path) async {
-        final res = await http.head(
+        final res = await sharedHttp.head(
           Uri.parse('$_supabaseUrl$path'),
           headers: {..._authHeaders(token), 'Prefer': 'count=exact'},
         );

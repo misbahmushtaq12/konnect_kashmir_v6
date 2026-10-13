@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+import '../../services/shared_http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Surah {
@@ -54,7 +54,7 @@ class QuranService {
             .toList();
       } catch (_) {}
     }
-    final res = await http
+    final res = await sharedHttp
         .get(Uri.parse('$_base/surah'))
         .timeout(const Duration(seconds: 15));
     if (res.statusCode != 200) throw Exception('Quran unavailable (${res.statusCode})');
@@ -69,7 +69,7 @@ class QuranService {
   static Future<List<Ayah>> ayahs(int surah) async {
     final hit = _ayahs[surah];
     if (hit != null) return hit;
-    final res = await http
+    final res = await sharedHttp
         .get(Uri.parse('$_base/surah/$surah/editions/quran-uthmani,en.sahih'))
         .timeout(const Duration(seconds: 20));
     if (res.statusCode != 200) throw Exception('Quran unavailable (${res.statusCode})');

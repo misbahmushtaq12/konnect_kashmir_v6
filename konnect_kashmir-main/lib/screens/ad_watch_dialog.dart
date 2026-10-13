@@ -21,14 +21,12 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
   bool _isFullScreen = false;
   Timer? _watchTimer;
 
-  double get _progress =>
-      (_watchedSeconds / _requiredSeconds).clamp(0.0, 1.0);
+  double get _progress => (_watchedSeconds / _requiredSeconds).clamp(0.0, 1.0);
   int get _percentage => (_progress * 100).round().clamp(0, 100);
   int get _remaining =>
       (_requiredSeconds - _watchedSeconds).clamp(0, _requiredSeconds);
 
-  String _extractVideoId(String url) =>
-      YoutubePlayer.convertUrlToId(url) ?? '';
+  String _extractVideoId(String url) => YoutubePlayer.convertUrlToId(url) ?? '';
 
   @override
   void initState() {
@@ -49,8 +47,7 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
       if (!mounted) return;
       if (_controller.value.isPlaying && !_rewardReady) {
         setState(() {
-          _watchedSeconds =
-              (_watchedSeconds + 1).clamp(0, _requiredSeconds);
+          _watchedSeconds = (_watchedSeconds + 1).clamp(0, _requiredSeconds);
           if (_watchedSeconds >= _requiredSeconds) {
             _rewardReady = true;
             _watchTimer?.cancel();
@@ -91,9 +88,8 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
     final waitBtnFg = isDark ? Colors.white : Colors.black87;
     final timerTextColor = cs.onSurface.withOpacity(0.55);
 
-    final int reward = widget.ad['reward'] as int? ??
-        widget.ad['credits_reward'] as int? ??
-        1;
+    final int reward =
+        widget.ad['reward'] as int? ?? widget.ad['credits_reward'] as int? ?? 1;
     final String title = widget.ad['title'] as String? ?? 'Ad';
 
     return YoutubePlayerBuilder(
@@ -129,174 +125,195 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
             body: Center(child: player),
           );
         }
-        return Dialog(
+        // The ad fills the whole screen: header on top, the video in the middle,
+        // progress and the claim button at the bottom.
+        return Dialog.fullscreen(
           backgroundColor: dialogBg,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md)),
-          insetPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ─────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 16, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontSize: AppText.body,
-                              fontWeight: FontWeight.bold,
-                              color: titleColor,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Watch to earn credits',
-                            style: TextStyle(
-                                fontSize: AppText.caption, color: subtitleColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: rewardBadgeBg,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Text(
-                        '+$reward',
-                        style: TextStyle(
-                          color: teal,
-                          fontWeight: FontWeight.bold,
-                          fontSize: AppText.caption,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _closeDialog,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        child: Icon(Icons.close,
-                            color: subtitleColor, size: 20),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── YouTube Player ──────────────────────────────────────
-              ClipRRect(
-                borderRadius: BorderRadius.zero,
-                child: player,
-              ),
-
-              // ── Progress & Claim ────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header ─────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 16, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.access_time_outlined,
-                                color: timerTextColor, size: 16),
-                            const SizedBox(width: 6),
                             Text(
-                              _rewardReady
-                                  ? 'Done!'
-                                  : 'Watch for ${_remaining}s',
+                              title,
                               style: TextStyle(
-                                  color: timerTextColor, fontSize: AppText.secondary),
+                                fontSize: AppText.body,
+                                fontWeight: FontWeight.bold,
+                                color: titleColor,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Watch to earn credits',
+                              style: TextStyle(
+                                fontSize: AppText.caption,
+                                color: subtitleColor,
+                              ),
                             ),
                           ],
                         ),
-                        Text(
-                          '$_percentage%',
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: rewardBadgeBg,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Text(
+                          '+$reward',
                           style: TextStyle(
-                            color: titleColor,
+                            color: teal,
                             fontWeight: FontWeight.bold,
-                            fontSize: AppText.secondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: _progress,
-                        minHeight: 6,
-                        backgroundColor: progressBg,
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(teal),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: _rewardReady
-                            ? ElevatedButton.icon(
-                          key: const ValueKey('claim'),
-                          onPressed: _claimReward,
-                          style: AppButtons.danger,
-                          icon: const Icon(Icons.celebration,
-                              size: 18, color: Colors.white),
-                          label: const Text(
-                            'Claim Reward  🎉',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: AppText.body,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                            : ElevatedButton.icon(
-                          key: const ValueKey('wait'),
-                          onPressed: null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: waitBtnBg,
-                            disabledBackgroundColor: waitBtnBg,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 13),
-                            shape: RoundedRectangleBorder(
-                                borderRadius:
-                                BorderRadius.circular(AppRadius.sm)),
-                          ),
-                          icon: Icon(
-                              Icons.access_time_outlined,
-                              size: 18,
-                              color: waitBtnFg),
-                          label: Text(
-                            'Please wait...  $_remaining',
-                            style: TextStyle(
-                              color: waitBtnFg,
-                              fontSize: AppText.body,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            fontSize: AppText.caption,
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _closeDialog,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.close,
+                            color: subtitleColor,
+                            size: 20,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                // ── YouTube Player ──────────────────────────────────────
+                Expanded(
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.zero,
+                      child: player,
+                    ),
+                  ),
+                ),
+
+                // ── Progress & Claim ────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.access_time_outlined,
+                                color: timerTextColor,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _rewardReady
+                                    ? 'Done!'
+                                    : 'Watch for ${_remaining}s',
+                                style: TextStyle(
+                                  color: timerTextColor,
+                                  fontSize: AppText.secondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            '$_percentage%',
+                            style: TextStyle(
+                              color: titleColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: AppText.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: _progress,
+                          minHeight: 6,
+                          backgroundColor: progressBg,
+                          valueColor: AlwaysStoppedAnimation<Color>(teal),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _rewardReady
+                              ? ElevatedButton.icon(
+                                  key: const ValueKey('claim'),
+                                  onPressed: _claimReward,
+                                  style: AppButtons.danger,
+                                  icon: const Icon(
+                                    Icons.celebration,
+                                    size: 18,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    'Claim Reward  🎉',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: AppText.body,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                )
+                              : ElevatedButton.icon(
+                                  key: const ValueKey('wait'),
+                                  onPressed: null,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: waitBtnBg,
+                                    disabledBackgroundColor: waitBtnBg,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 13,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.sm,
+                                      ),
+                                    ),
+                                  ),
+                                  icon: Icon(
+                                    Icons.access_time_outlined,
+                                    size: 18,
+                                    color: waitBtnFg,
+                                  ),
+                                  label: Text(
+                                    'Please wait...  $_remaining',
+                                    style: TextStyle(
+                                      color: waitBtnFg,
+                                      fontSize: AppText.body,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

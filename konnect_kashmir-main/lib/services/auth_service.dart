@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'shared_http.dart';
 
 import 'backend_config.dart';
 
@@ -18,7 +18,7 @@ class AuthService {
 
   static Future<Map<String, dynamic>> sendOTP(String phone) async {
     try {
-      final res = await http
+      final res = await sharedHttp
           .post(
             Uri.parse('$kSupabaseUrl/functions/v1/send-otp'),
             headers: {

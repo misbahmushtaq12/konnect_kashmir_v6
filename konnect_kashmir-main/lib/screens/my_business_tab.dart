@@ -5,7 +5,7 @@ import '../l10n/l10n.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:http/http.dart' as http;
+import '../services/shared_http.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
@@ -202,7 +202,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
           'order': 'created_at.desc',
         },
       );
-      final res = await http
+      final res = await sharedHttp
           .get(uri, headers: auth.authHeaders)
           .timeout(const Duration(seconds: 15));
       if (!mounted) return;
@@ -210,6 +210,14 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
         final bizList = List<Map<String, dynamic>>.from(jsonDecode(res.body));
         
         final vendorIds = bizList.map((b) => b['id'].toString()).toList();
+
+        // Show the businesses now; the leads (a second, slower request) fill in
+        // when they arrive.
+        setState(() {
+          _businesses = bizList;
+          _errorMsg = null;
+          _loading = false;
+        });
 
         Map<String, List<dynamic>> leadsByVendor = {};
         bool leadsFailed = false;

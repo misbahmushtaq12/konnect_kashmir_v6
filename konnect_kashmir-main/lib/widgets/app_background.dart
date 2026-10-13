@@ -39,14 +39,15 @@ class _ChinarLeaf extends StatelessWidget {
     return RepaintBoundary(
       child: IgnorePointer(
         child: Center(
-          child: Opacity(
-            opacity: isDark ? 0.18 : 0.08,
-            child: Image.asset(
-              'assets/images/chinar.png',
-              fit: BoxFit.contain,
-              width: double.infinity,
-              height: double.infinity,
-            ),
+          // The fade is applied by the image itself (no extra full-screen layer for
+          // every page), and it is decoded at a size the screen can use.
+          child: Image.asset(
+            'assets/images/chinar.png',
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            cacheWidth: 900,
+            opacity: AlwaysStoppedAnimation<double>(isDark ? 0.18 : 0.08),
           ),
         ),
       ),

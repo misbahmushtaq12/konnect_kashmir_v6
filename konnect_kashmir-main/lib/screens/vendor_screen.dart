@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
 import '../l10n/category_names.dart';
 import '../widgets/app_snack.dart';
-import 'package:http/http.dart' as http;
+import '../services/shared_http.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
@@ -102,10 +102,10 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
           0,  0, -1, 0, 255,
           0,  0,  0, 1,   0,
         ]),
-        child: Image.asset('assets/images/konnectkashmir.png', height: h),
+        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: h),
       );
     } else {
-      return Image.asset('assets/images/konnectkashmir.png', height: h);
+      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: h);
     }
   }
 
@@ -1094,7 +1094,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       // Resolve locality_id
       String? localityId;
       if (_selectedLocality != null) {
-        final res = await http.get(
+        final res = await sharedHttp.get(
           Uri.parse('$_supabaseUrl/rest/v1/localities'
               '?name=eq.${Uri.encodeComponent(_selectedLocality!)}'
               '&select=id&limit=1'),
@@ -1125,7 +1125,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
 
       if (_isEditing) {
         final vendorId = widget.existingVendor!['id'].toString();
-        final patchRes = await http.patch(
+        final patchRes = await sharedHttp.patch(
           Uri.parse('$_supabaseUrl/rest/v1/vendors?id=eq.$vendorId'),
           headers: headers,
           body: jsonEncode(vendorBody),
@@ -1137,11 +1137,11 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
           return;
         }
 
-        await http.delete(
+        await sharedHttp.delete(
           Uri.parse('$_supabaseUrl/rest/v1/vendor_categories?vendor_id=eq.$vendorId'),
           headers: headers,
         );
-        await http.post(
+        await sharedHttp.post(
           Uri.parse('$_supabaseUrl/rest/v1/vendor_categories'),
           headers: headers,
           body: jsonEncode(_selectedServiceTypes
@@ -1159,7 +1159,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
           if (userId != null) 'user_id': userId,
         };
 
-        final vendorRes = await http.post(
+        final vendorRes = await sharedHttp.post(
           Uri.parse('$_supabaseUrl/rest/v1/vendors'),
           headers: headers,
           body: jsonEncode(newBody),
@@ -1175,7 +1175,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         ((jsonDecode(vendorRes.body) as List<dynamic>).first as Map<String, dynamic>)['id']
         as String;
 
-        await http.post(
+        await sharedHttp.post(
           Uri.parse('$_supabaseUrl/rest/v1/vendor_categories'),
           headers: headers,
           body: jsonEncode(_selectedServiceTypes

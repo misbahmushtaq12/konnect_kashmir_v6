@@ -305,10 +305,10 @@ class _HomeScreenState extends State<CustomerScreen>
           0, 0, 0, 1, 0,
         ]),
         child:
-        Image.asset('assets/images/konnectkashmir.png', height: height),
+        Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height),
       );
     }
-    return Image.asset('assets/images/konnectkashmir.png', height: height);
+    return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
   }
 
   final ScrollController _scrollController = ScrollController();
@@ -448,6 +448,29 @@ class _HomeScreenState extends State<CustomerScreen>
     } catch (_) {}
   }
 
+  /// The district found from the customer's location last time. Using it at once
+  /// lets the first provider list load straight away; the fresh location only
+  /// confirms it in the background (and re-lists if the customer has moved).
+  Future<void> _restoreSavedArea() async {
+    if (_areaOptOut || selectedDistrictId != null || selectedLocalityId != null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = prefs.getString('cust_district_id');
+      if (id == null || !mounted) return;
+      selectedDistrictId = id;
+      selectedDistrictName = prefs.getString('cust_district_name');
+      _autoDistrictId = id;
+    } catch (_) {}
+  }
+
+  Future<void> _saveArea(String id, String? name) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cust_district_id', id);
+      if (name != null) await prefs.setString('cust_district_name', name);
+    } catch (_) {}
+  }
+
   Future<void> _useAreaOf(double lat, double lng) async {
     final names = await CustomerLocation.areaNames(lat, lng);
     final match = CustomerLocation.matchDistrict(names, _districts);
@@ -462,6 +485,7 @@ class _HomeScreenState extends State<CustomerScreen>
       selectedDistrictName = match['name']?.toString();
       _autoDistrictId = id;
     });
+    _saveArea(id, match['name']?.toString());
     _loadLocalities(id);
     // Already listing providers: start again from page 1 for the new area.
     if (_vendorsStarted) _loadVendors();
@@ -471,15 +495,15 @@ class _HomeScreenState extends State<CustomerScreen>
     if (!mounted) return;
     // Pull-to-refresh is "quiet": its own spinner shows, not a second loader.
     if (!quiet) setState(() => isLoading = true);
+    await _restoreSavedArea();
     final districtsReady =
         _loadDistricts().catchError((e) => debugPrint('loadDistricts: $e'));
-    final areaReady = _applyCustomerArea(districtsReady);
+    _applyCustomerArea(districtsReady); // in the background
     await Future.wait([
       _loadStats().catchError((e) => debugPrint('loadStats: $e')),
-      // The first list already follows the customer location when it is known
-      // quickly; a slow fix never holds the list back (it re-lists later).
-      Future.any([areaReady, Future<void>.delayed(const Duration(seconds: 3))])
-          .then((_) {
+      // The provider list starts at once. It follows the saved district; the
+      // location check runs alongside and re-lists only if the area changed.
+      Future<void>.sync(() {
         _vendorsStarted = true;
         return _loadVendors();
       }).catchError((e) => debugPrint('loadVendors: $e')),
@@ -2600,6 +2624,8 @@ class _HomeScreenState extends State<CustomerScreen>
             child: (logoUrl != null && logoUrl.isNotEmpty)
                 ? Image.network(logoUrl,
                     fit: BoxFit.cover,
+                    cacheWidth: 140,
+                    cacheHeight: 140,
                     errorBuilder: (_, __, ___) => initialsWidget)
                 : initialsWidget,
           ),

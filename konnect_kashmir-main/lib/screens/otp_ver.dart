@@ -237,7 +237,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
 
   Widget _adaptiveLogo({double height = 120}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    Widget logo = Image.asset('assets/images/konnectkashmir.png', height: height);
+    Widget logo = Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
     if (isDark) {
       return ColorFiltered(
         colorFilter: const ColorFilter.matrix([

@@ -5,7 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
+import 'shared_http.dart';
 
 import '../providers/auth_provider.dart';
 import '../screens/main_shell.dart';
@@ -204,7 +204,7 @@ class NotificationService {
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
       // Same device, new account: move the token to this user; otherwise add it.
-      final patch = await http
+      final patch = await sharedHttp
           .patch(
             Uri.parse('$kSupabaseUrl/rest/v1/user_device_tokens')
                 .replace(queryParameters: {'fcm_token': 'eq.$token'}),
@@ -216,7 +216,7 @@ class NotificationService {
           patch.body.isNotEmpty &&
           (jsonDecode(patch.body) as List).isNotEmpty;
       if (!updated) {
-        final ins = await http
+        final ins = await sharedHttp
             .post(
               Uri.parse('$kSupabaseUrl/rest/v1/user_device_tokens'),
               headers: {..._headers(), 'Prefer': 'return=minimal'},
@@ -239,7 +239,7 @@ class NotificationService {
     final token = _token;
     if (!_available || token == null) return;
     try {
-      await http
+      await sharedHttp
           .delete(
             Uri.parse('$kSupabaseUrl/rest/v1/user_device_tokens')
                 .replace(queryParameters: {'fcm_token': 'eq.$token'}),

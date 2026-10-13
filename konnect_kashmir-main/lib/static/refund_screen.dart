@@ -21,10 +21,10 @@ class RefundPolicy extends StatelessWidget {
           0,  0, -1, 0, 255,
           0,  0,  0, 1,   0,
         ]),
-        child: Image.asset('assets/images/konnectkashmir.png', height: height),
+        child: Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height),
       );
     } else {
-      return Image.asset('assets/images/konnectkashmir.png', height: height);
+      return Image.asset('assets/images/konnectkashmir.png', cacheHeight: 384, height: height);
     }
   }
 
