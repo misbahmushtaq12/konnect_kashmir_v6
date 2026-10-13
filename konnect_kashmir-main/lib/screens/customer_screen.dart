@@ -23,7 +23,6 @@ import '../widgets/app_chip.dart';
 import '../widgets/app_header.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/error_retry.dart';
-import '../widgets/expandable_text.dart';
 import '../widgets/category_meta.dart';
 import 'ad_watch_dialog.dart';
 
@@ -366,6 +365,8 @@ class _HomeScreenState extends State<CustomerScreen>
   int _unlockedTick = 0;
   // Vendors whose number is being looked up (it is not free to re-ask).
   final Set<String> _phoneRequested = {};
+  // Vendor cards that are opened to show everything (the others show a summary).
+  final Set<String> _expandedCards = {};
   Map<dynamic, bool> revealedVendors = {};
   Map<dynamic, String> _revealedPhones = {};
   Map<dynamic, bool> _isRevealingVendor = {};
@@ -2475,13 +2476,6 @@ class _HomeScreenState extends State<CustomerScreen>
     final isLoggedIn = auth.isAuthenticated;
     final vendorId = vendor['id'];
     final String name = (vendor['business_name'] ?? 'Vendor').toString();
-    final initials = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-        .join();
-
     final String slug = vendor['service_type']?.toString() ?? '';
     final meta = CategoryMeta.of(slug, name: vendor['service_type']?.toString());
     final localityDisplay = vendor['localities'] is Map
@@ -2521,11 +2515,22 @@ class _HomeScreenState extends State<CustomerScreen>
       if (localityDisplay.isNotEmpty) localityDisplay,
     ].join(' · ');
 
+    final initials = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
     final initialsWidget = Center(
       child: Text(initials,
           style: TextStyle(
               color: meta.color, fontSize: AppText.heading, fontWeight: FontWeight.w800)),
     );
+    final cardOpen = _expandedCards.contains(vendorId.toString());
+    void toggleCard() => setState(() {
+          final id = vendorId.toString();
+          if (!_expandedCards.remove(id)) _expandedCards.add(id);
+        });
 
     Widget tag(IconData icon, String text) => AppChip(text, icon: icon);
     final tags = <Widget>[
@@ -2566,18 +2571,27 @@ class _HomeScreenState extends State<CustomerScreen>
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            width: 52,
-            height: 52,
+        Semantics(
+          button: true,
+          expanded: cardOpen,
+          label: '$name, ${cardOpen ? context.l10n.seeLess : context.l10n.seeMore}',
+          child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          onTap: toggleCard,
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Tooltip(
+            message: serviceTypeDisplay,
+            child: Container(
+            width: 44,
+            height: 44,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: meta.color.withValues(alpha: 0.14),
@@ -2588,6 +2602,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => initialsWidget)
                 : initialsWidget,
+          ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -2600,7 +2615,7 @@ class _HomeScreenState extends State<CustomerScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: AppText.body, fontWeight: FontWeight.w700)),
+                            fontSize: AppText.heading, fontWeight: FontWeight.w700)),
                   ),
                   if (vendor['is_verified'] == true) ...[
                     const SizedBox(width: 5),
@@ -2610,70 +2625,98 @@ class _HomeScreenState extends State<CustomerScreen>
                 ]),
                 if (subtitle.isNotEmpty) ...[
                   const SizedBox(height: 3),
-                  Text(subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: AppText.secondary,
-                          color: cs.onSurface.withValues(alpha: 0.7))),
+                  Row(children: [
+                    Flexible(
+                      child: Text(subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: AppText.secondary,
+                              color: cs.onSurface.withValues(alpha: 0.7))),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(cardOpen ? context.l10n.seeLess : context.l10n.seeMore,
+                        style: const TextStyle(
+                            fontSize: AppText.secondary,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700)),
+                  ]),
                 ],
               ],
             ),
           ),
+          const SizedBox(width: 4),
+          AnimatedRotation(
+            turns: cardOpen ? 0.5 : 0,
+            duration: const Duration(milliseconds: 220),
+            child: Icon(Icons.keyboard_arrow_down_rounded,
+                size: 26, color: cs.onSurface.withValues(alpha: 0.6)),
+          ),
         ]),
-        if (desc.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          ExpandableText(desc,
-              key: ValueKey('desc_$vendorId'),
-              maxLines: 2,
-              style: TextStyle(
-                  fontSize: AppText.secondary,
-                  height: 1.4,
-                  color: cs.onSurface.withValues(alpha: 0.7))),
-        ],
-        if (tags.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Wrap(spacing: 8, runSpacing: 8, children: tags),
-        ],
-        const SizedBox(height: 14),
+        ),
+        ),
+        // Description and tags only when the card is open.
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (cardOpen && desc.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(desc,
+                  style: TextStyle(
+                      fontSize: AppText.secondary,
+                      height: 1.4,
+                      color: cs.onSurface.withValues(alpha: 0.7))),
+            ],
+            if (cardOpen && tags.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, runSpacing: 8, children: tags),
+            ],
+          ]),
+        ),
+        const SizedBox(height: 8),
         Divider(color: cs.onSurface.withValues(alpha: 0.08), height: 1),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         Row(children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(isRevealed ? context.l10n.unlocked : context.l10n.contact,
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: AlignmentDirectional.centerStart,
+                child: Text.rich(TextSpan(children: [
+                  TextSpan(
+                    text: '${isRevealed ? context.l10n.unlocked : context.l10n.contact}: ',
                     style: TextStyle(
-                        fontSize: AppText.caption,
-                        color: cs.onSurface.withValues(alpha: 0.66))),
-                const SizedBox(height: 2),
-                Text(
-                  isRevealed
-                      ? '+91 $phone'
-                      : '+91 ${_maskPhone(phone)}',
-                  style: TextStyle(
-                    fontSize: AppText.body,
-                    fontWeight: isRevealed ? FontWeight.w600 : FontWeight.w400,
-                    letterSpacing: 0.3,
-                    color: isRevealed
-                        ? cs.onSurface
-                        : cs.onSurface.withValues(alpha: 0.68),
+                        fontSize: AppText.secondary,
+                        color: cs.onSurface.withValues(alpha: 0.66)),
                   ),
-                ),
-              ],
+                  TextSpan(
+                    text: isRevealed ? '+91 $phone' : '+91 ${_maskPhone(phone)}',
+                    style: TextStyle(
+                      fontSize: AppText.body,
+                      fontWeight: isRevealed ? FontWeight.w600 : FontWeight.w400,
+                      letterSpacing: 0.3,
+                      color: isRevealed
+                          ? cs.onSurface
+                          : cs.onSurface.withValues(alpha: 0.68),
+                    ),
+                  ),
+                ])),
+              ),
             ),
           ),
           const SizedBox(width: 8),
           action,
         ]),
         if (isRevealed) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 2),
           InkWell(
             borderRadius: BorderRadius.circular(AppRadius.sm),
             onTap: () => setState(() => showActionsMap[vendorId] = !expanded),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(
                     expanded

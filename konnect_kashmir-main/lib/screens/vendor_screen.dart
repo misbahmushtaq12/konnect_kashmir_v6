@@ -67,6 +67,15 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
 
   bool get _isEditing => widget.existingVendor != null;
 
+  /// The phone number this account signed in with (verified by OTP), as the 10
+  /// digits used everywhere else. Null if the session does not have it.
+  String? get _verifiedPhone {
+    final raw = context.read<AuthProvider>().user?.phoneNumber ?? '';
+    final d = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.length < 10) return null;
+    return d.substring(d.length - 10);
+  }
+
   // ── CHANGE 1: Responsive helpers ─────────────────────────────────────────
   // All sizes are derived from screen width so the layout adapts to any device.
   double get _sw => MediaQuery.of(context).size.width;
@@ -182,11 +191,15 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   void initState() {
     super.initState();
     _loadServiceOptions();
+    if (!_isEditing) _phoneController.text = _verifiedPhone ?? '';
     if (_isEditing) {
       final v = widget.existingVendor!;
       _businessNameController.text        = v['business_name']    as String? ?? '';
       _businessDescriptionController.text = v['description']       as String? ?? '';
       _phoneController.text               = v['phone']             as String? ?? '';
+      if (_phoneController.text.trim().isEmpty) {
+        _phoneController.text = _verifiedPhone ?? '';
+      }
       _whatsappController.text            = v['whatsapp_number']   as String? ?? '';
       _emailController.text               = v['email']             as String? ?? '';
       _addressController.text             = v['address']           as String? ?? '';
@@ -412,6 +425,9 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 controller: _phoneController,
                                 hintText: '9876543210',
                                 isRequired: true,
+                                // Locked to the number verified at login. If the
+                                // session has none, it stays editable so nobody is stuck.
+                                readOnly: _verifiedPhone != null,
                               ),
                               const SizedBox(height: 14),
                               Row(children: [
@@ -556,6 +572,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     required TextEditingController controller,
     required String hintText,
     bool isRequired = false,
+    bool readOnly = false,
   }) {
     return Row(children: [
       // ── CHANGE 10: +91 prefix box no longer overflows on small screens ──
@@ -578,6 +595,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
           hintText: hintText,
           keyboardType: TextInputType.phone,
           isRequired: isRequired,
+          readOnly: readOnly,
         ),
       ),
     ]);
@@ -864,9 +882,11 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     int maxLines = 1,
     TextInputType? keyboardType,
     bool isRequired = false,
+    bool readOnly = false,
   }) {
     return TextFormField(
       controller: controller,
+      readOnly: readOnly,
       maxLines: maxLines,
       keyboardType: keyboardType,
       style: TextStyle(color: _onSurface, fontSize: _rs(0.038, min: 13, max: 16)),
