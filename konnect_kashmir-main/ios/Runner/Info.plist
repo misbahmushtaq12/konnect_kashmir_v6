@@ -7,7 +7,9 @@
 		<string>remote-notification</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location is used to show prayer times and the Qibla direction.</string>
+	<string>Your location is used to show prayer times and the Qibla direction, and to show service providers in your area.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Your location is used to show prayer times and the Qibla direction, and to show service providers in your area. KonnectKashmir uses it only while the app is open.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
