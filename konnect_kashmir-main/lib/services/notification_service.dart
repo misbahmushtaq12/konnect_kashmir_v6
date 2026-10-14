@@ -146,7 +146,15 @@ class NotificationService {
 
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true, badge: true, sound: true);
-    FirebaseMessaging.onMessage.listen(_showLocal);
+    FirebaseMessaging.onMessage.listen((m) {
+      // iOS already shows a foreground message that has a notification part (see
+      // the presentation options above); a local copy would show it twice.
+      // Android does not show it, so there the local copy is needed.
+      if (defaultTargetPlatform == TargetPlatform.iOS && m.notification != null) {
+        return;
+      }
+      _showLocal(m);
+    });
     FirebaseMessaging.onMessageOpenedApp.listen((m) => _open(m.data));
     FirebaseMessaging.instance.onTokenRefresh.listen((t) {
       _token = t;
@@ -188,6 +196,25 @@ class NotificationService {
       // Native permission prompt (Android 13+ / iOS). Ignored if already decided.
       final settings = await FirebaseMessaging.instance.requestPermission();
       if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+
+      // On iPhone the FCM token only exists after Apple has given the phone its
+      // APNs token (which needs the Push capability, a real device and the APNs
+      // key uploaded to Firebase). Asking for the FCM token earlier throws, so
+      // wait a few seconds for it. If it never comes, give up quietly: the
+      // token-refresh listener registers the device as soon as it does arrive.
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        String? apns = await FirebaseMessaging.instance.getAPNSToken();
+        for (var i = 0; apns == null && i < 10; i++) {
+          await Future<void>.delayed(const Duration(seconds: 1));
+          apns = await FirebaseMessaging.instance.getAPNSToken();
+        }
+        if (apns == null) {
+          debugPrint('[Push] no APNs token yet (simulator, Push capability or '
+              'provisioning profile missing?)');
+          _registeredFor = null;
+          return;
+        }
+      }
 
       _token ??= await FirebaseMessaging.instance.getToken();
       final token = _token;
