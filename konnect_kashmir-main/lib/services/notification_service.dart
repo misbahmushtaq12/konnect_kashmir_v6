@@ -224,6 +224,9 @@ class NotificationService {
       }
 
       final platform = defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
+      // Debug builds only (never in TestFlight, App Store or Play builds): lets a
+      // developer copy this phone's token into Firebase "Send test message".
+      if (kDebugMode) debugPrint('[Push] FCM token ($platform): $token');
       final row = {
         'user_id': uid,
         'fcm_token': token,
@@ -253,8 +256,10 @@ class NotificationService {
         if (ins.statusCode >= 400 && ins.statusCode != 409) {
           debugPrint('[Push] token not saved (${ins.statusCode}): ${ins.body}');
           _registeredFor = null;
+          return;
         }
       }
+      if (kDebugMode) debugPrint('[Push] token saved to the backend ($platform)');
     } catch (e) {
       debugPrint('[Push] register failed: $e');
       _registeredFor = null;

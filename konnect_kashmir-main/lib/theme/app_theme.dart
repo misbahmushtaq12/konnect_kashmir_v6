@@ -305,9 +305,9 @@ const PageTransitionsTheme _pageTransitions = PageTransitionsTheme(
     TargetPlatform.android:
         _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
     TargetPlatform.iOS:
-        _AppBackgroundTransitions(CupertinoPageTransitionsBuilder()),
+        _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
     TargetPlatform.macOS:
-        _AppBackgroundTransitions(CupertinoPageTransitionsBuilder()),
+        _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
     TargetPlatform.windows:
         _AppBackgroundTransitions(ZoomPageTransitionsBuilder()),
     TargetPlatform.linux:
