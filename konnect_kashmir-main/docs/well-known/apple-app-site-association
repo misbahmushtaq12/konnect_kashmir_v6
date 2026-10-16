@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["5VTU5RA37T.com.mediamosiac.konnectkashmirapp"],
+        "components": [
+          { "/": "/go", "comment": "get-the-app / new-lead SMS link" },
+          { "/": "/vendor/dashboard*" }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mediamosiac.konnect_kashmir",
+      "sha256_cert_fingerprints": [
+        "21:FA:63:64:EC:30:1E:E2:73:61:12:2A:7C:FC:E5:2E:8A:F7:5D:28:8D:B0:4C:A1:69:48:1F:02:D5:CD:F4:29",
+        "F3:FA:B6:77:96:51:C6:FD:8D:E6:4F:A0:C1:35:7D:D8:CB:60:3D:77:01:9E:28:B5:09:8E:33:DB:99:21:F8:B0"
+      ]
+    }
+  }
+]

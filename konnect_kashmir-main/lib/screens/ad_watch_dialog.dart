@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../services/youtube_link.dart';
 import '../theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -26,7 +27,10 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
   int get _remaining =>
       (_requiredSeconds - _watchedSeconds).clamp(0, _requiredSeconds);
 
-  String _extractVideoId(String url) => YoutubePlayer.convertUrlToId(url) ?? '';
+  // Our own reader first: it accepts links where "v=" is not the first
+  // parameter (YouTube's "Copy link" often gives those), which the package misses.
+  String _extractVideoId(String url) =>
+      YoutubeLink.videoId(url) ?? YoutubePlayer.convertUrlToId(url) ?? '';
 
   @override
   void initState() {

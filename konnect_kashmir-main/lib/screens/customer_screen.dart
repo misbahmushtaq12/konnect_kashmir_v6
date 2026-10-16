@@ -2107,7 +2107,8 @@ class _HomeScreenState extends State<CustomerScreen>
               child: ListView(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 24),
+                // Room under the last card, so the bottom bar never covers it.
+                padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 40),
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 children: [
@@ -2641,7 +2642,8 @@ class _HomeScreenState extends State<CustomerScreen>
           if (!_expandedCards.remove(id)) _expandedCards.add(id);
         });
 
-    Widget tag(IconData icon, String text) => AppChip(text, icon: icon);
+    Widget tag(IconData icon, String text) =>
+        AppChip(text, icon: icon, compact: true);
     final tags = <Widget>[
       if (price != null) tag(Icons.currency_rupee_rounded, price.substring(1)),
       if (exp != null && exp > 0)
@@ -2690,19 +2692,23 @@ class _HomeScreenState extends State<CustomerScreen>
         : null;
 
     final muted = cs.onSurface.withValues(alpha: 0.66);
+    // A slightly lighter teal card on the dark teal page.
+    final cardColor = cs.brightness == Brightness.dark
+        ? Color.alphaBlend(
+            AppColors.primary.withValues(alpha: 0.07), AppColors.darkSurface)
+        : cs.surface;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.fromLTRB(14, 12, 14, isRevealed ? 2 : 12),
       decoration: BoxDecoration(
-        color: cs.surface,
+        color: cardColor,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Header: logo, name, service and place. The place has its own line, so
-        // it is never cut off by the service name, and it shows in full once the
-        // card is open.
+        // Header: avatar, name, then service, place and "See more" along one
+        // line. What does not fit moves to the next line, so nothing is cut off.
         Semantics(
           button: true,
           expanded: cardOpen,
@@ -2751,9 +2757,6 @@ class _HomeScreenState extends State<CustomerScreen>
                       ],
                     ]),
                     const SizedBox(height: 3),
-                    // The service, the place and "See more" run along one line.
-                    // What does not fit moves to the next line, so the place is
-                    // never cut off.
                     Wrap(
                       spacing: 10,
                       runSpacing: 2,
@@ -2788,29 +2791,30 @@ class _HomeScreenState extends State<CustomerScreen>
             ]),
           ),
         ),
-        // Description and tags only when the card is open.
+        // Description: hidden until "See more" is tapped, then shown in full.
         AnimatedSize(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeInOut,
           alignment: Alignment.topCenter,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (cardOpen && desc.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(desc,
                   style: TextStyle(
                       fontSize: AppText.secondary,
-                      height: 1.4,
-                      color: cs.onSurface.withValues(alpha: 0.7))),
-            ],
-            if (cardOpen && tags.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Wrap(spacing: 8, runSpacing: 8, children: tags),
+                      height: 1.35,
+                      color: cs.onSurface.withValues(alpha: 0.72))),
             ],
           ]),
         ),
-        const SizedBox(height: 12),
-        Divider(color: cs.onSurface.withValues(alpha: 0.08), height: 1),
+        // Price, experience and services as small, quiet chips.
+        if (tags.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(spacing: 6, runSpacing: 6, children: tags),
+        ],
         const SizedBox(height: 10),
+        Divider(color: cs.onSurface.withValues(alpha: 0.07), height: 1),
+        const SizedBox(height: 8),
         // Contact: the label and number stacked, the action on the right.
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Expanded(
@@ -2818,8 +2822,8 @@ class _HomeScreenState extends State<CustomerScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(isRevealed ? context.l10n.unlocked : context.l10n.contact,
-                    style: TextStyle(fontSize: AppText.secondary, color: muted)),
-                const SizedBox(height: 2),
+                    style: TextStyle(fontSize: AppText.caption, color: muted)),
+                const SizedBox(height: 1),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: AlignmentDirectional.centerStart,
@@ -2841,63 +2845,63 @@ class _HomeScreenState extends State<CustomerScreen>
           const SizedBox(width: 8),
           action,
         ]),
+        // Location: one compact row with the map action.
         if (mapUri != null) ...[
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsetsDirectional.fromSTEB(12, 2, 4, 2),
-            decoration: BoxDecoration(
-              color: cs.onSurface.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+          const SizedBox(height: 2),
+          Row(children: [
+            const Icon(Icons.location_on_outlined,
+                size: 18, color: AppColors.primary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(addressText.isEmpty ? localityDisplay : addressText,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppText.secondary,
+                      color: cs.onSurface.withValues(alpha: 0.85))),
             ),
-            child: Row(children: [
-              const Icon(Icons.location_on_outlined,
-                  size: 18, color: AppColors.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(addressText.isEmpty ? localityDisplay : addressText,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        fontSize: AppText.secondary,
-                        color: cs.onSurface.withValues(alpha: 0.85))),
+            TextButton.icon(
+              onPressed: () => _openInMap(mapUri),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                visualDensity: VisualDensity.compact,
               ),
-              TextButton.icon(
-                onPressed: () => _openInMap(mapUri),
-                icon: const Icon(Icons.map_outlined, size: 18),
-                label: Text(context.l10n.showInMap),
-              ),
-            ]),
-          ),
+              icon: const Icon(Icons.map_outlined, size: 16),
+              label: Text(context.l10n.showInMap,
+                  style: const TextStyle(
+                      fontSize: AppText.secondary, fontWeight: FontWeight.w600)),
+            ),
+          ]),
         ],
-        if (isRevealed) ...[
-          const SizedBox(height: 4),
+        // Review / report: a quiet footer that opens.
+        if (isRevealed)
           InkWell(
             borderRadius: BorderRadius.circular(AppRadius.sm),
             onTap: () => setState(() => showActionsMap[vendorId] = !expanded),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              child: Row(children: [
+                Text(expanded ? context.l10n.hide : context.l10n.rateReviewReport,
+                    style: TextStyle(
+                        fontSize: AppText.caption,
+                        color: cs.onSurface.withValues(alpha: 0.55))),
+                const Spacer(),
                 Icon(
                     expanded
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
-                    size: 20,
-                    color: cs.onSurface.withValues(alpha: 0.7)),
-                const SizedBox(width: 4),
-                Text(expanded ? context.l10n.hide : context.l10n.rateReviewReport,
-                    style: TextStyle(
-                        fontSize: AppText.secondary,
-                        color: cs.onSurface.withValues(alpha: 0.7))),
+                    size: 18,
+                    color: cs.onSurface.withValues(alpha: 0.55)),
               ]),
             ),
           ),
-        ],
         if (expanded) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           _buildImportantNotice(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _buildReviewSection(vendorId),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Divider(color: cs.onSurface.withValues(alpha: 0.1)),
           InkWell(
             onTap: () => _showReportDialog(vendor),
@@ -2929,14 +2933,12 @@ class _HomeScreenState extends State<CustomerScreen>
 
   Widget _buildRevealButton(dynamic vendor) {
     final hasCredit = userCredits > 0;
+    // One clear primary button with a lock icon; with no credit the label says
+    // that an ad unlocks it.
     return ElevatedButton.icon(
       onPressed: () => _revealContact(vendor),
-      style: AppButtons.compact(hasCredit
-          ? AppButtons.primary
-          : AppButtons.withBg(AppButtons.primary, AppColors.accent)),
-      icon: Icon(
-          hasCredit ? Icons.lock_open_outlined : Icons.play_circle_outline,
-          size: 18),
+      style: AppButtons.compact(AppButtons.primary),
+      icon: const Icon(Icons.lock_outline_rounded, size: 18),
       label: Text(hasCredit ? context.l10n.unlockContact : context.l10n.watchAdToUnlock,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppText.secondary)),
     );

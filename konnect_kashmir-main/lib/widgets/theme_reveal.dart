@@ -39,17 +39,25 @@ class _ThemeRevealState extends State<ThemeReveal>
     with SingleTickerProviderStateMixin {
   final GlobalKey _boundaryKey = GlobalKey();
 
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 420),
-  );
-  late final Animation<double> _progress =
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+  // Made in initState, not lazily: a lazy controller that was never used would
+  // first be created inside dispose(), which Flutter does not allow.
+  late final AnimationController _controller;
+  late final Animation<double> _progress;
 
   ui.Image? _snapshot;
   Offset _origin = Offset.zero;
   double _maxRadius = 0;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+    _progress = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+  }
 
   @override
   void dispose() {

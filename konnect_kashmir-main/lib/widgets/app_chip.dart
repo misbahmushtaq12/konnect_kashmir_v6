@@ -11,11 +11,15 @@ class AppChip extends StatelessWidget {
   final IconData? icon;
   final ChipTone tone;
 
+  /// A smaller, quieter pill for dense places such as listing cards.
+  final bool compact;
+
   const AppChip(
     this.label, {
     super.key,
     this.icon,
     this.tone = ChipTone.neutral,
+    this.compact = false,
   });
 
   @override
@@ -49,20 +53,22 @@ class AppChip extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: compact
+          ? const EdgeInsets.symmetric(horizontal: 8, vertical: 3)
+          : const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         if (icon != null) ...[
-          Icon(icon, size: 14, color: fg),
-          const SizedBox(width: 4),
+          Icon(icon, size: compact ? 12 : 14, color: fg),
+          SizedBox(width: compact ? 3 : 4),
         ],
         Text(label,
             style: TextStyle(
-                fontSize: AppText.caption,
-                fontWeight: FontWeight.w700,
+                fontSize: compact ? 11 : AppText.caption,
+                fontWeight: compact ? FontWeight.w600 : FontWeight.w700,
                 color: fg)),
       ]),
     );

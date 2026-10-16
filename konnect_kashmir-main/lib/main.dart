@@ -7,8 +7,10 @@ import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 import 'services/backend_config.dart';
+import 'services/app_links.dart';
 import 'services/live_sync.dart';
 import 'services/notification_service.dart';
+import 'screens/leads_link_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
 import 'screens/main_shell.dart';
@@ -111,10 +113,34 @@ class KonnectKashmirApp extends StatelessWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
 
-        // Flow: Splash -> Login (or Dashboard if already signed in)
-        home: const SplashScreen(),
+        // Flow: Splash -> Login (or Dashboard if already signed in).
+        // A link that opens the app (the new-lead SMS) only picks the tab to show:
+        // the app always starts at the splash, then goes to My Business.
+        // (No `home:` - Flutter does not allow it together with this.)
+        onGenerateInitialRoutes: (initialRoute) {
+          if (AppLinks.isLeadsLink(initialRoute)) {
+            MainShell.tabRequest.value = MainShell.tabMyBusiness;
+          }
+          return [
+            MaterialPageRoute<void>(
+              settings: const RouteSettings(name: '/'),
+              builder: (_) => const SplashScreen(),
+            ),
+          ];
+        },
+
+        // A link that opens the app while it is already running (any query string
+        // is kept, which a plain `routes` entry would not match).
+        onGenerateRoute: (settings) {
+          if (!AppLinks.isAppLink(settings.name)) return null;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => LeadsLinkScreen(route: settings.name ?? ''),
+          );
+        },
 
         routes: {
+          '/':                (_) => const SplashScreen(),
           '/home':            (_) => const MainShell(),
           '/login':           (_) => const LoginScreen(redirectMessage: 'Please sign in to continue'),
           '/customer':        (_) => const CustomerScreen(),
