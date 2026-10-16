@@ -984,6 +984,51 @@ class AppLocalizationsHi extends AppLocalizations {
   String get searchMinChars => 'खोजने के लिए कम से कम 3 अक्षर लिखें';
 
   @override
+  String get useMyLocation => 'मेरी वर्तमान लोकेशन उपयोग करें';
+
+  @override
+  String get findingLocation => 'लोकेशन खोजी जा रही है…';
+
+  @override
+  String get checkOnMap => 'मैप पर देखें';
+
+  @override
+  String get showInMap => 'मैप में दिखाएँ';
+
+  @override
+  String get mapLinkLabel => 'Google Maps लिंक (वैकल्पिक)';
+
+  @override
+  String get mapLinkHint => 'Google Maps में Share दबाकर लिंक यहाँ चिपकाएँ';
+
+  @override
+  String get mapLinkInvalid => 'सही Google Maps लिंक दर्ज करें';
+
+  @override
+  String get replaceAddressTitle => 'पता बदलें?';
+
+  @override
+  String get replaceAddressBody =>
+      'इससे आपका लिखा हुआ पता और मैप लिंक बदल जाएगा।';
+
+  @override
+  String get replaceLabel => 'बदलें';
+
+  @override
+  String get addressLocationOff => 'अपना पता भरने के लिए लोकेशन चालू करें';
+
+  @override
+  String get addressLocationDenied =>
+      'अपना पता भरने के लिए लोकेशन की अनुमति चाहिए। इसे फ़ोन की सेटिंग में दें।';
+
+  @override
+  String get addressNotFound =>
+      'इस जगह का पता नहीं मिला। मैप पिन सेव हो गया है, कृपया पता खुद लिखें।';
+
+  @override
+  String get couldntOpenMap => 'Google Maps नहीं खुल सका';
+
+  @override
   String get filterVerifiedOnly => 'केवल सत्यापित';
 
   @override

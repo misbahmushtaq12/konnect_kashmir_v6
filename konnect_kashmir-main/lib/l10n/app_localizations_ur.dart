@@ -990,6 +990,51 @@ class AppLocalizationsUr extends AppLocalizations {
   String get searchMinChars => 'تلاش کے لیے کم از کم 3 حروف درج کریں';
 
   @override
+  String get useMyLocation => 'میری موجودہ لوکیشن استعمال کریں';
+
+  @override
+  String get findingLocation => 'لوکیشن تلاش کی جا رہی ہے…';
+
+  @override
+  String get checkOnMap => 'نقشے پر دیکھیں';
+
+  @override
+  String get showInMap => 'نقشے میں دکھائیں';
+
+  @override
+  String get mapLinkLabel => 'گوگل میپس لنک (اختیاری)';
+
+  @override
+  String get mapLinkHint => 'گوگل میپس میں شیئر دبا کر لنک یہاں پیسٹ کریں';
+
+  @override
+  String get mapLinkInvalid => 'درست گوگل میپس لنک درج کریں';
+
+  @override
+  String get replaceAddressTitle => 'پتہ تبدیل کریں؟';
+
+  @override
+  String get replaceAddressBody =>
+      'اس سے آپ کا لکھا ہوا پتہ اور میپ لنک تبدیل ہو جائے گا۔';
+
+  @override
+  String get replaceLabel => 'تبدیل کریں';
+
+  @override
+  String get addressLocationOff => 'اپنا پتہ بھرنے کے لیے لوکیشن آن کریں';
+
+  @override
+  String get addressLocationDenied =>
+      'اپنا پتہ بھرنے کے لیے لوکیشن کی اجازت درکار ہے۔ اسے فون کی سیٹنگز میں دیں۔';
+
+  @override
+  String get addressNotFound =>
+      'اس جگہ کا پتہ نہیں ملا۔ میپ پن محفوظ ہو گیا ہے، براہِ کرم پتہ خود لکھیں۔';
+
+  @override
+  String get couldntOpenMap => 'گوگل میپس نہیں کھل سکا';
+
+  @override
   String get filterVerifiedOnly => 'صرف تصدیق شدہ';
 
   @override

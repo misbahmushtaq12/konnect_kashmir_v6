@@ -486,7 +486,7 @@ class ApiService {
             'description,is_verified,logo_url,created_at,'
             'min_price,max_price,experience_years,'
             'provides_home_service,accepts_online_payment,'
-            'phone',
+            'phone,address',
         'is_approved': 'eq.true',
         'limit': '$limit',
         'offset': '$offset',

@@ -1828,6 +1828,90 @@ abstract class AppLocalizations {
   /// **'Enter at least 3 characters to search'**
   String get searchMinChars;
 
+  /// No description provided for @useMyLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Use my current location'**
+  String get useMyLocation;
+
+  /// No description provided for @findingLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding your location…'**
+  String get findingLocation;
+
+  /// No description provided for @checkOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Check on map'**
+  String get checkOnMap;
+
+  /// No description provided for @showInMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in map'**
+  String get showInMap;
+
+  /// No description provided for @mapLinkLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Maps link (optional)'**
+  String get mapLinkLabel;
+
+  /// No description provided for @mapLinkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the link from Google Maps → Share'**
+  String get mapLinkHint;
+
+  /// No description provided for @mapLinkInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid Google Maps link'**
+  String get mapLinkInvalid;
+
+  /// No description provided for @replaceAddressTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace your address?'**
+  String get replaceAddressTitle;
+
+  /// No description provided for @replaceAddressBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace the address and map link you entered.'**
+  String get replaceAddressBody;
+
+  /// No description provided for @replaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace'**
+  String get replaceLabel;
+
+  /// No description provided for @addressLocationOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on location to fill in your address'**
+  String get addressLocationOff;
+
+  /// No description provided for @addressLocationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is needed to fill in your address. Allow it in your phone settings.'**
+  String get addressLocationDenied;
+
+  /// No description provided for @addressNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t find an address for this spot. The map pin was saved; please type the address.'**
+  String get addressNotFound;
+
+  /// No description provided for @couldntOpenMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open Google Maps'**
+  String get couldntOpenMap;
+
   /// No description provided for @filterVerifiedOnly.
   ///
   /// In en, this message translates to:

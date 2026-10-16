@@ -1,10 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import '../l10n/l10n.dart';
 import '../l10n/category_names.dart';
 import '../widgets/app_snack.dart';
+import '../services/map_link.dart';
 import '../services/shared_http.dart';
+import 'deen/prayer_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
@@ -52,6 +56,9 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   final TextEditingController _whatsappController            = TextEditingController();
   final TextEditingController _emailController               = TextEditingController();
   final TextEditingController _addressController             = TextEditingController();
+  // Optional Google Maps pin; stored after the address text (see MapLink).
+  final TextEditingController _mapLinkController             = TextEditingController();
+  bool _locating = false; // "Use my current location" is working
   final TextEditingController _searchController              = TextEditingController();
 
   List<String> _selectedServiceTypes = [];
@@ -205,7 +212,9 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       _whatsappSame = _whatsappController.text.trim().isNotEmpty &&
           _whatsappController.text.trim() == _phoneController.text.trim();
       _emailController.text               = v['email']             as String? ?? '';
-      _addressController.text             = v['address']           as String? ?? '';
+      final addr = MapLink.split(v['address'] as String? ?? '');
+      _addressController.text             = addr.text;
+      _mapLinkController.text             = addr.link ?? '';
       _homeServiceAvailable = v['provides_home_service']  as bool? ?? false;
       _acceptOnlinePayment  = v['accepts_online_payment'] as bool? ?? false;
 
@@ -236,6 +245,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     _whatsappController.dispose();
     _emailController.dispose();
     _addressController.dispose();
+    _mapLinkController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -502,6 +512,56 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                               _buildTextField(
                                 controller: _addressController,
                                 hintText: context.l10n.shopOfficeAddress,
+                              ),
+                              const SizedBox(height: 8),
+                              // The buttons follow what is typed (Check on map needs something to look for).
+                              ListenableBuilder(
+                                listenable: Listenable.merge(
+                                    [_addressController, _mapLinkController]),
+                                builder: (context, _) => Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: [
+                                    FilledButton.tonalIcon(
+                                      onPressed: _locating ? null : _fillFromLocation,
+                                      style: AppButtons.compact(AppButtons.secondary),
+                                      icon: _locating
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(strokeWidth: 2))
+                                          : const Icon(Icons.my_location_rounded, size: 18),
+                                      label: Text(_locating
+                                          ? context.l10n.findingLocation
+                                          : context.l10n.useMyLocation),
+                                    ),
+                                    FilledButton.tonalIcon(
+                                      onPressed: _mapTarget == null ? null : _checkOnMap,
+                                      style: AppButtons.compact(AppButtons.secondary),
+                                      icon: const Icon(Icons.map_outlined, size: 18),
+                                      label: Text(context.l10n.checkOnMap),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Row(children: [
+                                Icon(Icons.link_rounded, color: _onSurfaceMuted),
+                                const SizedBox(width: 8),
+                                Text(context.l10n.mapLinkLabel, style: TextStyle(color: _onSurfaceMuted)),
+                              ]),
+                              const SizedBox(height: 6),
+                              _buildTextField(
+                                controller: _mapLinkController,
+                                hintText: context.l10n.mapLinkHint,
+                                keyboardType: TextInputType.url,
+                                validator: (v) {
+                                  final t = (v ?? '').trim();
+                                  if (t.isEmpty) return null;
+                                  return MapLink.extractLink(t) == null
+                                      ? context.l10n.mapLinkInvalid
+                                      : null;
+                                },
                               ),
                               const SizedBox(height: 14),
                               _buildSwitchTile(
@@ -923,6 +983,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     TextInputType? keyboardType,
     bool isRequired = false,
     bool readOnly = false,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
@@ -930,12 +991,13 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       style: TextStyle(color: _onSurface, fontSize: _rs(0.038, min: 13, max: 16)),
-      validator: isRequired
-          ? (value) {
-        if (value == null || value.trim().isEmpty) return context.l10n.fieldRequired;
-        return null;
-      }
-          : null,
+      validator: validator ??
+          (isRequired
+              ? (value) {
+                  if (value == null || value.trim().isEmpty) return context.l10n.fieldRequired;
+                  return null;
+                }
+              : null),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
@@ -1065,6 +1127,103 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     ]);
   }
 
+  // ── Map ───────────────────────────────────────────────────────────────────
+  /// Where "Check on map" goes: the typed pin, else a search for the typed
+  /// address (or the business name in its locality). Null while there is nothing
+  /// to look for.
+  Uri? get _mapTarget => MapLink.target(
+        address: MapLink.join(_addressController.text, _mapLinkController.text.trim()),
+        locality: _selectedLocality ?? '',
+        businessName: _businessNameController.text,
+      );
+
+  Future<void> _checkOnMap() async {
+    final uri = _mapTarget;
+    if (uri == null) return;
+    if (!await MapLink.open(uri) && mounted) {
+      showAppSnack(context, context.l10n.couldntOpenMap, type: SnackType.info);
+    }
+  }
+
+  /// Fills the address, and an exact map pin, from where the provider stands.
+  Future<void> _fillFromLocation() async {
+    if (_locating) return;
+    if (_addressController.text.trim().isNotEmpty ||
+        _mapLinkController.text.trim().isNotEmpty) {
+      final replace = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(ctx.l10n.replaceAddressTitle),
+          content: Text(ctx.l10n.replaceAddressBody),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(ctx.l10n.cancel)),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(ctx.l10n.replaceLabel)),
+          ],
+        ),
+      );
+      if (replace != true || !mounted) return;
+    }
+
+    setState(() => _locating = true);
+    try {
+      final pos = await PrayerService.position();
+      if (!mounted) return;
+      // The exact pin is kept even when no street name is found for the spot.
+      _mapLinkController.text =
+          MapLink.pinFromCoordinates(pos.latitude, pos.longitude);
+      var text = '';
+      try {
+        final p = (await Geocoding()
+                .placemarkFromCoordinates(pos.latitude, pos.longitude))
+            .firstOrNull;
+        if (p != null) {
+          text = MapLink.composeAddress([
+            (p.street ?? '').trim().isNotEmpty ? p.street : p.name,
+            p.subLocality,
+            p.locality,
+            p.subAdministrativeArea,
+            p.administrativeArea,
+            p.postalCode,
+          ]);
+        }
+      } catch (_) {}
+      if (!mounted) return;
+      if (text.isNotEmpty) {
+        _addressController.text = text;
+      } else {
+        showAppSnack(context, context.l10n.addressNotFound, type: SnackType.info);
+      }
+    } on LocationException catch (e) {
+      if (!mounted) return;
+      final off = e.problem == LocationProblem.servicesOff;
+      final blocked = e.problem == LocationProblem.deniedForever;
+      showAppSnack(
+        context,
+        off ? context.l10n.addressLocationOff : context.l10n.addressLocationDenied,
+        type: SnackType.info,
+        // A plain "denied" can be asked again by tapping the button; the others need Settings.
+        action: (off || blocked)
+            ? SnackBarAction(
+                label: context.l10n.deenOpenSettings,
+                onPressed: () => off
+                    ? Geolocator.openLocationSettings()
+                    : Geolocator.openAppSettings(),
+              )
+            : null,
+      );
+    } catch (_) {
+      if (mounted) {
+        showAppSnack(context, context.l10n.addressNotFound, type: SnackType.info);
+      }
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   // ── Submit ────────────────────────────────────────────────────────────────
   void _submitForm() async {
     if (_selectedServiceTypes.isEmpty) {
@@ -1118,7 +1277,8 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
             ? _phoneController.text.trim()
             : _whatsappController.text.trim(),
         'email':                  _emailController.text.trim(),
-        'address':                _addressController.text.trim(),
+        'address':                MapLink.join(
+            _addressController.text, _mapLinkController.text.trim()),
         'provides_home_service':  _homeServiceAvailable,
         'accepts_online_payment': _acceptOnlinePayment,
       };

@@ -15,6 +15,7 @@ import 'package:konnect_kashmir/services/api_service.dart';
 import '../services/live_sync.dart';
 import '../services/analytics_service.dart';
 import '../services/customer_location.dart';
+import '../services/map_link.dart';
 import '../services/search_gate.dart';
 import '../providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/dashboard_screen.dart';
@@ -2676,6 +2677,15 @@ class _HomeScreenState extends State<CustomerScreen>
       action = _buildRevealButton(vendor);
     }
 
+    // After the contact is unlocked: the address and a button that opens it in
+    // Google Maps (the provider's pin if it has one, else a search for it).
+    final rawAddress = (vendor['address'] ?? '').toString();
+    final addressText = MapLink.split(rawAddress).text;
+    final mapUri = isRevealed
+        ? MapLink.target(
+            address: rawAddress, locality: localityDisplay, businessName: name)
+        : null;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
@@ -2811,6 +2821,27 @@ class _HomeScreenState extends State<CustomerScreen>
           const SizedBox(width: 8),
           action,
         ]),
+        if (mapUri != null) ...[
+          const SizedBox(height: 4),
+          Row(children: [
+            Icon(Icons.location_on_outlined,
+                size: 18, color: cs.onSurface.withValues(alpha: 0.66)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(addressText.isEmpty ? localityDisplay : addressText,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppText.secondary,
+                      color: cs.onSurface.withValues(alpha: 0.78))),
+            ),
+            TextButton.icon(
+              onPressed: () => _openInMap(mapUri),
+              icon: const Icon(Icons.map_outlined, size: 18),
+              label: Text(context.l10n.showInMap),
+            ),
+          ]),
+        ],
         if (isRevealed) ...[
           const SizedBox(height: 2),
           InkWell(
@@ -2897,6 +2928,12 @@ class _HomeScreenState extends State<CustomerScreen>
     if (await canLaunchUrl(uri)) await launchUrl(uri);
     if (!mounted) return;
     showAppSnack(context, context.l10n.callingPhone(phone), type: SnackType.info, duration: const Duration(seconds: 2));
+  }
+
+  Future<void> _openInMap(Uri uri) async {
+    if (!await MapLink.open(uri) && mounted) {
+      showAppSnack(context, context.l10n.couldntOpenMap, type: SnackType.info);
+    }
   }
 
   Future<void> _revealContact(dynamic vendor) async {

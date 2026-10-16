@@ -984,6 +984,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchMinChars => 'Enter at least 3 characters to search';
 
   @override
+  String get useMyLocation => 'Use my current location';
+
+  @override
+  String get findingLocation => 'Finding your location…';
+
+  @override
+  String get checkOnMap => 'Check on map';
+
+  @override
+  String get showInMap => 'Show in map';
+
+  @override
+  String get mapLinkLabel => 'Google Maps link (optional)';
+
+  @override
+  String get mapLinkHint => 'Paste the link from Google Maps → Share';
+
+  @override
+  String get mapLinkInvalid => 'Enter a valid Google Maps link';
+
+  @override
+  String get replaceAddressTitle => 'Replace your address?';
+
+  @override
+  String get replaceAddressBody =>
+      'This will replace the address and map link you entered.';
+
+  @override
+  String get replaceLabel => 'Replace';
+
+  @override
+  String get addressLocationOff => 'Turn on location to fill in your address';
+
+  @override
+  String get addressLocationDenied =>
+      'Location permission is needed to fill in your address. Allow it in your phone settings.';
+
+  @override
+  String get addressNotFound =>
+      'Couldn\'t find an address for this spot. The map pin was saved; please type the address.';
+
+  @override
+  String get couldntOpenMap => 'Couldn\'t open Google Maps';
+
+  @override
   String get filterVerifiedOnly => 'Verified only';
 
   @override
