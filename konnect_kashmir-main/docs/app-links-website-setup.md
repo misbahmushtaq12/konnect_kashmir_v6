@@ -25,12 +25,13 @@ the website (it shows the site's 404), so it should not be used in the SMS.
 
 ## What is already done in the app
 
-* Android: verified link filter for `konnectkashmir.com` / `www.konnectkashmir.com`
-  on `/go` and `/vendor/dashboard`.
-* iPhone: Associated Domains entitlement for the same two hosts.
-* The app turns `/go?utm_campaign=new_lead` into "open My Business"; any other `/go`
-  link just opens the app. If the user is signed out, My Business opens right after
-  sign-in.
+* Android: verified link filter for `konnectkashmir.com` on `/go` and `/vendor/dashboard`.
+* iPhone: Associated Domains entitlement for `konnectkashmir.com`.
+* Someone who is **signed in**: `/go?utm_campaign=new_lead` opens **My Business**
+  (where the leads are). Any other `/go` link just opens the app.
+* Someone who is **signed out**: the app opens on the sign-in screen, and after signing
+  in they see **Home** as usual. Nothing about the link is kept for after sign-in.
+  (By decision of the app owner; the original request was My Business after sign-in.)
 
 ## What is left
 
@@ -106,8 +107,7 @@ Content-Type `application/json`:
 App Store page: `https://apps.apple.com/in/app/konnect-kashmir/id6795522749`.)
 
 On the Mac, before the iPhone build: Xcode → Runner → Signing & Capabilities → check
-that **Associated Domains** lists `applinks:konnectkashmir.com` and
-`applinks:www.konnectkashmir.com`. If Xcode complains, add the capability once with
+that **Associated Domains** lists `applinks:konnectkashmir.com`. If Xcode complains, add the capability once with
 "+ Capability"; it also needs to be enabled for the app id in the Apple Developer
 account (Xcode does this itself with automatic signing and a paid team).
 
@@ -135,7 +135,8 @@ checks the files when the app is installed or updated, so publish the website fi
 
 ## Why no `www`
 
-`www.konnectkashmir.com` redirects (302) to `konnectkashmir.com`. Phones do not follow
+The app therefore declares only `konnectkashmir.com` (on Android 11 and older, one host that
+fails verification makes the whole filter fail). `www.konnectkashmir.com` redirects (302) to `konnectkashmir.com`. Phones do not follow
 redirects when they check the proof files, so a `www` link would never be verified and
 would open in the browser. Using the address without `www` avoids that. If the SMS
 provider/DLT needs the new address approved, that is the one template change; after it

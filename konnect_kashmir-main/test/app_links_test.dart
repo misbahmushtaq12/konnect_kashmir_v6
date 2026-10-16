@@ -13,18 +13,23 @@ import 'package:konnect_kashmir/services/live_sync.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The link in the new-lead SMS.
+/// The link in the new-lead message.
 const _smsLink = '/go?utm_campaign=new_lead';
 
-Future<(Widget, AuthProvider)> _app() async {
+/// The whole app. [signedIn] gives the app a signed-in user; its live-updates
+/// service is kept on a separate signed-out auth so no Supabase is needed.
+Future<Widget> _app({bool signedIn = false}) async {
   final auth = AuthProvider();
-  final app = KonnectKashmirApp(
+  if (signedIn) {
+    await auth.setSession('token', 'user-1',
+        phone: '9999999999', role: 'customer');
+  }
+  return KonnectKashmirApp(
     authProvider: auth,
     themeProvider: await ThemeProvider.load(),
     localeProvider: await LocaleProvider.load(),
-    liveSync: LiveSync(auth),
+    liveSync: LiveSync(AuthProvider()),
   );
-  return (app, auth);
 }
 
 void main() {
@@ -87,48 +92,45 @@ void main() {
     });
   });
 
-  group('app started by the link', () {
-    testWidgets('the SMS link: starts at the splash, goes on to login, and the '
-        'My Business request waits for sign-in', (tester) async {
+  group('app started by the link, signed out', () {
+    testWidgets('the SMS link: splash, then sign-in, and nothing is kept for '
+        'after sign-in (so the user sees Home)', (tester) async {
       tester.platformDispatcher.defaultRouteNameTestValue = _smsLink;
       addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
 
-      final (app, _) = await _app();
-      await tester.pumpWidget(app);
+      await tester.pumpWidget(await _app());
       await tester.pump();
 
       // Only the splash is on the stack: the link does not pile a page on it.
       expect(find.byType(SplashScreen), findsOneWidget);
       expect(find.byType(LeadsLinkScreen), findsNothing);
       expect(Navigator.of(tester.element(find.byType(SplashScreen))).canPop(), isFalse);
-      expect(MainShell.tabRequest.value, MainShell.tabMyBusiness);
+      expect(MainShell.tabRequest.value, isNull);
 
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(LoginScreen), findsOneWidget);
-      // Still waiting: the shell uses it as soon as the user has signed in.
-      expect(MainShell.tabRequest.value, MainShell.tabMyBusiness);
+      expect(MainShell.tabRequest.value, isNull);
     });
 
-    testWidgets('the older dashboard link does the same', (tester) async {
+    testWidgets('the older dashboard link behaves the same', (tester) async {
       tester.platformDispatcher.defaultRouteNameTestValue = '/vendor/dashboard';
       addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
 
-      final (app, _) = await _app();
-      await tester.pumpWidget(app);
+      await tester.pumpWidget(await _app());
       await tester.pump();
       expect(find.byType(SplashScreen), findsOneWidget);
-      expect(MainShell.tabRequest.value, MainShell.tabMyBusiness);
+      expect(MainShell.tabRequest.value, isNull);
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(LoginScreen), findsOneWidget);
     });
 
     testWidgets('a plain /go link just opens the app', (tester) async {
       tester.platformDispatcher.defaultRouteNameTestValue = '/go?utm_source=instagram';
       addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
 
-      final (app, _) = await _app();
-      await tester.pumpWidget(app);
+      await tester.pumpWidget(await _app());
       await tester.pump();
       expect(find.byType(SplashScreen), findsOneWidget);
       expect(Navigator.of(tester.element(find.byType(SplashScreen))).canPop(), isFalse);
@@ -139,8 +141,7 @@ void main() {
     });
 
     testWidgets('a normal start asks for nothing special', (tester) async {
-      final (app, _) = await _app();
-      await tester.pumpWidget(app);
+      await tester.pumpWidget(await _app());
       await tester.pump();
       expect(find.byType(SplashScreen), findsOneWidget);
       expect(MainShell.tabRequest.value, isNull);
@@ -151,11 +152,25 @@ void main() {
     });
   });
 
-  group('link arrives while the app is open', () {
-    testWidgets('not signed in: stays where it is, My Business is kept for '
-        'after sign-in', (tester) async {
-      final (app, _) = await _app();
-      await tester.pumpWidget(app);
+  group('app started by the link, signed in', () {
+    testWidgets('the SMS link asks for My Business; a plain /go link does not',
+        (tester) async {
+      tester.platformDispatcher.defaultRouteNameTestValue = _smsLink;
+      addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+
+      await tester.pumpWidget(await _app(signedIn: true));
+      await tester.pump();
+      expect(find.byType(SplashScreen), findsOneWidget);
+      expect(MainShell.tabRequest.value, MainShell.tabMyBusiness);
+      // Let the splash finish so no timer is left behind.
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
+    });
+  });
+
+  group('link arrives while the app is open, signed out', () {
+    testWidgets('stays where it is and keeps nothing', (tester) async {
+      await tester.pumpWidget(await _app());
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(LoginScreen), findsOneWidget);
@@ -167,12 +182,11 @@ void main() {
 
       expect(find.byType(LeadsLinkScreen), findsNothing);
       expect(find.byType(LoginScreen), findsOneWidget);
-      expect(MainShell.tabRequest.value, MainShell.tabMyBusiness);
+      expect(MainShell.tabRequest.value, isNull);
     });
 
-    testWidgets('a plain /go link while open changes nothing', (tester) async {
-      final (app, _) = await _app();
-      await tester.pumpWidget(app);
+    testWidgets('a plain /go link changes nothing', (tester) async {
+      await tester.pumpWidget(await _app());
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(seconds: 1));
 
@@ -186,15 +200,10 @@ void main() {
     });
   });
 
-  // The signed-in route is checked on a small stand-in app: the real one starts
-  // the live-updates service as soon as someone is signed in, which needs a
-  // running Supabase.
-  group('signed in', () {
-    testWidgets('SMS link while the app is open and no shell yet: goes to /home, '
-        'My Business requested', (tester) async {
-      final auth = AuthProvider();
-      await auth.setSession('token', 'user-1',
-          phone: '9999999999', role: 'customer');
+  // The signed-in route is checked on a small stand-in app: the real one builds
+  // the whole main screen, which needs network and a running Supabase.
+  group('link arrives while the app is open (stand-in app)', () {
+    Future<void> pump(WidgetTester tester, AuthProvider auth, String link) async {
       await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
         value: auth,
         child: MaterialApp(
@@ -206,34 +215,38 @@ void main() {
           routes: {'/home': (_) => const Text('the shell')},
         ),
       ));
-      tester.state<NavigatorState>(find.byType(Navigator)).pushNamed(_smsLink);
+      tester.state<NavigatorState>(find.byType(Navigator)).pushNamed(link);
       await tester.pumpAndSettle();
+    }
+
+    testWidgets('signed in, SMS link: goes to /home, My Business requested',
+        (tester) async {
+      final auth = AuthProvider();
+      await auth.setSession('token', 'user-1',
+          phone: '9999999999', role: 'customer');
+      await pump(tester, auth, _smsLink);
 
       expect(find.text('the shell'), findsOneWidget);
       expect(find.byType(LeadsLinkScreen), findsNothing);
       expect(MainShell.tabRequest.value, MainShell.tabMyBusiness);
     });
 
-    testWidgets('a plain /go link goes to /home without asking for a tab',
+    testWidgets('signed in, plain /go link: goes to /home, no tab asked for',
         (tester) async {
       final auth = AuthProvider();
       await auth.setSession('token', 'user-1',
           phone: '9999999999', role: 'customer');
-      await tester.pumpWidget(ChangeNotifierProvider<AuthProvider>.value(
-        value: auth,
-        child: MaterialApp(
-          home: const Text('splash'),
-          onGenerateRoute: (s) => AppLinks.isAppLink(s.name)
-              ? MaterialPageRoute<void>(
-                  settings: s, builder: (_) => LeadsLinkScreen(route: s.name ?? ''))
-              : null,
-          routes: {'/home': (_) => const Text('the shell')},
-        ),
-      ));
-      tester.state<NavigatorState>(find.byType(Navigator)).pushNamed('/go');
-      await tester.pumpAndSettle();
+      await pump(tester, auth, '/go');
 
       expect(find.text('the shell'), findsOneWidget);
+      expect(MainShell.tabRequest.value, isNull);
+    });
+
+    testWidgets('signed out, SMS link: leaves, keeps nothing', (tester) async {
+      await pump(tester, AuthProvider(), _smsLink);
+
+      expect(find.text('splash'), findsOneWidget);
+      expect(find.byType(LeadsLinkScreen), findsNothing);
       expect(MainShell.tabRequest.value, isNull);
     });
   });

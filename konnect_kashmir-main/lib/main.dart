@@ -115,10 +115,12 @@ class KonnectKashmirApp extends StatelessWidget {
 
         // Flow: Splash -> Login (or Dashboard if already signed in).
         // A link that opens the app (the new-lead SMS) only picks the tab to show:
-        // the app always starts at the splash, then goes to My Business.
+        // the app always starts at the splash. Someone who is signed in lands on
+        // My Business; someone who is signed out signs in first and then sees
+        // Home as usual (nothing is kept for after sign-in).
         // (No `home:` - Flutter does not allow it together with this.)
         onGenerateInitialRoutes: (initialRoute) {
-          if (AppLinks.isLeadsLink(initialRoute)) {
+          if (AppLinks.isLeadsLink(initialRoute) && authProvider.isAuthenticated) {
             MainShell.tabRequest.value = MainShell.tabMyBusiness;
           }
           return [

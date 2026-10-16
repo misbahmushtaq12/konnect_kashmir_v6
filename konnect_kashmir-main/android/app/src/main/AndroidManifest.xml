@@ -60,16 +60,18 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- The link in the new-lead SMS (https://konnectkashmir.com/go?utm_campaign=new_lead)
-                 opens the app, once the website's .well-known/assetlinks.json confirms it.
-                 /vendor/dashboard is the older link and does the same. -->
+            <!-- The link in the new-lead message (https://konnectkashmir.com/go?utm_campaign=new_lead)
+                 opens the app, confirmed by the website's .well-known/assetlinks.json.
+                 /vendor/dashboard is the older link and does the same.
+                 Only konnectkashmir.com is listed: www.konnectkashmir.com redirects and
+                 cannot be verified, and on Android 11 and older one host that fails
+                 verification makes the whole filter fail. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"/>
                 <data android:host="konnectkashmir.com"/>
-                <data android:host="www.konnectkashmir.com"/>
                 <data android:path="/go"/>
                 <data android:pathPrefix="/vendor/dashboard"/>
             </intent-filter>
