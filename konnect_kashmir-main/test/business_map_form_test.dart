@@ -23,15 +23,18 @@ Widget _app(Widget home) => ChangeNotifierProvider(
 
 const _pin = 'https://maps.app.goo.gl/AbCdEf';
 
+void _tallScreen(WidgetTester tester) {
+  tester.view.physicalSize = const Size(900, 3000);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+}
+
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('business form: address and Google Maps link are two boxes',
+  testWidgets('address box shows the address only; the pin has no box',
       (tester) async {
-    tester.view.physicalSize = const Size(900, 3000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
+    _tallScreen(tester);
     await tester.pumpWidget(_app(ListBusinessScreen(existingVendor: {
       'id': '1',
       'business_name': 'Test Shop',
@@ -39,62 +42,44 @@ void main() {
     })));
     await tester.pump(const Duration(milliseconds: 100));
 
-    // The stored address comes apart into the text and the pin.
+    // The stored pin is split off the text, and nothing shows it.
     expect(find.widgetWithText(TextFormField, 'Lal Chowk, Srinagar'), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, _pin), findsOneWidget);
+    expect(find.textContaining('maps.app.goo.gl'), findsNothing);
 
-    // The two helper buttons and the optional link box are there.
+    // Only the location button is left; the link box and "Check on map" are gone.
     expect(find.text('Use my current location'), findsOneWidget);
-    expect(find.text('Check on map'), findsOneWidget);
-    expect(find.text('Google Maps link (optional)'), findsOneWidget);
+    expect(find.text('Check on map'), findsNothing);
+    expect(find.textContaining('Google Maps link'), findsNothing);
   });
 
-  testWidgets('a link that is not Google Maps is refused, a real one passes',
+  testWidgets('the WhatsApp tick sits to the right of the WhatsApp label',
       (tester) async {
-    tester.view.physicalSize = const Size(900, 3000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
+    _tallScreen(tester);
     await tester.pumpWidget(_app(const ListBusinessScreen()));
     await tester.pump(const Duration(milliseconds: 100));
 
-    final linkBox = find.widgetWithText(
-        TextFormField, 'Paste the link from Google Maps → Share');
-    expect(linkBox, findsOneWidget);
-    final form = tester.state<FormState>(find.byType(Form));
+    final label = find.text('WhatsApp');
+    final same = find.text('Same as business number');
+    final box = find.byType(Checkbox);
+    expect(label, findsOneWidget);
+    expect(same, findsOneWidget);
+    expect(box, findsOneWidget);
 
-    await tester.enterText(linkBox, 'https://evil.example.com/maps');
-    form.validate();
-    await tester.pump();
-    expect(find.text('Enter a valid Google Maps link'), findsOneWidget);
-
-    await tester.enterText(linkBox, 'See $_pin please');
-    form.validate();
-    await tester.pump();
-    expect(find.text('Enter a valid Google Maps link'), findsNothing);
-
-    await tester.enterText(linkBox, '');
-    form.validate();
-    await tester.pump();
-    expect(find.text('Enter a valid Google Maps link'), findsNothing);
+    // Same line (not a line below), and to the right of the label.
+    expect((tester.getCenter(box).dy - tester.getCenter(label).dy).abs(), lessThan(20));
+    expect(tester.getCenter(box).dx, greaterThan(tester.getCenter(label).dx));
+    expect(tester.getCenter(same).dx, greaterThan(tester.getCenter(box).dx));
   });
 
-  testWidgets('Check on map is disabled until there is something to look for',
+  testWidgets('the tick still switches "same as business number"',
       (tester) async {
-    tester.view.physicalSize = const Size(900, 3000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-
+    _tallScreen(tester);
     await tester.pumpWidget(_app(const ListBusinessScreen()));
     await tester.pump(const Duration(milliseconds: 100));
 
-    Finder check() => find.widgetWithText(FilledButton, 'Check on map');
-    expect(tester.widget<FilledButton>(check()).onPressed, isNull);
-
-    final addressBox =
-        find.widgetWithText(TextFormField, 'Shop/Office address');
-    await tester.enterText(addressBox, 'Rajbagh');
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+    await tester.tap(find.text('Same as business number'));
     await tester.pump();
-    expect(tester.widget<FilledButton>(check()).onPressed, isNotNull);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
   });
 }

@@ -268,23 +268,12 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           child: _rewardReady
-                              ? ElevatedButton.icon(
+                              // The app's own teal button (no party icon or emoji).
+                              ? ElevatedButton(
                                   key: const ValueKey('claim'),
                                   onPressed: _claimReward,
-                                  style: AppButtons.danger,
-                                  icon: const Icon(
-                                    Icons.celebration,
-                                    size: 18,
-                                    color: Colors.white,
-                                  ),
-                                  label: const Text(
-                                    'Claim Reward  🎉',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: AppText.body,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  style: AppButtons.block(AppButtons.primary),
+                                  child: const Text('Claim credits'),
                                 )
                               : ElevatedButton.icon(
                                   key: const ValueKey('wait'),
@@ -292,12 +281,14 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: waitBtnBg,
                                     disabledBackgroundColor: waitBtnBg,
+                                    // Same size as the claim button, so nothing jumps.
+                                    minimumSize: const Size(double.infinity, 48),
                                     padding: const EdgeInsets.symmetric(
-                                      vertical: 13,
+                                      vertical: 12,
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(
-                                        AppRadius.sm,
+                                        AppRadius.md,
                                       ),
                                     ),
                                   ),

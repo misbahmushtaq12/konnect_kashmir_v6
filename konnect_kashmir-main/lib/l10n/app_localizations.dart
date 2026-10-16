@@ -1840,35 +1840,11 @@ abstract class AppLocalizations {
   /// **'Finding your location…'**
   String get findingLocation;
 
-  /// No description provided for @checkOnMap.
-  ///
-  /// In en, this message translates to:
-  /// **'Check on map'**
-  String get checkOnMap;
-
   /// No description provided for @showInMap.
   ///
   /// In en, this message translates to:
   /// **'Show in map'**
   String get showInMap;
-
-  /// No description provided for @mapLinkLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Google Maps link (optional)'**
-  String get mapLinkLabel;
-
-  /// No description provided for @mapLinkHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Paste the link from Google Maps → Share'**
-  String get mapLinkHint;
-
-  /// No description provided for @mapLinkInvalid.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter a valid Google Maps link'**
-  String get mapLinkInvalid;
 
   /// No description provided for @replaceAddressTitle.
   ///
@@ -1879,7 +1855,7 @@ abstract class AppLocalizations {
   /// No description provided for @replaceAddressBody.
   ///
   /// In en, this message translates to:
-  /// **'This will replace the address and map link you entered.'**
+  /// **'This will replace the address and map location you entered.'**
   String get replaceAddressBody;
 
   /// No description provided for @replaceLabel.

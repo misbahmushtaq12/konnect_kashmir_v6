@@ -990,26 +990,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findingLocation => 'Finding your location…';
 
   @override
-  String get checkOnMap => 'Check on map';
-
-  @override
   String get showInMap => 'Show in map';
-
-  @override
-  String get mapLinkLabel => 'Google Maps link (optional)';
-
-  @override
-  String get mapLinkHint => 'Paste the link from Google Maps → Share';
-
-  @override
-  String get mapLinkInvalid => 'Enter a valid Google Maps link';
 
   @override
   String get replaceAddressTitle => 'Replace your address?';
 
   @override
   String get replaceAddressBody =>
-      'This will replace the address and map link you entered.';
+      'This will replace the address and map location you entered.';
 
   @override
   String get replaceLabel => 'Replace';

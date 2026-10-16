@@ -996,26 +996,14 @@ class AppLocalizationsUr extends AppLocalizations {
   String get findingLocation => 'لوکیشن تلاش کی جا رہی ہے…';
 
   @override
-  String get checkOnMap => 'نقشے پر دیکھیں';
-
-  @override
   String get showInMap => 'نقشے میں دکھائیں';
-
-  @override
-  String get mapLinkLabel => 'گوگل میپس لنک (اختیاری)';
-
-  @override
-  String get mapLinkHint => 'گوگل میپس میں شیئر دبا کر لنک یہاں پیسٹ کریں';
-
-  @override
-  String get mapLinkInvalid => 'درست گوگل میپس لنک درج کریں';
 
   @override
   String get replaceAddressTitle => 'پتہ تبدیل کریں؟';
 
   @override
   String get replaceAddressBody =>
-      'اس سے آپ کا لکھا ہوا پتہ اور میپ لنک تبدیل ہو جائے گا۔';
+      'اس سے آپ کا لکھا ہوا پتہ اور میپ لوکیشن تبدیل ہو جائے گا۔';
 
   @override
   String get replaceLabel => 'تبدیل کریں';

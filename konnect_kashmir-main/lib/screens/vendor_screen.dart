@@ -56,7 +56,9 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   final TextEditingController _whatsappController            = TextEditingController();
   final TextEditingController _emailController               = TextEditingController();
   final TextEditingController _addressController             = TextEditingController();
-  // Optional Google Maps pin; stored after the address text (see MapLink).
+  // The map pin (a Google Maps link): set by "Use my current location", kept
+  // when an existing listing is edited, and stored after the address text (see
+  // MapLink). It has no box of its own.
   final TextEditingController _mapLinkController             = TextEditingController();
   bool _locating = false; // "Use my current location" is working
   final TextEditingController _searchController              = TextEditingController();
@@ -443,47 +445,54 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 readOnly: _verifiedPhone != null,
                               ),
                               const SizedBox(height: 14),
+                              // The WhatsApp label, with the tick to use the business
+                              // number for WhatsApp too on the same line, to its right.
                               Row(children: [
                                 Icon(Icons.chat_bubble_outline, color: _onSurfaceMuted),
                                 const SizedBox(width: 8),
                                 Text(context.l10n.whatsapp, style: TextStyle(color: _onSurfaceMuted)),
-                              ]),
-                              // Tick to use the business number for WhatsApp too.
-                              InkWell(
-                                borderRadius: BorderRadius.circular(AppRadius.sm),
-                                onTap: () => setState(() {
-                                  _whatsappSame = !_whatsappSame;
-                                  _whatsappController.text =
-                                      _whatsappSame ? _phoneController.text.trim() : '';
-                                }),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Row(children: [
-                                    SizedBox(
-                                      width: 28,
-                                      height: 28,
-                                      child: Checkbox(
-                                        value: _whatsappSame,
-                                        activeColor: AppColors.primary,
-                                        visualDensity: VisualDensity.compact,
-                                        onChanged: (v) => setState(() {
-                                          _whatsappSame = v ?? false;
-                                          _whatsappController.text = _whatsappSame
-                                              ? _phoneController.text.trim()
-                                              : '';
-                                        }),
+                                Expanded(
+                                  child: Align(
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                                      onTap: () => setState(() {
+                                        _whatsappSame = !_whatsappSame;
+                                        _whatsappController.text =
+                                            _whatsappSame ? _phoneController.text.trim() : '';
+                                      }),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4),
+                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                          SizedBox(
+                                            width: 28,
+                                            height: 28,
+                                            child: Checkbox(
+                                              value: _whatsappSame,
+                                              activeColor: AppColors.primary,
+                                              visualDensity: VisualDensity.compact,
+                                              onChanged: (v) => setState(() {
+                                                _whatsappSame = v ?? false;
+                                                _whatsappController.text = _whatsappSame
+                                                    ? _phoneController.text.trim()
+                                                    : '';
+                                              }),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(context.l10n.sameAsBusinessNumber,
+                                                maxLines: 2,
+                                                style: TextStyle(
+                                                    color: _onSurface,
+                                                    fontSize: AppText.caption)),
+                                          ),
+                                        ]),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(context.l10n.sameAsBusinessNumber,
-                                          style: TextStyle(
-                                              color: _onSurface,
-                                              fontSize: AppText.secondary)),
-                                    ),
-                                  ]),
+                                  ),
                                 ),
-                              ),
+                              ]),
                               const SizedBox(height: 6),
                               _buildPhoneRow(
                                 controller: _whatsappController,
@@ -514,54 +523,23 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 hintText: context.l10n.shopOfficeAddress,
                               ),
                               const SizedBox(height: 8),
-                              // The buttons follow what is typed (Check on map needs something to look for).
-                              ListenableBuilder(
-                                listenable: Listenable.merge(
-                                    [_addressController, _mapLinkController]),
-                                builder: (context, _) => Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  children: [
-                                    FilledButton.tonalIcon(
-                                      onPressed: _locating ? null : _fillFromLocation,
-                                      style: AppButtons.compact(AppButtons.secondary),
-                                      icon: _locating
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(strokeWidth: 2))
-                                          : const Icon(Icons.my_location_rounded, size: 18),
-                                      label: Text(_locating
-                                          ? context.l10n.findingLocation
-                                          : context.l10n.useMyLocation),
-                                    ),
-                                    FilledButton.tonalIcon(
-                                      onPressed: _mapTarget == null ? null : _checkOnMap,
-                                      style: AppButtons.compact(AppButtons.secondary),
-                                      icon: const Icon(Icons.map_outlined, size: 18),
-                                      label: Text(context.l10n.checkOnMap),
-                                    ),
-                                  ],
+                              // Fills the address and keeps an exact map pin (saved with
+                              // the address; customers get it as "Show in map").
+                              Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: FilledButton.tonalIcon(
+                                  onPressed: _locating ? null : _fillFromLocation,
+                                  style: AppButtons.compact(AppButtons.secondary),
+                                  icon: _locating
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(strokeWidth: 2))
+                                      : const Icon(Icons.my_location_rounded, size: 18),
+                                  label: Text(_locating
+                                      ? context.l10n.findingLocation
+                                      : context.l10n.useMyLocation),
                                 ),
-                              ),
-                              const SizedBox(height: 14),
-                              Row(children: [
-                                Icon(Icons.link_rounded, color: _onSurfaceMuted),
-                                const SizedBox(width: 8),
-                                Text(context.l10n.mapLinkLabel, style: TextStyle(color: _onSurfaceMuted)),
-                              ]),
-                              const SizedBox(height: 6),
-                              _buildTextField(
-                                controller: _mapLinkController,
-                                hintText: context.l10n.mapLinkHint,
-                                keyboardType: TextInputType.url,
-                                validator: (v) {
-                                  final t = (v ?? '').trim();
-                                  if (t.isEmpty) return null;
-                                  return MapLink.extractLink(t) == null
-                                      ? context.l10n.mapLinkInvalid
-                                      : null;
-                                },
                               ),
                               const SizedBox(height: 14),
                               _buildSwitchTile(
@@ -983,7 +961,6 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     TextInputType? keyboardType,
     bool isRequired = false,
     bool readOnly = false,
-    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
@@ -991,13 +968,12 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
       maxLines: maxLines,
       keyboardType: keyboardType,
       style: TextStyle(color: _onSurface, fontSize: _rs(0.038, min: 13, max: 16)),
-      validator: validator ??
-          (isRequired
-              ? (value) {
-                  if (value == null || value.trim().isEmpty) return context.l10n.fieldRequired;
-                  return null;
-                }
-              : null),
+      validator: isRequired
+          ? (value) {
+        if (value == null || value.trim().isEmpty) return context.l10n.fieldRequired;
+        return null;
+      }
+          : null,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
@@ -1128,23 +1104,6 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   }
 
   // ── Map ───────────────────────────────────────────────────────────────────
-  /// Where "Check on map" goes: the typed pin, else a search for the typed
-  /// address (or the business name in its locality). Null while there is nothing
-  /// to look for.
-  Uri? get _mapTarget => MapLink.target(
-        address: MapLink.join(_addressController.text, _mapLinkController.text.trim()),
-        locality: _selectedLocality ?? '',
-        businessName: _businessNameController.text,
-      );
-
-  Future<void> _checkOnMap() async {
-    final uri = _mapTarget;
-    if (uri == null) return;
-    if (!await MapLink.open(uri) && mounted) {
-      showAppSnack(context, context.l10n.couldntOpenMap, type: SnackType.info);
-    }
-  }
-
   /// Fills the address, and an exact map pin, from where the provider stands.
   Future<void> _fillFromLocation() async {
     if (_locating) return;

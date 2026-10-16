@@ -274,8 +274,15 @@ class _HomeScreenState extends State<CustomerScreen>
     );
   }
 
+  /// True for the Home tab, false when this screen was opened on top of another
+  /// one ("Find services"). It asks this screen's own route. Navigator.canPop
+  /// is not used: it also says "can pop" while a bottom sheet or dialog is open
+  /// over Home, and the screen then switched to the "Find services" layout
+  /// behind the district and locality sheets.
+  bool get _isHomeTab => ModalRoute.of(context)?.isFirst ?? true;
+
   void _onSearchFocusChange() {
-    if (_searchFocus.hasFocus && !_searchActive && !Navigator.canPop(context)) {
+    if (_searchFocus.hasFocus && !_searchActive && _isHomeTab) {
       setState(() => _searchActive = true);
       _searchAnim.forward();
     }
@@ -2081,7 +2088,7 @@ class _HomeScreenState extends State<CustomerScreen>
     final width = MediaQuery.of(context).size.width;
     final hPad = width > 600 ? width * 0.12 : 16.0;
     
-    final isHomeTab = !Navigator.canPop(context);
+    final isHomeTab = _isHomeTab;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -2617,11 +2624,6 @@ class _HomeScreenState extends State<CustomerScreen>
     final onlinePay = vendor['accepts_online_payment'] == true;
     final desc = (vendor['description'] ?? '').toString().trim();
 
-    final subtitle = [
-      if (serviceTypeDisplay.isNotEmpty) serviceTypeDisplay,
-      if (localityDisplay.isNotEmpty) localityDisplay,
-    ].join(' · ');
-
     final initials = name
         .trim()
         .split(RegExp(r'\s+'))
@@ -2648,6 +2650,8 @@ class _HomeScreenState extends State<CustomerScreen>
       if (onlinePay) tag(Icons.account_balance_wallet_outlined, context.l10n.onlinePay),
     ];
 
+    // Unlocked: call and WhatsApp are plain icons, the same as the leads in My
+    // Business. Locked: the unlock (or sign-in) button.
     Widget action;
     if (_isRevealingVendor[vendorId] == true) {
       action = const SizedBox(
@@ -2659,18 +2663,17 @@ class _HomeScreenState extends State<CustomerScreen>
       action = _buildSignInButton();
     } else if (isRevealed) {
       action = Row(mainAxisSize: MainAxisSize.min, children: [
-        ElevatedButton.icon(
+        IconButton(
           onPressed: () => _dialNumber(phone, vendorId: vendorId?.toString()),
-          style: AppButtons.compact(AppButtons.primary),
-          icon: const Icon(Icons.phone_rounded, size: 18),
-          label: Text(context.l10n.call),
+          tooltip: context.l10n.call,
+          icon: const Icon(Icons.call_rounded,
+              color: AppColors.primary, size: 22),
         ),
-        const SizedBox(width: 8),
         IconButton(
           onPressed: () => _openWhatsApp(phone, vendorId: vendorId?.toString()),
-          icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 28),
           tooltip: context.l10n.whatsapp,
-          color: const Color(0xFF25D366),
+          icon: const FaIcon(FontAwesomeIcons.whatsapp,
+              color: Color(0xFF25D366), size: 25),
         ),
       ]);
     } else {
@@ -2686,85 +2689,104 @@ class _HomeScreenState extends State<CustomerScreen>
             address: rawAddress, locality: localityDisplay, businessName: name)
         : null;
 
+    final muted = cs.onSurface.withValues(alpha: 0.66);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Header: logo, name, service and place. The place has its own line, so
+        // it is never cut off by the service name, and it shows in full once the
+        // card is open.
         Semantics(
           button: true,
           expanded: cardOpen,
           label: '$name, ${cardOpen ? context.l10n.seeLess : context.l10n.seeMore}',
           child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          onTap: toggleCard,
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Tooltip(
-            message: serviceTypeDisplay,
-            child: Container(
-            width: 44,
-            height: 44,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: meta.color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: (logoUrl != null && logoUrl.isNotEmpty)
-                ? Image.network(logoUrl,
-                    fit: BoxFit.cover,
-                    cacheWidth: 140,
-                    cacheHeight: 140,
-                    errorBuilder: (_, __, ___) => initialsWidget)
-                : initialsWidget,
-          ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(children: [
-                  Flexible(
-                    child: Text(name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: AppText.heading, fontWeight: FontWeight.w700)),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: toggleCard,
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Tooltip(
+                message: serviceTypeDisplay,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: meta.color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                  if (vendor['is_verified'] == true) ...[
-                    const SizedBox(width: 5),
-                    const Icon(Icons.verified,
-                        color: Color(0xFF378ADD), size: 18),
-                  ],
-                ]),
-                if (subtitle.isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Row(children: [
-                    Flexible(
-                      child: Text(subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: AppText.secondary,
-                              color: cs.onSurface.withValues(alpha: 0.7))),
+                  child: (logoUrl != null && logoUrl.isNotEmpty)
+                      ? Image.network(logoUrl,
+                          fit: BoxFit.cover,
+                          cacheWidth: 140,
+                          cacheHeight: 140,
+                          errorBuilder: (_, __, ___) => initialsWidget)
+                      : initialsWidget,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Flexible(
+                        child: Text(name,
+                            maxLines: cardOpen ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: AppText.heading,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                      if (vendor['is_verified'] == true) ...[
+                        const SizedBox(width: 5),
+                        const Icon(Icons.verified,
+                            color: Color(0xFF378ADD), size: 18),
+                      ],
+                    ]),
+                    const SizedBox(height: 3),
+                    // The service, the place and "See more" run along one line.
+                    // What does not fit moves to the next line, so the place is
+                    // never cut off.
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (serviceTypeDisplay.isNotEmpty)
+                          Text(serviceTypeDisplay,
+                              style: TextStyle(
+                                  fontSize: AppText.secondary, color: muted)),
+                        if (localityDisplay.isNotEmpty)
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(Icons.location_on_outlined,
+                                size: 14, color: muted),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(localityDisplay,
+                                  style: TextStyle(
+                                      fontSize: AppText.secondary,
+                                      color: muted)),
+                            ),
+                          ]),
+                        Text(cardOpen ? context.l10n.seeLess : context.l10n.seeMore,
+                            style: const TextStyle(
+                                fontSize: AppText.secondary,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w700)),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Text(cardOpen ? context.l10n.seeLess : context.l10n.seeMore,
-                        style: const TextStyle(
-                            fontSize: AppText.secondary,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700)),
-                  ]),
-                ],
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ]),
           ),
-        ]),
-        ),
         ),
         // Description and tags only when the card is open.
         AnimatedSize(
@@ -2773,7 +2795,7 @@ class _HomeScreenState extends State<CustomerScreen>
           alignment: Alignment.topCenter,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (cardOpen && desc.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(desc,
                   style: TextStyle(
                       fontSize: AppText.secondary,
@@ -2781,30 +2803,28 @@ class _HomeScreenState extends State<CustomerScreen>
                       color: cs.onSurface.withValues(alpha: 0.7))),
             ],
             if (cardOpen && tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Wrap(spacing: 8, runSpacing: 8, children: tags),
             ],
           ]),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Divider(color: cs.onSurface.withValues(alpha: 0.08), height: 1),
-        const SizedBox(height: 8),
-        Row(children: [
+        const SizedBox(height: 10),
+        // Contact: the label and number stacked, the action on the right.
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Expanded(
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: AlignmentDirectional.centerStart,
-                child: Text.rich(TextSpan(children: [
-                  TextSpan(
-                    text: '${isRevealed ? context.l10n.unlocked : context.l10n.contact}: ',
-                    style: TextStyle(
-                        fontSize: AppText.secondary,
-                        color: cs.onSurface.withValues(alpha: 0.66)),
-                  ),
-                  TextSpan(
-                    text: isRevealed ? '+91 $phone' : '+91 ${_maskPhone(phone)}',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(isRevealed ? context.l10n.unlocked : context.l10n.contact,
+                    style: TextStyle(fontSize: AppText.secondary, color: muted)),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    isRevealed ? '+91 $phone' : '+91 ${_maskPhone(phone)}',
                     style: TextStyle(
                       fontSize: AppText.body,
                       fontWeight: isRevealed ? FontWeight.w600 : FontWeight.w400,
@@ -2814,41 +2834,48 @@ class _HomeScreenState extends State<CustomerScreen>
                           : cs.onSurface.withValues(alpha: 0.68),
                     ),
                   ),
-                ])),
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 8),
           action,
         ]),
         if (mapUri != null) ...[
-          const SizedBox(height: 4),
-          Row(children: [
-            Icon(Icons.location_on_outlined,
-                size: 18, color: cs.onSurface.withValues(alpha: 0.66)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(addressText.isEmpty ? localityDisplay : addressText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: AppText.secondary,
-                      color: cs.onSurface.withValues(alpha: 0.78))),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsetsDirectional.fromSTEB(12, 2, 4, 2),
+            decoration: BoxDecoration(
+              color: cs.onSurface.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            TextButton.icon(
-              onPressed: () => _openInMap(mapUri),
-              icon: const Icon(Icons.map_outlined, size: 18),
-              label: Text(context.l10n.showInMap),
-            ),
-          ]),
+            child: Row(children: [
+              const Icon(Icons.location_on_outlined,
+                  size: 18, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(addressText.isEmpty ? localityDisplay : addressText,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: AppText.secondary,
+                        color: cs.onSurface.withValues(alpha: 0.85))),
+              ),
+              TextButton.icon(
+                onPressed: () => _openInMap(mapUri),
+                icon: const Icon(Icons.map_outlined, size: 18),
+                label: Text(context.l10n.showInMap),
+              ),
+            ]),
+          ),
         ],
         if (isRevealed) ...[
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           InkWell(
             borderRadius: BorderRadius.circular(AppRadius.sm),
             onTap: () => setState(() => showActionsMap[vendorId] = !expanded),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(
                     expanded

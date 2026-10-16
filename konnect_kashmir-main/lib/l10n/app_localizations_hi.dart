@@ -990,26 +990,14 @@ class AppLocalizationsHi extends AppLocalizations {
   String get findingLocation => 'लोकेशन खोजी जा रही है…';
 
   @override
-  String get checkOnMap => 'मैप पर देखें';
-
-  @override
   String get showInMap => 'मैप में दिखाएँ';
-
-  @override
-  String get mapLinkLabel => 'Google Maps लिंक (वैकल्पिक)';
-
-  @override
-  String get mapLinkHint => 'Google Maps में Share दबाकर लिंक यहाँ चिपकाएँ';
-
-  @override
-  String get mapLinkInvalid => 'सही Google Maps लिंक दर्ज करें';
 
   @override
   String get replaceAddressTitle => 'पता बदलें?';
 
   @override
   String get replaceAddressBody =>
-      'इससे आपका लिखा हुआ पता और मैप लिंक बदल जाएगा।';
+      'इससे आपका लिखा हुआ पता और मैप लोकेशन बदल जाएगा।';
 
   @override
   String get replaceLabel => 'बदलें';
