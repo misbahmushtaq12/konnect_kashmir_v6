@@ -987,6 +987,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get searchByNameOrService => 'نام یا سروس سے تلاش کریں';
 
   @override
+  String get searchMinChars => 'تلاش کے لیے کم از کم 3 حروف درج کریں';
+
+  @override
   String get filterVerifiedOnly => 'صرف تصدیق شدہ';
 
   @override

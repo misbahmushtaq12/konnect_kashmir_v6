@@ -287,6 +287,7 @@
   "findServices": "सेवाएँ खोजें",
   "hiName": "नमस्ते, {name}",
   "searchByNameOrService": "नाम या सेवा से खोजें",
+  "searchMinChars": "खोजने के लिए कम से कम 3 अक्षर लिखें",
   "filterVerifiedOnly": "केवल सत्यापित",
   "filterSaved": "सहेजे हुए",
   "creditsEarned": "{count, plural, =1{+1 क्रेडिट मिला!} other{+{count} क्रेडिट मिले!}}",

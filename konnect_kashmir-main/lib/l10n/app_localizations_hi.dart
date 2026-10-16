@@ -981,6 +981,9 @@ class AppLocalizationsHi extends AppLocalizations {
   String get searchByNameOrService => 'नाम या सेवा से खोजें';
 
   @override
+  String get searchMinChars => 'खोजने के लिए कम से कम 3 अक्षर लिखें';
+
+  @override
   String get filterVerifiedOnly => 'केवल सत्यापित';
 
   @override

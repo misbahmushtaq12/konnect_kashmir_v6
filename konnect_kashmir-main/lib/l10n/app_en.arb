@@ -409,6 +409,7 @@
     }
   },
   "searchByNameOrService": "Search by name or service",
+  "searchMinChars": "Enter at least 3 characters to search",
   "filterVerifiedOnly": "Verified only",
   "filterSaved": "Saved",
   "creditsEarned": "{count, plural, =1{+1 credit earned!} other{+{count} credits earned!}}",

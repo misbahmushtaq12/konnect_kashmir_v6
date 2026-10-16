@@ -1822,6 +1822,12 @@ abstract class AppLocalizations {
   /// **'Search by name or service'**
   String get searchByNameOrService;
 
+  /// No description provided for @searchMinChars.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter at least 3 characters to search'**
+  String get searchMinChars;
+
   /// No description provided for @filterVerifiedOnly.
   ///
   /// In en, this message translates to:

@@ -981,6 +981,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchByNameOrService => 'Search by name or service';
 
   @override
+  String get searchMinChars => 'Enter at least 3 characters to search';
+
+  @override
   String get filterVerifiedOnly => 'Verified only';
 
   @override

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'search_gate.dart';
 import 'shared_http.dart';
 
 class ApiService {
@@ -491,7 +492,9 @@ class ApiService {
         'offset': '$offset',
         'order': order,
         if (ids != null) 'id': 'in.(${ids.join(',')})',
-        if (search.isNotEmpty) 'business_name': 'ilike.%$search%',
+        // ILIKE ignores letter case. % and _ the user typed match themselves.
+        if (search.isNotEmpty)
+          'business_name': 'ilike.%${SearchGate.likeEscape(search)}%',
         if (effectiveService != null) 'service_type': 'eq.$effectiveService',
         if (verifiedOnly) 'is_verified': 'eq.true',
         if (localityId != null) 'locality_id': 'eq.$localityId',

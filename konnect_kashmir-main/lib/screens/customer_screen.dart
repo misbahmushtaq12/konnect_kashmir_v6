@@ -15,6 +15,7 @@ import 'package:konnect_kashmir/services/api_service.dart';
 import '../services/live_sync.dart';
 import '../services/analytics_service.dart';
 import '../services/customer_location.dart';
+import '../services/search_gate.dart';
 import '../providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/dashboard_screen.dart';
 import 'package:konnect_kashmir/static/grevience_screen.dart';
@@ -281,13 +282,15 @@ class _HomeScreenState extends State<CustomerScreen>
 
   void _exitSearch() {
     _searchFocus.unfocus();
-    _searchDebounce?.cancel();
     final hadQuery = searchQuery.isNotEmpty;
+    _search.reset();
     _searchController.clear();
     searchQuery = '';
     setState(() => _searchActive = false);
     _searchAnim.reverse();
-    if (hadQuery) _loadVendors();
+    // Also reload when the list on screen (or on its way) belongs to a search
+    // that was just dropped, e.g. "apple" deleted down to "ap" a moment ago.
+    if (hadQuery || _resultsFor.isNotEmpty || _refreshingVendors) _loadVendors();
   }
   
   ApiService get _api => ApiService(
@@ -351,7 +354,9 @@ class _HomeScreenState extends State<CustomerScreen>
   bool verifiedOnly = false;
   String searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-  Timer? _searchDebounce;
+  // Decides when a text search is sent: 3+ characters, debounced, and not again
+  // for the same text in another letter case. `searchQuery` mirrors its result.
+  late final SearchGate _search = SearchGate(onSearch: _loadVendors);
   String _sort = 'newest'; // newest | experience | price_low
   bool _favoritesOnly = false;
   Set<String> _favorites = {};
@@ -386,6 +391,7 @@ class _HomeScreenState extends State<CustomerScreen>
     if (initialSearch.isNotEmpty) {
       _searchController.text = initialSearch;
       searchQuery = initialSearch;
+      _search.reset(initialSearch);
     }
     _favoritesOnly = widget.initialFavoritesOnly;
     _searchFocus.addListener(_onSearchFocusChange);
@@ -407,7 +413,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
   @override
   void dispose() {
-    _searchDebounce?.cancel();
+    _search.dispose();
     _analyticsTimer?.cancel();
     _coveringRoute?.removeStatusListener(_onRouteCovered);
     _searchFocus.removeListener(_onSearchFocusChange);
@@ -1302,12 +1308,12 @@ class _HomeScreenState extends State<CustomerScreen>
     await prefs.setStringList('favorite_vendors', _favorites.toList());
   }
 
-  // ── Search (debounced so we don't call the API on every keystroke) ─────────
+  // ── Search ─────────────────────────────────────────────────────────────────
+  // Nothing is sent for 1-2 characters, typing is debounced, and the same text
+  // in another letter case is not searched again (see SearchGate).
   void _onSearchChanged(String v) {
-    searchQuery = v.trim();
+    if (_search.changed(v)) searchQuery = _search.current;
     setState(() {});
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 400), _loadVendors);
   }
 
   // ── Filters / sort ─────────────────────────────────────────────────────────
@@ -1325,6 +1331,7 @@ class _HomeScreenState extends State<CustomerScreen>
 
   void _clearAllFilters() {
     _areaOptOut = true;
+    _search.reset();
     _searchController.clear();
     setState(() {
       searchQuery = '';
@@ -2018,7 +2025,11 @@ class _HomeScreenState extends State<CustomerScreen>
     final hasFilter = selectedDistrictId != null || selectedLocalityId != null;
     // Blank until the user types or picks a district/locality.
     if (typed.isEmpty && !hasFilter) return const [];
-    final ready = _resultsFor == typed && !_refreshingVendors;
+    // 1-2 characters are not searched. Say so, rather than leave results of an
+    // older search on screen as if they matched what is typed now.
+    final short = SearchGate.tooShort(typed);
+    if (short && !hasFilter) return [_searchHint()];
+    final ready = SearchGate.same(_resultsFor, searchQuery) && !_refreshingVendors;
     if (_vendorsError != null && !_refreshingVendors) {
       return [ErrorRetry.fromError(_vendorsError, onRetry: _loadVendors)];
     }
@@ -2036,11 +2047,30 @@ class _HomeScreenState extends State<CustomerScreen>
       ];
     }
     return [
+      if (short) _searchHint(),
       const SizedBox(height: 16),
       _buildVendorCount(),
       const SizedBox(height: 4),
       ..._vendorListChildren(),
     ];
+  }
+
+  /// "Enter at least 3 characters to search".
+  Widget _searchHint() {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(top: 40, bottom: 8),
+      child: Center(
+        child: Text(
+          context.l10n.searchMinChars,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: AppText.body,
+            color: cs.onSurface.withValues(alpha: 0.66),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -2279,6 +2309,9 @@ class _HomeScreenState extends State<CustomerScreen>
             decoration: InputDecoration(
               hintText: context.l10n.searchByNameOrService,
               hintStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.62)),
+              helperText: SearchGate.tooShort(_searchController.text)
+                  ? context.l10n.searchMinChars
+                  : null,
               prefixIcon: Icon(Icons.search,
                   color: cs.onSurface.withValues(alpha: 0.66)),
               suffixIcon: _searchController.text.isEmpty
