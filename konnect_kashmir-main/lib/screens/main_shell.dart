@@ -134,14 +134,20 @@ class _MainShellState extends State<MainShell> {
                 ? MyBusinessTab(isActive: _index == 1)
                 : const SizedBox.shrink(),
             _opened.contains(2)
-                ? DeenTab(isActive: _index == 2)
+                ? DeenTab(
+                    isActive: _index == 2,
+                    onBack: () => _select(MainShell.tabHome))
                 : const SizedBox.shrink(),
             _opened.contains(3)
                 ? ProfileTab(isActive: _index == 3)
                 : const SizedBox.shrink(),
           ],
         ),
-        bottomNavigationBar: Container(
+        // The Deen tab has its own full-screen layout and no bottom bar; its
+        // header has a back arrow to Home (and Android's back button does the same).
+        bottomNavigationBar: _index == MainShell.tabDeen
+            ? null
+            : Container(
           decoration: BoxDecoration(
             border: Border(
                 top: BorderSide(color: cs.onSurface.withValues(alpha: 0.08))),

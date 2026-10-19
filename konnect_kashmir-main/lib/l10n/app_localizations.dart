@@ -1492,6 +1492,66 @@ abstract class AppLocalizations {
   /// **'Qibla angle: {deg}° from North'**
   String deenQiblaAngle(String deg);
 
+  /// No description provided for @deenQiblaFromNorth.
+  ///
+  /// In en, this message translates to:
+  /// **'Qibla: {deg}° from North'**
+  String deenQiblaFromNorth(String deg);
+
+  /// No description provided for @audioNowPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'Now playing'**
+  String get audioNowPlaying;
+
+  /// No description provided for @audioQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Queue'**
+  String get audioQueue;
+
+  /// No description provided for @audioRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get audioRead;
+
+  /// No description provided for @audioShuffle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get audioShuffle;
+
+  /// No description provided for @audioRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat this surah'**
+  String get audioRepeat;
+
+  /// No description provided for @audioPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get audioPrevious;
+
+  /// No description provided for @audioNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get audioNext;
+
+  /// No description provided for @audioPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get audioPlay;
+
+  /// No description provided for @audioPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get audioPause;
+
   /// No description provided for @deenQiblaAligned.
   ///
   /// In en, this message translates to:

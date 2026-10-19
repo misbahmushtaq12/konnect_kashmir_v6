@@ -303,6 +303,21 @@
       "deg": {"type": "String"}
     }
   },
+  "deenQiblaFromNorth": "Qibla: {deg}° from North",
+  "@deenQiblaFromNorth": {
+    "placeholders": {
+      "deg": {"type": "String"}
+    }
+  },
+  "audioNowPlaying": "Now playing",
+  "audioQueue": "Queue",
+  "audioRead": "Read",
+  "audioShuffle": "Shuffle",
+  "audioRepeat": "Repeat this surah",
+  "audioPrevious": "Previous",
+  "audioNext": "Next",
+  "audioPlay": "Play",
+  "audioPause": "Pause",
   "deenQiblaAligned": "You are facing the Qibla",
   "deenQiblaHint": "Hold your phone flat and turn until the arrow points toward Qibla.",
   "deenCompassMissing": "Compass is not available on this device. Use the angle above with a compass.",

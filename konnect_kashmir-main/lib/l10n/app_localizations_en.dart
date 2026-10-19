@@ -771,6 +771,38 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String deenQiblaFromNorth(String deg) {
+    return 'Qibla: $deg° from North';
+  }
+
+  @override
+  String get audioNowPlaying => 'Now playing';
+
+  @override
+  String get audioQueue => 'Queue';
+
+  @override
+  String get audioRead => 'Read';
+
+  @override
+  String get audioShuffle => 'Shuffle';
+
+  @override
+  String get audioRepeat => 'Repeat this surah';
+
+  @override
+  String get audioPrevious => 'Previous';
+
+  @override
+  String get audioNext => 'Next';
+
+  @override
+  String get audioPlay => 'Play';
+
+  @override
+  String get audioPause => 'Pause';
+
+  @override
   String get deenQiblaAligned => 'You are facing the Qibla';
 
   @override

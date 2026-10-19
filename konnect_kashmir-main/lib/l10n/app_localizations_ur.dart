@@ -777,6 +777,38 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
+  String deenQiblaFromNorth(String deg) {
+    return 'قبلہ: شمال سے $deg°';
+  }
+
+  @override
+  String get audioNowPlaying => 'ابھی چل رہا ہے';
+
+  @override
+  String get audioQueue => 'قطار';
+
+  @override
+  String get audioRead => 'پڑھیں';
+
+  @override
+  String get audioShuffle => 'شفل';
+
+  @override
+  String get audioRepeat => 'یہ سورت دہرائیں';
+
+  @override
+  String get audioPrevious => 'پچھلی';
+
+  @override
+  String get audioNext => 'اگلی';
+
+  @override
+  String get audioPlay => 'چلائیں';
+
+  @override
+  String get audioPause => 'روکیں';
+
+  @override
   String get deenQiblaAligned => 'آپ کا رخ قبلے کی طرف ہے';
 
   @override

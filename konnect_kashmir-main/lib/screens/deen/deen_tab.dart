@@ -28,7 +28,11 @@ class DeenTab extends StatefulWidget {
   /// False while another bottom-nav tab is showing (the compass is switched off
   /// then to save battery).
   final bool isActive;
-  const DeenTab({super.key, this.isActive = true});
+
+  /// Back to Home. The bottom bar is hidden on this tab, so the header has a
+  /// back arrow that calls this.
+  final VoidCallback? onBack;
+  const DeenTab({super.key, this.isActive = true, this.onBack});
 
   @override
   State<DeenTab> createState() => _DeenTabState();
@@ -269,7 +273,7 @@ class _DeenTabState extends State<DeenTab> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final hPad = size.width > 600 ? size.width * 0.10 : 20.0;
+    final hPad = size.width > 600 ? size.width * 0.10 : 16.0;
 
     return SafeArea(
       child: Center(
@@ -281,28 +285,15 @@ class _DeenTabState extends State<DeenTab> {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
-              padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 28),
+              padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 24),
               children: [
                 _header(),
-                const SizedBox(height: 16),
-                // Side by side on wide screens, stacked on phones.
-                LayoutBuilder(builder: (context, box) {
-                  final prayer = _prayerCard();
-                  final qibla = _qiblaCard();
-                  if (box.maxWidth >= 640 && _qibla != null) {
-                    return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 5, child: prayer),
-                          const SizedBox(width: 14),
-                          Expanded(flex: 4, child: qibla),
-                        ]);
-                  }
-                  return Column(children: [
-                    prayer,
-                    if (_qibla != null) ...[const SizedBox(height: 14), qibla],
-                  ]);
-                }),
+                const SizedBox(height: 14),
+                if (_qibla != null) ...[
+                  _qiblaBanner(),
+                  const SizedBox(height: 14),
+                ],
+                _prayerCard(),
                 const SizedBox(height: 14),
                 _tiles(),
                 const SizedBox(height: 14),
@@ -315,45 +306,87 @@ class _DeenTabState extends State<DeenTab> {
     );
   }
 
-  /// "DEEN" + a greeting, over a very faint mosque silhouette. The user's credit
-  /// balance sits at the top right, like on the other tabs.
+  /// The Konnect Kashmir logo (light on the dark theme).
+  Widget _logo() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final logo = Image.asset('assets/images/konnectkashmir.png',
+        cacheHeight: 192, height: 44);
+    if (!isDark) return logo;
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix([
+        -1, 0, 0, 0, 255,
+        0, -1, 0, 0, 255,
+        0, 0, -1, 0, 255,
+        0, 0, 0, 1, 0,
+      ]),
+      child: logo,
+    );
+  }
+
+  /// A compact top line (back arrow, logo, place, credits), then the title and
+  /// the greeting. The bottom bar is hidden on this tab, so the arrow is the way
+  /// back to Home.
   Widget _header() {
     final cs = Theme.of(context).colorScheme;
     final l = context.l10n;
     final credits = context.watch<LiveSync>().credits;
     final first =
         (context.watch<AuthProvider>().user?.name ?? '').trim().split(' ').first;
-    return Stack(children: [
-      Positioned.fill(
-        child: IgnorePointer(
-          child: CustomPaint(
-            painter: _MosqueArtPainter(AppColors.primary.withValues(alpha: 0.08)),
+    final place = _place != null
+        ? _place!.split(',').first.trim()
+        : (_pos == null
+            ? l.deenLocating
+            : '${_pos!.latitude.toStringAsFixed(2)}, ${_pos!.longitude.toStringAsFixed(2)}');
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        if (widget.onBack != null)
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: widget.onBack,
+            tooltip: l.navHome,
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                size: 20, color: cs.onSurface),
           ),
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(children: [
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(l.navDeen.toUpperCase(),
-                  style: const TextStyle(
-                      fontSize: AppText.titleLg,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.6)),
-              const SizedBox(height: 4),
-              Text(first.isEmpty ? l.deenGreeting : '${l.deenGreeting}, $first',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: AppText.body,
-                      color: cs.onSurface.withValues(alpha: 0.65))),
+        _logo(),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.location_on_rounded,
+                  size: 18, color: AppColors.primary),
+              const SizedBox(width: 2),
+              Flexible(
+                child: Text(place,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: AppText.secondary,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onSurface)),
+              ),
             ]),
           ),
-          if (credits != null) CreditChip(credits),
-        ]),
-      ),
+        ),
+        if (credits != null) ...[
+          const SizedBox(width: 8),
+          CreditChip(credits),
+        ],
+      ]),
+      const SizedBox(height: 14),
+      Text(l.navDeen,
+          style: TextStyle(
+              fontSize: AppText.titleLg,
+              fontWeight: FontWeight.w800,
+              color: cs.onSurface)),
+      const SizedBox(height: 2),
+      Text(first.isEmpty ? l.deenGreeting : '${l.deenGreeting}, $first',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+              fontSize: AppText.body,
+              color: cs.onSurface.withValues(alpha: 0.65))),
     ]);
   }
 
@@ -436,121 +469,75 @@ class _DeenTabState extends State<DeenTab> {
       l.prayerIsha
     ];
     final date = DateFormat.yMMMMEEEEd(locale).format(_now);
+    final highlight = AppColors.primary.withValues(
+        alpha: Theme.of(context).brightness == Brightness.dark ? 0.20 : 0.12);
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        color: cs.surface,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary.withValues(alpha: 0.13),
-            AppColors.primary.withValues(alpha: 0.03),
-          ],
-        ),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
-      ),
+    return _DeenCard(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(
             child: Text(l.deenPrayerTimes,
-                style: const TextStyle(
-                    fontSize: AppText.heading, fontWeight: FontWeight.w800)),
+                style: TextStyle(
+                    fontSize: AppText.heading,
+                    fontWeight: FontWeight.w800,
+                    color: cs.onSurface)),
           ),
+          // The prayer settings (madhhab and calculation method).
           InkWell(
             onTap: _openPrayerSettings,
             borderRadius: BorderRadius.circular(999),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.filter_alt_outlined,
-                    size: 20, color: cs.onSurface.withValues(alpha: 0.7)),
+                const Icon(Icons.tune_rounded,
+                    size: 18, color: AppColors.primary),
                 const SizedBox(width: 4),
                 Text(l.filterLabel,
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontSize: AppText.secondary,
-                        fontWeight: FontWeight.w600,
-                        color: cs.onSurface.withValues(alpha: 0.7))),
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary)),
               ]),
             ),
           ),
         ]),
+        // The date, with the Hijri date, on its own line.
+        Text(day.hijri.isEmpty ? date : '$date  ·  ${day.hijri}',
+            style: TextStyle(
+                fontSize: AppText.caption,
+                color: cs.onSurface.withValues(alpha: 0.65))),
         const SizedBox(height: 8),
+        // The countdown to the next prayer.
         Row(children: [
-          const Icon(Icons.location_on_outlined,
-              size: 18, color: AppColors.primary),
+          Icon(_prayerIcons[next.index], size: 16, color: AppColors.primary),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(
-              _place ??
-                  (_pos == null
-                      ? l.deenLocating
-                      : '${_pos!.latitude.toStringAsFixed(2)}, ${_pos!.longitude.toStringAsFixed(2)}'),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
+            child: Text(l.deenNextPrayer(names[next.index], _until(next.at)),
+                style: const TextStyle(
+                    fontSize: AppText.secondary,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary)),
           ),
         ]),
-        const SizedBox(height: 4),
-        Padding(
-          padding: const EdgeInsetsDirectional.only(start: 24),
-          child: Text(
-            day.hijri.isEmpty ? date : '$date  ·  ${day.hijri}',
-            style: TextStyle(
-                fontSize: AppText.secondary,
-                color: cs.onSurface.withValues(alpha: 0.7)),
-          ),
-        ),
-        const SizedBox(height: 14),
-        // The next prayer, front and centre.
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(children: [
-            Icon(_prayerIcons[next.index], color: AppColors.primary, size: 26),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(l.deenNextPrayer(names[next.index], _until(next.at)),
-                  style: const TextStyle(
-                      fontSize: AppText.body, fontWeight: FontWeight.w700)),
-            ),
-            Text(_12h(day.times[next.index]),
-                textDirection: TextDirection.ltr,
-                style: const TextStyle(
-                    fontSize: AppText.heading,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.primary)),
-          ]),
-        ),
         const SizedBox(height: 10),
         for (var i = 0; i < 5; i++)
           AnimatedContainer(
             duration: const Duration(milliseconds: 250),
-            margin: const EdgeInsets.only(bottom: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
             decoration: BoxDecoration(
-              color: i == next.index
-                  ? AppColors.primary.withValues(alpha: 0.12)
-                  : cs.onSurface.withValues(alpha: 0.04),
+              color: i == next.index ? highlight : Colors.transparent,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Row(children: [
-              Icon(_prayerIcons[i],
-                  size: 20,
-                  color: i == next.index
-                      ? AppColors.primary
-                      : cs.onSurface.withValues(alpha: 0.55)),
+              Icon(_prayerIcons[i], size: 20, color: AppColors.primary),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(names[i],
                     style: TextStyle(
                         fontSize: AppText.body,
+                        color: cs.onSurface,
                         fontWeight:
                             i == next.index ? FontWeight.w800 : FontWeight.w600)),
               ),
@@ -559,7 +546,7 @@ class _DeenTabState extends State<DeenTab> {
                   style: TextStyle(
                       fontSize: AppText.body,
                       fontWeight: FontWeight.w700,
-                      color: i == next.index ? AppColors.primary : null)),
+                      color: i == next.index ? AppColors.primary : cs.onSurface)),
             ]),
           ),
       ]),
@@ -603,141 +590,258 @@ class _DeenTabState extends State<DeenTab> {
     );
   }
 
-  Widget _qiblaCard() {
+  /// A wide scenic banner: a small live compass and the Qibla angle. Tapping it
+  /// opens the full compass in a sheet.
+  Widget _qiblaBanner() {
+    final l = context.l10n;
+    final qibla = _qibla;
+    if (qibla == null) return const SizedBox.shrink();
+    final angleText = l.deenQiblaFromNorth(qibla.toStringAsFixed(1));
+
+    return Semantics(
+      button: true,
+      label: angleText,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _openCompass,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: _deenShadow(context),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            // At least 150 high; it grows with large text instead of overflowing.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 150),
+              child: Stack(alignment: Alignment.center, children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _KashmirScenePainter(
+                        dark: Theme.of(context).brightness == Brightness.dark),
+                  ),
+                ),
+                // Keeps the white text readable on top of the picture.
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [
+                          AppColors.primaryDark.withValues(alpha: 0.30),
+                          AppColors.primaryDark.withValues(alpha: 0.82),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  // Only this part rebuilds as the compass turns.
+                  child: ValueListenableBuilder<double?>(
+                    valueListenable: _heading,
+                    builder: (context, heading, _) {
+                      final aligned =
+                          heading != null && qiblaTurn(qibla, heading).abs() < 5;
+                      final status = _compassMissing
+                          ? l.deenQibla
+                          : (aligned ? l.deenQiblaAligned : l.deenQiblaTurnTo);
+                      return Row(children: [
+                        SizedBox(
+                          width: 104,
+                          height: 104,
+                          child: RepaintBoundary(
+                            child: CustomPaint(
+                              painter: _MiniCompassPainter(
+                                angle: qibla - (heading ?? 0),
+                                aligned: aligned,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(angleText,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: AppText.heading,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.2)),
+                              const SizedBox(height: 8),
+                              Row(children: [
+                                Icon(
+                                    aligned
+                                        ? Icons.check_circle_rounded
+                                        : Icons.explore_outlined,
+                                    size: 16,
+                                    color: aligned
+                                        ? const Color(0xFF8CF2C0)
+                                        : Colors.white.withValues(alpha: 0.9)),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(status,
+                                      style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.92),
+                                          fontSize: AppText.secondary,
+                                          fontWeight: FontWeight.w600)),
+                                ),
+                              ]),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right_rounded,
+                            color: Colors.white.withValues(alpha: 0.85)),
+                      ]);
+                    },
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The full compass: the big dial with the "aligned" mark and the hint.
+  void _openCompass() {
+    showAppSheet<void>(
+      context: context,
+      builder: (ctx) => SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: _qiblaDetail(),
+      ),
+    );
+  }
+
+  Widget _qiblaDetail() {
     final cs = Theme.of(context).colorScheme;
     final l = context.l10n;
     final qibla = _qibla;
     if (qibla == null) return const SizedBox.shrink();
 
-    return AppCard(
-      padding: const EdgeInsets.all(18),
-      child: Column(children: [
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(l.deenQibla,
-              style: const TextStyle(
-                  fontSize: AppText.heading, fontWeight: FontWeight.w800)),
-        ),
-        const SizedBox(height: 4),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: Text(l.deenQiblaAngle(qibla.toStringAsFixed(1)),
-              style: TextStyle(
-                  fontSize: AppText.secondary,
-                  color: cs.onSurface.withValues(alpha: 0.7))),
-        ),
-        const SizedBox(height: 14),
-        // Only this part rebuilds as the compass turns.
-        ValueListenableBuilder<double?>(
-          valueListenable: _heading,
-          builder: (context, heading, _) {
-            final turn = heading == null ? 0.0 : qiblaTurn(qibla, heading);
-            final aligned = heading != null && turn.abs() < 5;
-            return Column(children: [
-              SizedBox(
-                width: 210,
-                height: 210,
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _CompassPainter(
-                      heading: heading ?? 0,
-                      qibla: qibla,
-                      aligned: aligned,
-                      ink: cs.onSurface,
-                      accent: AppColors.primary,
-                      good: AppColors.success,
-                      north: AppColors.danger,
-                    ),
+    return Column(children: [
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(l.deenQibla,
+            style: const TextStyle(
+                fontSize: AppText.heading, fontWeight: FontWeight.w800)),
+      ),
+      const SizedBox(height: 4),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(l.deenQiblaAngle(qibla.toStringAsFixed(1)),
+            style: TextStyle(
+                fontSize: AppText.secondary,
+                color: cs.onSurface.withValues(alpha: 0.7))),
+      ),
+      const SizedBox(height: 14),
+      // Only this part rebuilds as the compass turns.
+      ValueListenableBuilder<double?>(
+        valueListenable: _heading,
+        builder: (context, heading, _) {
+          final turn = heading == null ? 0.0 : qiblaTurn(qibla, heading);
+          final aligned = heading != null && turn.abs() < 5;
+          return Column(children: [
+            SizedBox(
+              width: 210,
+              height: 210,
+              child: RepaintBoundary(
+                child: CustomPaint(
+                  painter: _CompassPainter(
+                    heading: heading ?? 0,
+                    qibla: qibla,
+                    aligned: aligned,
+                    ink: cs.onSurface,
+                    accent: AppColors.primary,
+                    good: AppColors.success,
+                    north: AppColors.danger,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              if (_compassMissing)
-                Text(l.deenCompassMissing,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: AppText.secondary,
-                        color: cs.onSurface.withValues(alpha: 0.65)))
-              else ...[
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: aligned
-                      ? AppChip(l.deenQiblaAligned,
-                          key: const ValueKey('ok'),
-                          icon: Icons.check_circle_rounded,
-                          tone: ChipTone.success)
-                      : AppChip(l.deenQiblaTurnTo,
-                          key: const ValueKey('turn'),
-                          icon: Icons.explore_outlined,
-                          tone: ChipTone.primary),
-                ),
-                const SizedBox(height: 8),
-                Text(l.deenQiblaHint,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: AppText.caption,
-                        color: cs.onSurface.withValues(alpha: 0.6))),
-              ],
-            ]);
-          },
-        ),
-      ]),
-    );
+            ),
+            const SizedBox(height: 12),
+            if (_compassMissing)
+              Text(l.deenCompassMissing,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: AppText.secondary,
+                      color: cs.onSurface.withValues(alpha: 0.65)))
+            else ...[
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: aligned
+                    ? AppChip(l.deenQiblaAligned,
+                        key: const ValueKey('ok'),
+                        icon: Icons.check_circle_rounded,
+                        tone: ChipTone.success)
+                    : AppChip(l.deenQiblaTurnTo,
+                        key: const ValueKey('turn'),
+                        icon: Icons.explore_outlined,
+                        tone: ChipTone.primary),
+              ),
+              const SizedBox(height: 8),
+              Text(l.deenQiblaHint,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: AppText.caption,
+                      color: cs.onSurface.withValues(alpha: 0.6))),
+            ],
+          ]);
+        },
+      ),
+    ]);
   }
 
+  /// Quran, Audio and Duas in one row.
   Widget _tiles() {
     final l = context.l10n;
+    final cs = Theme.of(context).colorScheme;
     Widget tile(IconData icon, String label, VoidCallback onTap) => Expanded(
           child: _PressCard(
             onTap: onTap,
-            child: Row(children: [
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 10),
+            child: Column(children: [
               Container(
-                width: 44,
-                height: 44,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.14),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: AppColors.primary),
+                child: Icon(icon, color: AppColors.primary, size: 22),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(label,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: AppText.body)),
-              ),
-              Icon(Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.35)),
+              const SizedBox(height: 8),
+              Text(label,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppText.caption,
+                      fontWeight: FontWeight.w600,
+                      height: 1.15,
+                      color: cs.onSurface)),
             ]),
           ),
         );
 
-    return Column(children: [
-      Row(children: [
+    return IntrinsicHeight(
+      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         tile(Icons.menu_book_rounded, l.deenQuran,
             () => _push(const SurahListScreen())),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
         tile(Icons.headphones_rounded, l.deenAudio,
             () => _push(AudioScreen(title: l.deenAudio))),
-      ]),
-      const SizedBox(height: 12),
-      Row(children: [
+        const SizedBox(width: 8),
         tile(Icons.volunteer_activism_rounded, l.deenDuas,
             () => _push(const DuasScreen())),
-        const SizedBox(width: 12),
-        tile(
-            Icons.library_music_rounded,
-            l.deenIslamicAudio,
-            () => _push(AudioScreen(
-                title: l.deenIslamicAudio, chooseReciterFirst: true))),
       ]),
-    ]);
+    );
   }
 
   Widget _continueCard() {
@@ -767,7 +871,7 @@ class _DeenTabState extends State<DeenTab> {
               size: 120, color: Colors.white.withValues(alpha: 0.10)),
         ),
         Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           child: Row(children: [
             Expanded(
               child: Column(
@@ -817,6 +921,48 @@ class _DeenTabState extends State<DeenTab> {
   }
 }
 
+/// The card colour of the Deen screen: white in the light theme, a slightly
+/// lighter teal than the page in the dark one.
+Color _deenCardColor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+        ? Color.alphaBlend(
+            AppColors.primary.withValues(alpha: 0.07), AppColors.darkSurface)
+        : Colors.white;
+
+/// A very soft shadow in the light theme (none in the dark one).
+List<BoxShadow> _deenShadow(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+        ? const []
+        : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ];
+
+/// A plain card for the Deen screen.
+class _DeenCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  const _DeenCard({required this.child, this.padding = const EdgeInsets.all(14)});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: _deenCardColor(context),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: cs.onSurface.withValues(alpha: 0.06)),
+        boxShadow: _deenShadow(context),
+      ),
+      child: child,
+    );
+  }
+}
+
 /// A card that gives a small press animation when tapped.
 class _PressCard extends StatefulWidget {
   final Widget child;
@@ -855,11 +1001,12 @@ class _PressCardState extends State<_PressCard> {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: radius,
-            color: widget.gradient == null ? cs.surface : null,
+            color: widget.gradient == null ? _deenCardColor(context) : null,
             gradient: widget.gradient,
             border: widget.gradient == null
-                ? Border.all(color: cs.onSurface.withValues(alpha: 0.08))
+                ? Border.all(color: cs.onSurface.withValues(alpha: 0.06))
                 : null,
+            boxShadow: _deenShadow(context),
           ),
           child: widget.child,
         ),
@@ -868,39 +1015,208 @@ class _PressCardState extends State<_PressCard> {
   }
 }
 
-/// A very faint mosque skyline for the header, drawn in code.
-class _MosqueArtPainter extends CustomPainter {
-  final Color color;
-  _MosqueArtPainter(this.color);
+/// A Kashmir scene for the Qibla banner, drawn in code: snow-capped mountains, a
+/// lake, pines and a minaret. Colours follow the light or dark theme.
+class _KashmirScenePainter extends CustomPainter {
+  final bool dark;
+  _KashmirScenePainter({required this.dark});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = color;
     final w = size.width;
     final h = size.height;
-    final base = h + 4;
+    final rect = Offset.zero & size;
 
-    // Main dome and hall.
-    final cx = w - 62;
-    canvas.drawArc(Rect.fromCircle(center: Offset(cx, base - 16), radius: 24),
-        math.pi, math.pi, true, p);
-    canvas.drawRect(Rect.fromLTRB(cx - 34, base - 16, cx + 34, base), p);
-    // Minarets with pointed tops.
-    for (final x in [cx - 52, cx + 52]) {
-      canvas.drawRect(Rect.fromLTRB(x - 4, base - 46, x + 4, base), p);
-      final tip = Path()
-        ..moveTo(x - 5, base - 46)
-        ..lineTo(x, base - 58)
-        ..lineTo(x + 5, base - 46)
-        ..close();
-      canvas.drawPath(tip, p);
+    // Sky.
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: dark
+              ? const [Color(0xFF0E2B2C), Color(0xFF214E4B)]
+              : const [Color(0xFF7CC3D8), Color(0xFFD6EEEE)],
+        ).createShader(rect),
+    );
+
+    // Far mountains with snow on the peaks.
+    final far = Path()
+      ..moveTo(0, h * 0.64)
+      ..lineTo(w * 0.16, h * 0.30)
+      ..lineTo(w * 0.31, h * 0.56)
+      ..lineTo(w * 0.50, h * 0.16)
+      ..lineTo(w * 0.70, h * 0.54)
+      ..lineTo(w * 0.86, h * 0.28)
+      ..lineTo(w, h * 0.60)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(
+        far, Paint()..color = dark ? const Color(0xFF2F5E66) : const Color(0xFF5F93A6));
+    final snow = Paint()..color = Colors.white.withValues(alpha: dark ? 0.55 : 0.9);
+    for (final p in [
+      [0.16, 0.30, 0.04],
+      [0.50, 0.16, 0.06],
+      [0.86, 0.28, 0.045],
+    ]) {
+      final cx = w * p[0];
+      final top = h * p[1];
+      final dx = w * p[2];
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx, top)
+          ..lineTo(cx - dx, top + h * 0.13)
+          ..lineTo(cx - dx * 0.35, top + h * 0.10)
+          ..lineTo(cx, top + h * 0.15)
+          ..lineTo(cx + dx * 0.35, top + h * 0.10)
+          ..lineTo(cx + dx, top + h * 0.13)
+          ..close(),
+        snow,
+      );
     }
-    // Finial on the dome.
-    canvas.drawRect(Rect.fromLTRB(cx - 1, base - 46, cx + 1, base - 38), p);
+
+    // Green hills.
+    final hills = Path()
+      ..moveTo(0, h * 0.74)
+      ..quadraticBezierTo(w * 0.22, h * 0.56, w * 0.45, h * 0.72)
+      ..quadraticBezierTo(w * 0.68, h * 0.60, w, h * 0.72)
+      ..lineTo(w, h)
+      ..lineTo(0, h)
+      ..close();
+    canvas.drawPath(
+        hills, Paint()..color = dark ? const Color(0xFF1D4A3D) : const Color(0xFF3E8F63));
+
+    // The lake, with a few light ripples.
+    final lakeTop = h * 0.76;
+    final lakeRect = Rect.fromLTRB(0, lakeTop, w, h);
+    canvas.drawRect(
+      lakeRect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: dark
+              ? const [Color(0xFF1B5A5C), Color(0xFF0F3B3D)]
+              : const [Color(0xFF4DB3B5), Color(0xFF2A8C92)],
+        ).createShader(lakeRect),
+    );
+    final ripple = Paint()
+      ..color = Colors.white.withValues(alpha: 0.22)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 5; i++) {
+      final y = lakeTop + (h - lakeTop) * (0.2 + i * 0.17);
+      final x = w * (0.12 + ((i * 37) % 70) / 100);
+      canvas.drawLine(Offset(x, y), Offset(x + w * 0.10, y), ripple);
+    }
+
+    // Pines on the left shore.
+    final pine = Paint()..color = dark ? const Color(0xFF123B2D) : const Color(0xFF1E5B3E);
+    for (final p in [
+      [0.04, 0.50, 0.09],
+      [0.10, 0.44, 0.10],
+      [0.17, 0.52, 0.08],
+    ]) {
+      final cx = w * p[0];
+      final top = h * p[1];
+      final base = h * 0.80;
+      final half = w * p[2] / 2;
+      for (var t = 0; t < 3; t++) {
+        final y0 = top + (base - top) * t / 3;
+        final y1 = top + (base - top) * (t + 1.4) / 3;
+        canvas.drawPath(
+          Path()
+            ..moveTo(cx, y0)
+            ..lineTo(cx - half * (0.55 + t * 0.2), y1)
+            ..lineTo(cx + half * (0.55 + t * 0.2), y1)
+            ..close(),
+          pine,
+        );
+      }
+    }
+
+    // A minaret with a green dome on the right.
+    final mx = w * 0.88;
+    final tower = Paint()..color = dark ? const Color(0xFF9C8F78) : const Color(0xFFD8C8A8);
+    canvas.drawRect(Rect.fromLTRB(mx - w * 0.011, h * 0.34, mx + w * 0.011, h * 0.80), tower);
+    canvas.drawRect(Rect.fromLTRB(mx - w * 0.016, h * 0.46, mx + w * 0.016, h * 0.485), tower);
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(mx, h * 0.34), width: w * 0.05, height: h * 0.20),
+      math.pi,
+      math.pi,
+      true,
+      Paint()..color = dark ? const Color(0xFF1F6E55) : const Color(0xFF2F9A74),
+    );
+    canvas.drawRect(Rect.fromLTRB(mx - 1, h * 0.20, mx + 1, h * 0.27), tower);
   }
 
   @override
-  bool shouldRepaint(_MosqueArtPainter old) => old.color != color;
+  bool shouldRepaint(_KashmirScenePainter old) => old.dark != dark;
+}
+
+/// The small compass of the banner: a ring and an arrow that points to the Qibla
+/// ([angle] is the Qibla direction in degrees, clockwise from the top of the
+/// phone). The arrow turns light green when you face it.
+class _MiniCompassPainter extends CustomPainter {
+  final double angle;
+  final bool aligned;
+  _MiniCompassPainter({required this.angle, required this.aligned});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = math.min(size.width, size.height) / 2 - 3;
+    final accent = aligned ? const Color(0xFF8CF2C0) : Colors.white;
+
+    canvas.drawCircle(c, r, Paint()..color = Colors.black.withValues(alpha: 0.30));
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = aligned ? 4 : 3
+        ..color = accent.withValues(alpha: aligned ? 1 : 0.9),
+    );
+
+    final tick = Paint()
+      ..strokeWidth = 1.6
+      ..strokeCap = StrokeCap.round
+      ..color = Colors.white.withValues(alpha: 0.55);
+    canvas.save();
+    canvas.translate(c.dx, c.dy);
+    for (var i = 0; i < 12; i++) {
+      canvas.save();
+      canvas.rotate(i * math.pi / 6);
+      canvas.drawLine(Offset(0, -r + 5), Offset(0, -r + (i % 3 == 0 ? 13 : 9)), tick);
+      canvas.restore();
+    }
+
+    // The arrow.
+    canvas.rotate(angle * math.pi / 180);
+    final arrow = Path()
+      ..moveTo(0, -r * 0.62)
+      ..lineTo(r * 0.30, r * 0.36)
+      ..lineTo(0, r * 0.18)
+      ..lineTo(-r * 0.30, r * 0.36)
+      ..close();
+    canvas.drawPath(arrow, Paint()..color = accent);
+    canvas.restore();
+
+    // Where the phone points (the top).
+    canvas.drawPath(
+      Path()
+        ..moveTo(c.dx - 6, 1)
+        ..lineTo(c.dx + 6, 1)
+        ..lineTo(c.dx, 10)
+        ..close(),
+      Paint()..color = Colors.white.withValues(alpha: 0.85),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_MiniCompassPainter old) =>
+      old.angle != angle || old.aligned != aligned;
 }
 
 /// The Qibla compass: the dial (N/E/S/W) turns with the phone's heading, and
