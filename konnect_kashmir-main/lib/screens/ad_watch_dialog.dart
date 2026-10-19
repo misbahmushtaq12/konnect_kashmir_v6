@@ -35,6 +35,9 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
   @override
   void initState() {
     super.initState();
+    // Portrait only while the ad plays: turned sideways, the player would be shown
+    // on its own, without the lock on the video below.
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     final videoId = _extractVideoId(widget.ad['url'] as String? ?? '');
     _controller = YoutubePlayerController(
       initialVideoId: videoId,
@@ -45,6 +48,10 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
         captionLanguage: 'en',
         forceHD: false,
         useHybridComposition: true,
+        // The video is only watched: no controls, no seeking, no fullscreen.
+        hideControls: true,
+        disableDragSeek: true,
+        showLiveFullscreenButton: false,
       ),
     );
     _watchTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -120,14 +127,8 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
       player: YoutubePlayer(
         controller: _controller,
         aspectRatio: playerRatio.toDouble(),
-        showVideoProgressIndicator: true,
-        progressIndicatorColor: AppColors.danger,
-        progressColors: ProgressBarColors(
-          playedColor: AppColors.danger,
-          handleColor: AppColors.danger,
-          backgroundColor: cs.onSurface.withOpacity(0.15),
-          bufferedColor: cs.onSurface.withOpacity(0.25),
-        ),
+        // No YouTube progress line: our own bar below shows the time left.
+        showVideoProgressIndicator: false,
         onReady: () => _controller.play(),
       ),
       builder: (context, player) {
@@ -210,9 +211,13 @@ class _AdWatchDialogState extends State<AdWatchDialog> {
                 // ── YouTube Player ──────────────────────────────────────
                 Expanded(
                   child: Center(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.zero,
-                      child: player,
+                    // Nothing on the video reacts to touch (no pause, no YouTube
+                    // links); only the close button above and the claim button work.
+                    child: IgnorePointer(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.zero,
+                        child: player,
+                      ),
                     ),
                   ),
                 ),
