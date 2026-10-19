@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../services/category_groups.dart';
+
 /// Hindi / Urdu names for the service categories, keyed by slug: [hindi, urdu].
 /// English comes from the category data itself, so unknown slugs fall back to it.
 const Map<String, List<String>> _categoryNames = {
@@ -62,6 +64,27 @@ const Map<String, List<String>> _categoryNames = {
   'musician': ['संगीत और कला', 'موسیقی اور فنون'],
   'other': ['अन्य', 'دیگر'],
 };
+
+/// Hindi / Urdu names of the category groups: [hindi, urdu].
+const Map<CategoryGroup, List<String>> _groupNames = {
+  CategoryGroup.homeRepair: ['घर और मरम्मत', 'گھر اور مرمت'],
+  CategoryGroup.healthEducation: ['स्वास्थ्य और शिक्षा', 'صحت اور تعلیم'],
+  CategoryGroup.foodGrocery: ['खान-पान और किराना', 'کھانا اور گروسری'],
+  CategoryGroup.fashionShopping: ['फ़ैशन और शॉपिंग', 'فیشن اور خریداری'],
+  CategoryGroup.businessProfessional: ['व्यापार और पेशेवर', 'کاروبار اور پیشہ ورانہ'],
+  CategoryGroup.eventsTravel: ['इवेंट और यात्रा', 'تقریبات اور سفر'],
+  CategoryGroup.moreServices: ['अन्य सेवाएँ', 'مزید خدمات'],
+  CategoryGroup.other: ['अन्य', 'دیگر'],
+};
+
+/// Name of a category group in the current app language.
+String categoryGroupName(BuildContext context, CategoryGroup group) {
+  final code = Localizations.localeOf(context).languageCode;
+  if (code == 'en') return group.label;
+  final names = _groupNames[group];
+  if (names == null) return group.label;
+  return code == 'hi' ? names[0] : names[1];
+}
 
 /// Category name in the current app language (English = the data's own name).
 String categoryName(BuildContext context, String? slug, String fallback) {

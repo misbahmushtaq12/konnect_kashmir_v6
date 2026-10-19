@@ -14,6 +14,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:konnect_kashmir/services/api_service.dart';
 import '../services/live_sync.dart';
 import '../services/analytics_service.dart';
+import '../services/category_groups.dart';
 import '../services/customer_location.dart';
 import '../services/map_link.dart';
 import '../services/search_gate.dart';
@@ -1834,19 +1835,23 @@ class _HomeScreenState extends State<CustomerScreen>
         ? _serviceCategories 
         : CategoryMeta.allCategories;
 
-    final allCats = [
-      {'slug': 'all', 'name': 'All'},
-      ...sourceList.map((e) => {
-        'slug': e['slug']?.toString() ?? e['id']?.toString() ?? '',
-        'name': e['name']?.toString() ?? 'Service',
-        'icon': e['icon']?.toString() ?? e['icon_name']?.toString(),
-        'color': e['color']?.toString() ?? e['color_hex']?.toString(),
-      })
+    final cats = <Map<String, dynamic>>[
+      for (final e in sourceList)
+        {
+          'slug': e['slug']?.toString() ?? e['id']?.toString() ?? '',
+          'name': e['name']?.toString() ?? 'Service',
+          'icon': e['icon']?.toString() ?? e['icon_name']?.toString(),
+          'color': e['color']?.toString() ?? e['color_hex']?.toString(),
+        }
     ];
 
-    final displayCount = _showAllCategories ? allCats.length : 8;
-    final safeCount = displayCount > allCats.length ? allCats.length : displayCount;
-    final items = allCats.take(safeCount).toList();
+    // The services in the website's groups (Home & Repair, Health & Education...).
+    // Collapsed, only the first few are shown; "Show all" opens every group.
+    final groups = CategoryGroups.group<Map<String, dynamic>>(
+      cats,
+      (c) => c['slug'].toString(),
+      limit: _showAllCategories ? null : _collapsedServiceTiles,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1858,21 +1863,37 @@ class _HomeScreenState extends State<CustomerScreen>
               setState(() => _showAllCategories = !_showAllCategories),
         ),
         const SizedBox(height: 2),
-        GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
-            mainAxisExtent: 88,
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
+        for (final g in groups) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 16, 2, 8),
+            child: Text(
+              categoryGroupName(context, g.group),
+              style: TextStyle(
+                fontSize: AppText.body,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurface,
+              ),
+            ),
           ),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
-          itemBuilder: (_, i) => _serviceTile(items[i]),
-        ),
+          GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisExtent: 88,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+            ),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: g.items.length,
+            itemBuilder: (_, i) => _serviceTile(g.items[i]),
+          ),
+        ],
       ],
     );
   }
+
+  /// How many services the collapsed Home view shows (before "Show all").
+  static const int _collapsedServiceTiles = 7;
 
   Widget _serviceTile(Map<String, dynamic> c) {
     final cs = Theme.of(context).colorScheme;
@@ -1883,11 +1904,8 @@ class _HomeScreenState extends State<CustomerScreen>
     final meta = CategoryMeta.of(slug, name: name, iconName: iconName, colorHex: colorHex);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isAll = slug == 'all';
-    final label = isAll ? context.l10n.categoryAll : categoryName(context, slug, name);
-    final isSelected = isAll 
-        ? selectedBrowseCategory == null 
-        : selectedBrowseCategory == slug;
+    final label = categoryName(context, slug, name);
+    final isSelected = selectedBrowseCategory == slug;
 
     return Material(
       color: cs.surface,
@@ -1896,7 +1914,9 @@ class _HomeScreenState extends State<CustomerScreen>
       child: InkWell(
         onTap: () {
           setState(() {
-            selectedBrowseCategory = isAll ? null : slug;
+            // Tapping the chosen service again clears it (it also shows as a
+            // chip under the services, with a cross).
+            selectedBrowseCategory = isSelected ? null : slug;
             selectedServiceSlug = null;
             selectedServiceName = null;
           });
@@ -1907,8 +1927,8 @@ class _HomeScreenState extends State<CustomerScreen>
           decoration: BoxDecoration(
             color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : null,
             border: Border.all(
-              color: isSelected 
-                  ? AppColors.primary 
+              color: isSelected
+                  ? AppColors.primary
                   : cs.onSurface.withValues(alpha: 0.08),
               width: isSelected ? 1.5 : 1.0,
             ),
@@ -2375,6 +2395,22 @@ class _HomeScreenState extends State<CustomerScreen>
     );
   }
 
+  /// The data's own (English) name of a service, from the loaded list or the
+  /// built-in one.
+  String _categoryDataName(String slug) {
+    final source = _serviceCategories.isNotEmpty
+        ? _serviceCategories
+        : CategoryMeta.allCategories;
+    for (final e in source) {
+      if (e['slug']?.toString() == slug) return e['name']?.toString() ?? slug;
+    }
+    return slug;
+  }
+
+  /// A service's name in the current app language.
+  String _categoryLabel(String slug) =>
+      categoryName(context, slug, _categoryDataName(slug));
+
   Widget _buildActiveFilters() {
     final chips = <Widget>[
       if (selectedDistrictName != null)
@@ -2395,6 +2431,17 @@ class _HomeScreenState extends State<CustomerScreen>
             selectedLocalityId = null;
             selectedLocalityName = null;
           });
+          _loadVendors();
+        }),
+      // The chosen service (from "Our services"): a cross clears it, so no "All"
+      // tile is needed.
+      if (selectedBrowseCategory != null)
+        _buildFilterChip(
+            _categoryLabel(selectedBrowseCategory!),
+            CategoryMeta.of(selectedBrowseCategory!,
+                    name: _categoryDataName(selectedBrowseCategory!))
+                .icon, () {
+          setState(() => selectedBrowseCategory = null);
           _loadVendors();
         }),
       if (verifiedOnly)
