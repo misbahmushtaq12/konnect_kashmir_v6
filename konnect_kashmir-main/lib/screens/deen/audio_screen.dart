@@ -83,12 +83,6 @@ class _AudioScreenState extends State<AudioScreen> {
     _openPlayer();
   }
 
-  String _fmt(Duration d) {
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return d.inHours > 0 ? '${d.inHours}:$m:$s' : '$m:$s';
-  }
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -137,8 +131,8 @@ class _AudioScreenState extends State<AudioScreen> {
               : _c.loadError != null
                   ? ErrorRetry.fromError(_c.loadError, onRetry: _c.load)
                   : ListView.separated(
-                      padding: EdgeInsets.fromLTRB(
-                          20, 4, 20, current != null ? 96 : 24),
+                      // The player is a bottom bar of its own, so the list ends above it.
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
                       itemCount: surahs.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (_, i) {
@@ -189,86 +183,193 @@ class _AudioScreenState extends State<AudioScreen> {
                     ),
         ),
       ]),
-      // The small player: tap the title to open the full-screen one.
+      // The small player. Tap it (or drag it up) to open the full-screen one.
       bottomNavigationBar: current == null
           ? null
-          : SafeArea(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-                decoration: BoxDecoration(
-                  color: AppColors.solid(cs),
-                  border: Border(
-                      top: BorderSide(color: cs.onSurface.withValues(alpha: 0.1))),
-                ),
-                child: StreamBuilder<Duration>(
-                  stream: _c.positionStream,
-                  builder: (_, snap) {
-                    final pos = snap.data ?? Duration.zero;
-                    final dur = _c.duration;
-                    final max = dur.inMilliseconds.toDouble();
-                    return Row(children: [
+          : MiniPlayer(controller: _c, onOpen: _openPlayer),
+    );
+  }
+}
+
+/// The compact player at the bottom of the audio list: the surah and reciter, a
+/// round play / pause button with previous and next either side, a thin seek bar
+/// across the full width, and the time on both sides of it.
+class MiniPlayer extends StatelessWidget {
+  final QuranAudioController controller;
+  final VoidCallback onOpen;
+  const MiniPlayer({super.key, required this.controller, required this.onOpen});
+
+  static String _fmt(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return d.inHours > 0 ? '${d.inHours}:$m:$s' : '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l = context.l10n;
+    final c = controller;
+    final isDark = cs.brightness == Brightness.dark;
+    final bg = isDark
+        ? Color.alphaBlend(AppColors.primary.withValues(alpha: 0.07), AppColors.darkSurface)
+        : Colors.white;
+    final muted = cs.onSurface.withValues(alpha: 0.62);
+    final playing = c.playing;
+
+    return SafeArea(
+      top: false,
+      child: GestureDetector(
+        onVerticalDragEnd: (d) {
+          if ((d.primaryVelocity ?? 0) < -200) onOpen();
+        },
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          padding: const EdgeInsets.fromLTRB(14, 8, 6, 4),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: cs.onSurface.withValues(alpha: 0.08)),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(children: [
+              // Surah and reciter; a tap anywhere here opens the full player.
+              Expanded(
+                child: InkWell(
+                  onTap: onOpen,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(children: [
                       Expanded(
                         child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              InkWell(
-                                onTap: _openPlayer,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 4),
-                                  child: Row(children: [
-                                    Flexible(
-                                      child: Text(_c.currentSurah?.english ?? '',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.w700)),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(Icons.keyboard_arrow_up_rounded,
-                                        size: 20,
-                                        color: cs.onSurface.withValues(alpha: 0.6)),
-                                  ]),
-                                ),
-                              ),
-                              SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                    trackHeight: 3,
-                                    thumbShape: const RoundSliderThumbShape(
-                                        enabledThumbRadius: 6)),
-                                child: Slider(
-                                  value: max <= 0
-                                      ? 0
-                                      : pos.inMilliseconds
-                                          .clamp(0, dur.inMilliseconds)
-                                          .toDouble(),
-                                  max: max <= 0 ? 1 : max,
-                                  onChanged: max <= 0
-                                      ? null
-                                      : (v) => _c.seek(
-                                          Duration(milliseconds: v.toInt())),
-                                ),
-                              ),
-                              Text('${_fmt(pos)} / ${_fmt(dur)}',
-                                  style: TextStyle(
-                                      fontSize: AppText.caption,
-                                      color:
-                                          cs.onSurface.withValues(alpha: 0.6))),
-                            ]),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.currentSurah?.english ?? '',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: AppText.body,
+                                    fontWeight: FontWeight.w700,
+                                    color: cs.onSurface)),
+                            Text(c.currentReciter.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    fontSize: AppText.caption, color: muted)),
+                          ],
+                        ),
                       ),
-                      IconButton(
-                        iconSize: 34,
-                        color: AppColors.primary,
-                        onPressed: _c.togglePlayPause,
-                        icon: Icon(_c.playing
-                            ? Icons.pause_circle_filled_rounded
-                            : Icons.play_circle_fill_rounded),
-                      ),
-                    ]);
-                  },
+                      Icon(Icons.keyboard_arrow_up_rounded, size: 22, color: muted),
+                    ]),
+                  ),
                 ),
               ),
+              IconButton(
+                onPressed: c.previous,
+                tooltip: l.audioPrevious,
+                visualDensity: VisualDensity.compact,
+                iconSize: 26,
+                icon: Icon(Icons.skip_previous_rounded, color: muted),
+              ),
+              Semantics(
+                button: true,
+                label: playing ? l.audioPause : l.audioPlay,
+                child: Material(
+                  color: AppColors.primary,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: c.togglePlayPause,
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: c.buffering
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2.4, color: Colors.white),
+                            )
+                          : Icon(
+                              playing
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              size: 28,
+                              color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: c.canNext ? c.next : null,
+                tooltip: l.audioNext,
+                visualDensity: VisualDensity.compact,
+                iconSize: 26,
+                icon: Icon(Icons.skip_next_rounded,
+                    color: c.canNext ? muted : muted.withValues(alpha: 0.35)),
+              ),
+            ]),
+            // The seek bar: thin, teal where played, a muted green for the rest.
+            StreamBuilder<Duration>(
+              stream: c.positionStream,
+              builder: (_, snap) {
+                final pos = snap.data ?? Duration.zero;
+                final dur = c.duration;
+                final max = dur.inMilliseconds.toDouble();
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Column(children: [
+                    SizedBox(
+                      height: 22,
+                      child: SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          padding: EdgeInsets.zero,
+                          trackHeight: 3,
+                          activeTrackColor: AppColors.primary,
+                          inactiveTrackColor:
+                              AppColors.primary.withValues(alpha: 0.25),
+                          thumbColor: AppColors.primary,
+                          disabledThumbColor: AppColors.primary.withValues(alpha: 0.4),
+                          disabledActiveTrackColor:
+                              AppColors.primary.withValues(alpha: 0.4),
+                          thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 5,
+                              elevation: 0,
+                              pressedElevation: 0),
+                          overlayShape:
+                              const RoundSliderOverlayShape(overlayRadius: 12),
+                        ),
+                        child: Slider(
+                          value: max <= 0
+                              ? 0
+                              : pos.inMilliseconds
+                                  .clamp(0, dur.inMilliseconds)
+                                  .toDouble(),
+                          max: max <= 0 ? 1 : max,
+                          semanticFormatterCallback: (v) =>
+                              _fmt(Duration(milliseconds: v.toInt())),
+                          onChanged: max <= 0
+                              ? null
+                              : (v) =>
+                                  c.seek(Duration(milliseconds: v.toInt())),
+                        ),
+                      ),
+                    ),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      Text(_fmt(pos),
+                          textDirection: TextDirection.ltr,
+                          style: TextStyle(fontSize: 11, color: muted)),
+                      Text(_fmt(dur),
+                          textDirection: TextDirection.ltr,
+                          style: TextStyle(fontSize: 11, color: muted)),
+                    ]),
+                  ]),
+                );
+              },
             ),
+          ]),
+        ),
+      ),
     );
   }
 }

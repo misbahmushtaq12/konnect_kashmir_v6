@@ -332,4 +332,194 @@ void main() {
       list.dispose();
     });
   });
+
+  group('the small player', () {
+    final saved = jsonEncode([for (final s in _surahs) s.toJson()]);
+
+    /// The audio list with the full-screen player already closed again, so only
+    /// the small player is left at the bottom.
+    Future<QuranAudioController> pumpMini(WidgetTester tester,
+        {int surah = 2, ThemeData? theme, double textScale = 1.0}) async {
+      SharedPreferences.setMockInitialValues({'quran_surahs': saved});
+      final list = QuranAudioController(backend);
+      await tester.pumpWidget(_app(AudioScreen(title: 'Audio', controller: list),
+          theme: theme, textScale: textScale));
+      await tester.pumpAndSettle();
+      await list.play(surah);
+      await tester.pumpAndSettle();
+      return list;
+    }
+
+    testWidgets('is not there until something plays', (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      SharedPreferences.setMockInitialValues({'quran_surahs': saved});
+      final list = QuranAudioController(backend);
+      await tester.pumpWidget(_app(AudioScreen(title: 'Audio', controller: list)));
+      await tester.pumpAndSettle();
+      expect(find.byType(MiniPlayer), findsNothing);
+      list.dispose();
+    });
+
+    testWidgets('shows the surah, the reciter, the time and the controls',
+        (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      final list = await pumpMini(tester);
+      backend.position(const Duration(seconds: 5));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final mini = find.byType(MiniPlayer);
+      expect(mini, findsOneWidget);
+      expect(find.descendant(of: mini, matching: find.text('Al-Baqara')), findsOneWidget);
+      expect(find.descendant(of: mini, matching: find.text(kReciters[0].name)),
+          findsOneWidget);
+      // Elapsed on the left, the whole length on the right.
+      expect(find.descendant(of: mini, matching: find.text('00:05')), findsOneWidget);
+      expect(find.descendant(of: mini, matching: find.text('05:00')), findsOneWidget);
+      for (final icon in [
+        Icons.keyboard_arrow_up_rounded,
+        Icons.skip_previous_rounded,
+        Icons.pause_rounded, // playing, so the round button offers "pause"
+        Icons.skip_next_rounded,
+      ]) {
+        expect(find.descendant(of: mini, matching: find.byIcon(icon)), findsOneWidget,
+            reason: '$icon');
+      }
+      expect(find.descendant(of: mini, matching: find.byType(Slider)), findsOneWidget);
+      list.dispose();
+    });
+
+    testWidgets('the round button pauses and plays again', (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      final list = await pumpMini(tester);
+      final mini = find.byType(MiniPlayer);
+
+      await tester.tap(find.descendant(of: mini, matching: find.byIcon(Icons.pause_rounded)));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(list.playing, isFalse);
+      expect(find.descendant(of: mini, matching: find.byIcon(Icons.play_arrow_rounded)),
+          findsOneWidget);
+
+      await tester.tap(
+          find.descendant(of: mini, matching: find.byIcon(Icons.play_arrow_rounded)));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(list.playing, isTrue);
+      expect(backend.urls.length, 1, reason: 'resumed, not loaded again');
+      list.dispose();
+    });
+
+    testWidgets('shows a spinner while the recording is loading', (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      final list = await pumpMini(tester);
+      backend.buffer();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final mini = find.byType(MiniPlayer);
+      expect(find.descendant(of: mini, matching: find.byType(CircularProgressIndicator)),
+          findsOneWidget);
+      expect(find.descendant(of: mini, matching: find.byIcon(Icons.pause_rounded)),
+          findsNothing);
+      list.dispose();
+    });
+
+    testWidgets('previous and next move between surahs; next is off on the last',
+        (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      final list = await pumpMini(tester, surah: 2);
+      final mini = find.byType(MiniPlayer);
+
+      await tester.tap(find.descendant(of: mini, matching: find.byIcon(Icons.skip_next_rounded)));
+      await tester.pumpAndSettle();
+      expect(list.current, 3);
+      expect(find.descendant(of: mini, matching: find.text('Aal-i-Imraan')), findsOneWidget);
+
+      // The last surah: next is disabled and does nothing.
+      await tester.tap(find.descendant(of: mini, matching: find.byIcon(Icons.skip_next_rounded)));
+      await tester.pumpAndSettle();
+      expect(list.current, 3);
+
+      backend.position(const Duration(seconds: 1));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tap(
+          find.descendant(of: mini, matching: find.byIcon(Icons.skip_previous_rounded)));
+      await tester.pumpAndSettle();
+      expect(list.current, 2);
+      list.dispose();
+    });
+
+    testWidgets('dragging the seek bar seeks', (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      final list = await pumpMini(tester);
+      await tester.tapAt(tester.getCenter(
+          find.descendant(of: find.byType(MiniPlayer), matching: find.byType(Slider))));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(backend.seeks, isNotEmpty);
+      // Tapping the middle of a 5-minute recording lands about halfway.
+      expect(backend.seeks.last.inSeconds, inInclusiveRange(120, 180));
+      list.dispose();
+    });
+
+    testWidgets('a tap on the title, or a swipe up, opens the full-screen player',
+        (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      final list = await pumpMini(tester);
+      await tester.tap(find.descendant(
+          of: find.byType(MiniPlayer), matching: find.text('Al-Baqara')));
+      await tester.pumpAndSettle();
+      expect(find.byType(NowPlayingScreen), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down_rounded));
+      await tester.pumpAndSettle();
+      expect(find.byType(NowPlayingScreen), findsNothing);
+
+      await tester.fling(find.byType(MiniPlayer), const Offset(0, -150), 1000);
+      await tester.pumpAndSettle();
+      expect(find.byType(NowPlayingScreen), findsOneWidget);
+      list.dispose();
+    });
+
+    testWidgets('disappears when the last surah has finished', (tester) async {
+      _phone(tester);
+      c = _controller(backend);
+      final list = await pumpMini(tester, surah: 3);
+      backend.finish();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+      expect(find.byType(MiniPlayer), findsNothing);
+      list.dispose();
+    });
+
+    testWidgets('does not cover the last surah in the list', (tester) async {
+      _phone(tester, h: 560);
+      c = _controller(backend);
+      final list = await pumpMini(tester);
+      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+
+      final lastRow = tester.getRect(find.text('3. Aal-i-Imraan'));
+      final player = tester.getRect(find.byType(MiniPlayer));
+      expect(lastRow.bottom, lessThanOrEqualTo(player.top));
+      list.dispose();
+    });
+
+    testWidgets('dark and light themes, a small screen and large text, without overflow',
+        (tester) async {
+      c = _controller(backend);
+      for (final theme in [AppTheme.dark, AppTheme.light]) {
+        _phone(tester, w: 340, h: 640);
+        final list = await pumpMini(tester, theme: theme, textScale: 1.3);
+        expect(find.byType(MiniPlayer), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        list.dispose();
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+  });
 }

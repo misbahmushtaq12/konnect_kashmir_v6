@@ -22,6 +22,9 @@ class FakeBackend implements AudioBackend {
     _emit(completed: true);
   }
 
+  /// The player is loading or buffering the recording.
+  void buffer() => _emit(buffering: true);
+
   void position(Duration d) => _pos.add(d);
 
   @override
