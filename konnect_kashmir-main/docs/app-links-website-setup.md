@@ -25,13 +25,20 @@ the website (it shows the site's 404), so it should not be used in the SMS.
 
 ## What is already done in the app
 
-* Android: verified link filter for `konnectkashmir.com` on `/go` and `/vendor/dashboard`.
+* Android: verified link filter for `konnectkashmir.com` on `/go`, `/vendor/dashboard` and `/business/`.
 * iPhone: Associated Domains entitlement for `konnectkashmir.com`.
 * Someone who is **signed in**: `/go?utm_campaign=new_lead` opens **My Business**
   (where the leads are). Any other `/go` link just opens the app.
 * Someone who is **signed out**: the app opens on the sign-in screen, and after signing
   in they see **Home** as usual. Nothing about the link is kept for after sign-in.
   (By decision of the app owner; the original request was My Business after sign-in.)
+* **Shared businesses.** The share icon on a business card shares
+  `https://konnectkashmir.com/business/<id>`. That is a real page on the website (its
+  `/business/:id` route loads the business whose `vendors_public.id` is in the address), so
+  someone without the app sees the business there. A phone that has the app opens the **app
+  on Home, showing that business at the top** ("Shared with you"). Someone who is signed out
+  signs in first and then sees it. Android needs nothing more from the website; **iPhone
+  needs one line added to the apple-app-site-association file** (below).
 
 ## What is left
 
@@ -95,7 +102,8 @@ Content-Type `application/json`:
         "appIDs": ["5VTU5RA37T.com.mediamosiac.konnectkashmirapp"],
         "components": [
           { "/": "/go", "comment": "get-the-app / new-lead SMS link" },
-          { "/": "/vendor/dashboard*" }
+          { "/": "/vendor/dashboard*" },
+          { "/": "/business/*", "comment": "a shared business" }
         ]
       }
     ]

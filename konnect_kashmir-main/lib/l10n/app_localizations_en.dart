@@ -1117,4 +1117,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sameAsBusinessNumber => 'Same as business number';
+
+  @override
+  String get prayerAlarms => 'Prayer alarms';
+
+  @override
+  String get prayerAlarmsSubtitle =>
+      'A short beep at each prayer time, even when the app is closed.';
+
+  @override
+  String get prayerAlarmsMaster => 'Beep at prayer times';
+
+  @override
+  String prayerAlarmNotifTitle(String prayer) {
+    return '$prayer prayer time';
+  }
+
+  @override
+  String prayerAlarmNotifBody(String prayer) {
+    return 'It\'s time for $prayer prayer.';
+  }
+
+  @override
+  String get prayerAlarmNotifBlocked =>
+      'Notifications are off for Konnect Kashmir, so the alarms cannot sound.';
+
+  @override
+  String get prayerAlarmAllowNotifications => 'Allow notifications';
+
+  @override
+  String get prayerAlarmOpenSettings => 'Open settings';
+
+  @override
+  String get prayerAlarmExactOff =>
+      'Exact alarms are off, so a beep can arrive a few minutes late.';
+
+  @override
+  String get prayerAlarmAllowExact => 'Allow exact alarms';
+
+  @override
+  String get prayerAlarmNoLocation =>
+      'Allow location once so we can work out prayer times for where you are.';
+
+  @override
+  String get prayerAlarmNoTimes =>
+      'Prayer times could not be loaded yet. Connect to the internet and try again.';
+
+  @override
+  String get prayerAlarmNoRoom =>
+      'This phone has no room left for more alarms.';
+
+  @override
+  String prayerAlarmSetThrough(String date) {
+    return 'Alarms are set through $date.';
+  }
+
+  @override
+  String get prayerAlarmFooter =>
+      'The beep follows your phone\'s volume, silent mode and Do Not Disturb settings.';
+
+  @override
+  String get prayerAlarmRefresh => 'Refresh alarms';
+
+  @override
+  String get prayerAlarmFailed =>
+      'Some alarms could not be set. Try Refresh alarms.';
+
+  @override
+  String prayerAlarmValidDays(int days) {
+    return 'Alarms are set for $days days at a time. After that, open the app to keep them going.';
+  }
+
+  @override
+  String get shareBusiness => 'Share';
+
+  @override
+  String shareBusinessIntro(String name) {
+    return 'Check out $name on Konnect Kashmir';
+  }
+
+  @override
+  String shareBusinessCategory(String value) {
+    return 'Category: $value';
+  }
+
+  @override
+  String shareBusinessAddress(String value) {
+    return 'Address: $value';
+  }
+
+  @override
+  String shareBusinessArea(String value) {
+    return 'Area: $value';
+  }
+
+  @override
+  String shareBusinessPhone(String value) {
+    return 'Phone: $value';
+  }
+
+  @override
+  String shareBusinessLink(String url) {
+    return 'View details: $url';
+  }
+
+  @override
+  String get shareBusinessFailed =>
+      'Couldn\'t open the share sheet. Please try again.';
+
+  @override
+  String get sharedBusinessTitle => 'Shared with you';
+
+  @override
+  String get sharedBusinessMissing =>
+      'This business is not available any more.';
 }

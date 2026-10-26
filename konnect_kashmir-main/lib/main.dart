@@ -10,6 +10,8 @@ import 'services/backend_config.dart';
 import 'services/app_links.dart';
 import 'services/live_sync.dart';
 import 'services/notification_service.dart';
+import 'services/prayer_alarm/prayer_alarm_background.dart';
+import 'services/prayer_alarm/prayer_alarm_service.dart';
 import 'screens/leads_link_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
@@ -56,6 +58,18 @@ void main() async {
   // Not needed to draw the first screen, so they start after it.
   facebookAppEvents.setAutoLogAppEventsEnabled(true);
   NotificationService.instance.start(authProvider);
+  // Prayer-time beeps: put the next days' alarms on the phone (needs no sign-in),
+  // plan again whenever the app comes back to the front, and when the language
+  // changes (the notification text is in the app language).
+  PrayerAlarmService.instance.maintenance = AndroidPrayerAlarmMaintenance();
+  PrayerAlarmService.instance.start();
+  var alarmLanguage = localeProvider.locale.languageCode;
+  localeProvider.addListener(() {
+    final code = localeProvider.locale.languageCode;
+    if (code == alarmLanguage) return;
+    alarmLanguage = code;
+    PrayerAlarmService.instance.onLanguageChanged(code);
+  });
   // Fetch the balance while the splash plays; Home then reuses it.
   if (authProvider.isAuthenticated) liveSync.refreshCredits();
 }
@@ -122,6 +136,11 @@ class KonnectKashmirApp extends StatelessWidget {
         onGenerateInitialRoutes: (initialRoute) {
           if (AppLinks.isLeadsLink(initialRoute) && authProvider.isAuthenticated) {
             MainShell.tabRequest.value = MainShell.tabMyBusiness;
+          }
+          // A shared business: kept until Home shows it (also after a sign-in).
+          final sharedBusiness = AppLinks.businessId(initialRoute);
+          if (sharedBusiness != null) {
+            AppLinks.businessRequest.value = sharedBusiness;
           }
           return [
             MaterialPageRoute<void>(

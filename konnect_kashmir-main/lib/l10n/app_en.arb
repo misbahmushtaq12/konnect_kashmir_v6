@@ -474,5 +474,83 @@
   },
   "seeMore": "See more",
   "seeLess": "See less",
-  "sameAsBusinessNumber": "Same as business number"
+  "sameAsBusinessNumber": "Same as business number",
+  "prayerAlarms": "Prayer alarms",
+  "prayerAlarmsSubtitle": "A short beep at each prayer time, even when the app is closed.",
+  "prayerAlarmsMaster": "Beep at prayer times",
+  "prayerAlarmNotifTitle": "{prayer} prayer time",
+  "@prayerAlarmNotifTitle": {
+    "placeholders": {
+      "prayer": {"type": "String"}
+    }
+  },
+  "prayerAlarmNotifBody": "It's time for {prayer} prayer.",
+  "@prayerAlarmNotifBody": {
+    "placeholders": {
+      "prayer": {"type": "String"}
+    }
+  },
+  "prayerAlarmNotifBlocked": "Notifications are off for Konnect Kashmir, so the alarms cannot sound.",
+  "prayerAlarmAllowNotifications": "Allow notifications",
+  "prayerAlarmOpenSettings": "Open settings",
+  "prayerAlarmExactOff": "Exact alarms are off, so a beep can arrive a few minutes late.",
+  "prayerAlarmAllowExact": "Allow exact alarms",
+  "prayerAlarmNoLocation": "Allow location once so we can work out prayer times for where you are.",
+  "prayerAlarmNoTimes": "Prayer times could not be loaded yet. Connect to the internet and try again.",
+  "prayerAlarmNoRoom": "This phone has no room left for more alarms.",
+  "prayerAlarmSetThrough": "Alarms are set through {date}.",
+  "@prayerAlarmSetThrough": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "prayerAlarmFooter": "The beep follows your phone's volume, silent mode and Do Not Disturb settings.",
+  "prayerAlarmRefresh": "Refresh alarms",
+  "prayerAlarmFailed": "Some alarms could not be set. Try Refresh alarms.",
+  "prayerAlarmValidDays": "Alarms are set for {days} days at a time. After that, open the app to keep them going.",
+  "@prayerAlarmValidDays": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "shareBusiness": "Share",
+  "shareBusinessIntro": "Check out {name} on Konnect Kashmir",
+  "@shareBusinessIntro": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "shareBusinessCategory": "Category: {value}",
+  "@shareBusinessCategory": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "shareBusinessAddress": "Address: {value}",
+  "@shareBusinessAddress": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "shareBusinessArea": "Area: {value}",
+  "@shareBusinessArea": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "shareBusinessPhone": "Phone: {value}",
+  "@shareBusinessPhone": {
+    "placeholders": {
+      "value": {"type": "String"}
+    }
+  },
+  "shareBusinessLink": "View details: {url}",
+  "@shareBusinessLink": {
+    "placeholders": {
+      "url": {"type": "String"}
+    }
+  },
+  "shareBusinessFailed": "Couldn't open the share sheet. Please try again.",
+  "sharedBusinessTitle": "Shared with you",
+  "sharedBusinessMissing": "This business is not available any more."
 }

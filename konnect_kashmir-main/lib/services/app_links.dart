@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Web links that open the app instead of the website.
 ///
 /// The new-lead SMS carries https://konnectkashmir.com/go?utm_campaign=new_lead.
@@ -5,6 +7,9 @@
 /// counts the click). Once the website proves the app belongs to it (see
 /// docs/app-links-website-setup.md), a phone that already has the app opens the
 /// app on My Business instead, with no change to the SMS.
+///
+/// A shared business (the website's `/business/<id>` page) opens the app on that
+/// business.
 class AppLinks {
   AppLinks._();
 
@@ -13,6 +18,14 @@ class AppLinks {
 
   /// The older dashboard link. Opens the app on My Business as well.
   static const String leadsPath = '/vendor/dashboard';
+
+  /// A shared business: `/business/<id>`.
+  static const String businessPath = '/business';
+
+  /// The business a link asked for, waiting for the Home screen to show it. It
+  /// is set by a link (while the app starts or runs) and cleared by whoever shows
+  /// the business, so it also survives a sign-in in between.
+  static final ValueNotifier<String?> businessRequest = ValueNotifier<String?>(null);
 
   /// `utm_campaign` of the new-lead SMS: a /go link with it lands on My Business.
   static const String leadsCampaign = 'new_lead';
@@ -31,7 +44,19 @@ class AppLinks {
     final u = _parse(route);
     if (u == null) return false;
     final path = _path(u);
-    return path == goPath || _isLeadsPath(path);
+    return path == goPath || _isLeadsPath(path) || businessId(route) != null;
+  }
+
+  /// The id in a `/business/<id>` link, or null. Only plain ids (letters, digits,
+  /// dashes) are accepted: the id is put into a database filter, so anything else
+  /// is not a business link.
+  static String? businessId(String? route) {
+    final u = _parse(route);
+    if (u == null) return null;
+    final parts = u.pathSegments.where((s) => s.isNotEmpty).toList();
+    if (parts.length != 2 || '/${parts.first}' != businessPath) return null;
+    final id = parts[1];
+    return RegExp(r'^[A-Za-z0-9-]{1,64}$').hasMatch(id) ? id : null;
   }
 
   /// Whether [route] should land on My Business (where the leads are).

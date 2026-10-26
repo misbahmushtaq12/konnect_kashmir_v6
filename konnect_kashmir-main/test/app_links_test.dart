@@ -36,6 +36,7 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     MainShell.tabRequest.value = null;
+    AppLinks.businessRequest.value = null;
   });
 
   group('which links count', () {
@@ -74,6 +75,45 @@ void main() {
       ]) {
         expect(AppLinks.isLeadsLink(no), isFalse, reason: '$no');
       }
+    });
+
+    test('a shared business link: the id is read from it', () {
+      for (final (link, id) in [
+        ('/business/3f2a9c1e-7b64-4d0a-9e55-1c2d3e4f5a6b', '3f2a9c1e-7b64-4d0a-9e55-1c2d3e4f5a6b'),
+        ('https://konnectkashmir.com/business/42', '42'),
+        ('/business/42/', '42'),
+        ('/business/42?utm_source=whatsapp', '42'),
+        ('https://konnectkashmir.com/business/abc-DEF-9#top', 'abc-DEF-9'),
+      ]) {
+        expect(AppLinks.businessId(link), id, reason: link);
+        expect(AppLinks.isAppLink(link), isTrue, reason: link);
+        // It is a business, not the leads.
+        expect(AppLinks.isLeadsLink(link), isFalse, reason: link);
+      }
+    });
+
+    test('other links are not a business link, and a bad id is never accepted', () {
+      for (final no in [
+        null,
+        '',
+        '/',
+        '/business',
+        '/business/',
+        '/businesses/42',
+        '/business/42/reviews',
+        '/go',
+        '/vendor/dashboard',
+        // The id goes into a database filter: anything but letters, digits and
+        // dashes is refused.
+        '/business/1),id.neq.(2',
+        '/business/a,b',
+        '/business/a%2Cb',
+        '/business/a b',
+        '/business/${'x' * 65}',
+      ]) {
+        expect(AppLinks.businessId(no), isNull, reason: '$no');
+      }
+      expect(AppLinks.isAppLink('/business/a,b'), isFalse);
     });
 
     test('every /go link and the old dashboard link open the app', () {
@@ -149,6 +189,53 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(LoginScreen), findsOneWidget);
+    });
+  });
+
+  group('app started by a shared business link', () {
+    testWidgets('signed out: splash, then sign-in; the business waits for Home',
+        (tester) async {
+      tester.platformDispatcher.defaultRouteNameTestValue = '/business/biz-123';
+      addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+
+      await tester.pumpWidget(await _app());
+      await tester.pump();
+
+      expect(find.byType(SplashScreen), findsOneWidget);
+      expect(Navigator.of(tester.element(find.byType(SplashScreen))).canPop(), isFalse);
+      expect(AppLinks.businessRequest.value, 'biz-123');
+      expect(MainShell.tabRequest.value, isNull);
+
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(LoginScreen), findsOneWidget);
+      // Still waiting: after signing in Home shows it.
+      expect(AppLinks.businessRequest.value, 'biz-123');
+    });
+
+    testWidgets('signed in: the business is requested', (tester) async {
+      tester.platformDispatcher.defaultRouteNameTestValue =
+          'https://konnectkashmir.com/business/biz-123';
+      addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+
+      await tester.pumpWidget(await _app(signedIn: true));
+      await tester.pump();
+      expect(find.byType(SplashScreen), findsOneWidget);
+      expect(AppLinks.businessRequest.value, 'biz-123');
+      expect(MainShell.tabRequest.value, isNull, reason: 'Home is where it opens');
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets('a link with a bad id asks for nothing', (tester) async {
+      tester.platformDispatcher.defaultRouteNameTestValue = '/business/a,b';
+      addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+
+      await tester.pumpWidget(await _app());
+      await tester.pump();
+      expect(AppLinks.businessRequest.value, isNull);
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
     });
   });
 
@@ -239,6 +326,29 @@ void main() {
       await pump(tester, auth, '/go');
 
       expect(find.text('the shell'), findsOneWidget);
+      expect(MainShell.tabRequest.value, isNull);
+    });
+
+    testWidgets('signed in, shared business: goes to /home on Home, business requested',
+        (tester) async {
+      final auth = AuthProvider();
+      await auth.setSession('token', 'user-1',
+          phone: '9999999999', role: 'customer');
+      await pump(tester, auth, '/business/biz-9');
+
+      expect(find.text('the shell'), findsOneWidget);
+      expect(find.byType(LeadsLinkScreen), findsNothing);
+      expect(AppLinks.businessRequest.value, 'biz-9');
+      expect(MainShell.tabRequest.value, MainShell.tabHome);
+    });
+
+    testWidgets('signed out, shared business: leaves, and the business waits for sign-in',
+        (tester) async {
+      await pump(tester, AuthProvider(), '/business/biz-9');
+
+      expect(find.text('splash'), findsOneWidget);
+      expect(find.byType(LeadsLinkScreen), findsNothing);
+      expect(AppLinks.businessRequest.value, 'biz-9');
       expect(MainShell.tabRequest.value, isNull);
     });
 

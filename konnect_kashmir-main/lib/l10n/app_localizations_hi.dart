@@ -1117,4 +1117,117 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get sameAsBusinessNumber => 'व्यवसाय नंबर जैसा ही';
+
+  @override
+  String get prayerAlarms => 'नमाज़ अलार्म';
+
+  @override
+  String get prayerAlarmsSubtitle =>
+      'हर नमाज़ के वक़्त एक छोटी बीप, ऐप बंद होने पर भी।';
+
+  @override
+  String get prayerAlarmsMaster => 'नमाज़ के वक़्त बीप';
+
+  @override
+  String prayerAlarmNotifTitle(String prayer) {
+    return '$prayer का वक़्त';
+  }
+
+  @override
+  String prayerAlarmNotifBody(String prayer) {
+    return '$prayer की नमाज़ का वक़्त हो गया है।';
+  }
+
+  @override
+  String get prayerAlarmNotifBlocked =>
+      'Konnect Kashmir के लिए नोटिफ़िकेशन बंद हैं, इसलिए अलार्म नहीं बज सकते।';
+
+  @override
+  String get prayerAlarmAllowNotifications => 'नोटिफ़िकेशन की अनुमति दें';
+
+  @override
+  String get prayerAlarmOpenSettings => 'सेटिंग्स खोलें';
+
+  @override
+  String get prayerAlarmExactOff =>
+      'सटीक अलार्म बंद हैं, इसलिए बीप कुछ मिनट देर से आ सकती है।';
+
+  @override
+  String get prayerAlarmAllowExact => 'सटीक अलार्म की अनुमति दें';
+
+  @override
+  String get prayerAlarmNoLocation =>
+      'एक बार लोकेशन की अनुमति दें ताकि आपकी जगह के हिसाब से नमाज़ के वक़्त निकाले जा सकें।';
+
+  @override
+  String get prayerAlarmNoTimes =>
+      'नमाज़ के वक़्त अभी लोड नहीं हो सके। इंटरनेट से जुड़कर फिर कोशिश करें।';
+
+  @override
+  String get prayerAlarmNoRoom =>
+      'इस फ़ोन में और अलार्म के लिए जगह नहीं बची है।';
+
+  @override
+  String prayerAlarmSetThrough(String date) {
+    return 'अलार्म $date तक सेट हैं।';
+  }
+
+  @override
+  String get prayerAlarmFooter =>
+      'बीप आपके फ़ोन की आवाज़, साइलेंट मोड और डू नॉट डिस्टर्ब सेटिंग्स का पालन करती है।';
+
+  @override
+  String get prayerAlarmRefresh => 'अलार्म ताज़ा करें';
+
+  @override
+  String get prayerAlarmFailed =>
+      'कुछ अलार्म सेट नहीं हो सके। “अलार्म ताज़ा करें” दबाकर देखें।';
+
+  @override
+  String prayerAlarmValidDays(int days) {
+    return 'अलार्म एक बार में $days दिन के लिए सेट होते हैं। उसके बाद उन्हें चालू रखने के लिए ऐप खोलें।';
+  }
+
+  @override
+  String get shareBusiness => 'शेयर करें';
+
+  @override
+  String shareBusinessIntro(String name) {
+    return 'Konnect Kashmir पर $name देखें';
+  }
+
+  @override
+  String shareBusinessCategory(String value) {
+    return 'श्रेणी: $value';
+  }
+
+  @override
+  String shareBusinessAddress(String value) {
+    return 'पता: $value';
+  }
+
+  @override
+  String shareBusinessArea(String value) {
+    return 'इलाका: $value';
+  }
+
+  @override
+  String shareBusinessPhone(String value) {
+    return 'फ़ोन: $value';
+  }
+
+  @override
+  String shareBusinessLink(String url) {
+    return 'विवरण देखें: $url';
+  }
+
+  @override
+  String get shareBusinessFailed =>
+      'शेयर विंडो नहीं खुल सकी। कृपया फिर कोशिश करें।';
+
+  @override
+  String get sharedBusinessTitle => 'आपके साथ शेयर किया गया';
+
+  @override
+  String get sharedBusinessMissing => 'यह बिज़नेस अब उपलब्ध नहीं है।';
 }

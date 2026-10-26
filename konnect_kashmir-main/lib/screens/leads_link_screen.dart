@@ -8,7 +8,8 @@ import 'main_shell.dart';
 /// Where a link that opens the app lands while the app is already open (when
 /// the app is started by the link, main.dart handles it instead). It shows
 /// nothing: if the user is signed in and the link is for the leads it asks the
-/// shell for the My Business tab, and it leaves at once.
+/// shell for the My Business tab (a shared business: the Home tab, with that
+/// business), and it leaves at once.
 class LeadsLinkScreen extends StatefulWidget {
   /// The link, such as "/go?utm_campaign=new_lead".
   final String route;
@@ -26,6 +27,13 @@ class _LeadsLinkScreenState extends State<LeadsLinkScreen> {
       if (!mounted) return;
       final nav = Navigator.of(context);
       final loggedIn = context.read<AuthProvider>().isAuthenticated;
+      // A shared business: Home shows it. If the user is signed out the request
+      // waits and Home shows it after sign-in.
+      final businessId = AppLinks.businessId(widget.route);
+      if (businessId != null) {
+        AppLinks.businessRequest.value = businessId;
+        if (loggedIn) MainShell.tabRequest.value = MainShell.tabHome;
+      }
       // Signed in: the shell switches to My Business at once if it is open.
       // Signed out: nothing is kept, so after signing in the user sees Home.
       if (loggedIn && AppLinks.isLeadsLink(widget.route)) {

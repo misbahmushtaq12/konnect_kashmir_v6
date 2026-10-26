@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../l10n/category_names.dart';
 import '../l10n/l10n.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -10,7 +11,9 @@ import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../services/business_share.dart';
 import '../services/live_sync.dart';
+import '../services/map_link.dart';
 import '../widgets/app_chip.dart';
 import '../widgets/category_meta.dart';
 import '../widgets/app_header.dart';
@@ -18,6 +21,7 @@ import '../widgets/app_snack.dart';
 import '../widgets/error_retry.dart';
 import '../services/lead_loader.dart';
 import '../widgets/lead_contact_sheet.dart';
+import '../widgets/share_business_button.dart';
 import '../theme/app_theme.dart';
 
 import 'ad_credits_screen.dart';
@@ -563,6 +567,19 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
               const SizedBox(width: 8),
               AppChip(isApproved ? context.l10n.statusActive : context.l10n.statusPending,
                   tone: isApproved ? ChipTone.success : ChipTone.warning),
+              // Share the business. Only once it is live: the page it points to
+              // shows approved businesses only. These are the owner's own details.
+              if (isApproved && bizId != null)
+                ShareBusinessButton(
+                  data: BusinessShareData(
+                    id: bizId,
+                    name: name,
+                    category: categoryName(context, svcType, formatSlug(svcType)),
+                    locality: locality,
+                    address: MapLink.split((b['address'] ?? '').toString()).text,
+                    phone: (b['phone'] ?? '').toString(),
+                  ),
+                ),
             ]),
           ),
         ),

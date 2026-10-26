@@ -1123,4 +1123,116 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get sameAsBusinessNumber => 'کاروباری نمبر جیسا ہی';
+
+  @override
+  String get prayerAlarms => 'نماز الارم';
+
+  @override
+  String get prayerAlarmsSubtitle =>
+      'ہر نماز کے وقت ایک مختصر بیپ، ایپ بند ہونے پر بھی۔';
+
+  @override
+  String get prayerAlarmsMaster => 'نماز کے وقت بیپ';
+
+  @override
+  String prayerAlarmNotifTitle(String prayer) {
+    return '$prayer کا وقت';
+  }
+
+  @override
+  String prayerAlarmNotifBody(String prayer) {
+    return '$prayer کی نماز کا وقت ہو گیا ہے۔';
+  }
+
+  @override
+  String get prayerAlarmNotifBlocked =>
+      'Konnect Kashmir کے لیے نوٹیفکیشنز بند ہیں، اس لیے الارم نہیں بج سکتے۔';
+
+  @override
+  String get prayerAlarmAllowNotifications => 'نوٹیفکیشنز کی اجازت دیں';
+
+  @override
+  String get prayerAlarmOpenSettings => 'سیٹنگز کھولیں';
+
+  @override
+  String get prayerAlarmExactOff =>
+      'درست الارم بند ہیں، اس لیے بیپ چند منٹ دیر سے آ سکتی ہے۔';
+
+  @override
+  String get prayerAlarmAllowExact => 'درست الارم کی اجازت دیں';
+
+  @override
+  String get prayerAlarmNoLocation =>
+      'ایک بار لوکیشن کی اجازت دیں تاکہ آپ کی جگہ کے مطابق نماز کے اوقات نکالے جا سکیں۔';
+
+  @override
+  String get prayerAlarmNoTimes =>
+      'نماز کے اوقات ابھی لوڈ نہیں ہو سکے۔ انٹرنیٹ سے جڑ کر دوبارہ کوشش کریں۔';
+
+  @override
+  String get prayerAlarmNoRoom => 'اس فون میں مزید الارم کے لیے جگہ نہیں بچی۔';
+
+  @override
+  String prayerAlarmSetThrough(String date) {
+    return 'الارم $date تک سیٹ ہیں۔';
+  }
+
+  @override
+  String get prayerAlarmFooter =>
+      'بیپ آپ کے فون کی آواز، سائلنٹ موڈ اور ڈو ناٹ ڈسٹرب کی سیٹنگز کے مطابق چلتی ہے۔';
+
+  @override
+  String get prayerAlarmRefresh => 'الارم تازہ کریں';
+
+  @override
+  String get prayerAlarmFailed =>
+      'کچھ الارم سیٹ نہیں ہو سکے۔ “الارم تازہ کریں” دبا کر دیکھیں۔';
+
+  @override
+  String prayerAlarmValidDays(int days) {
+    return 'الارم ایک بار میں $days دن کے لیے سیٹ ہوتے ہیں۔ اس کے بعد انہیں جاری رکھنے کے لیے ایپ کھولیں۔';
+  }
+
+  @override
+  String get shareBusiness => 'شیئر کریں';
+
+  @override
+  String shareBusinessIntro(String name) {
+    return 'Konnect Kashmir پر $name دیکھیں';
+  }
+
+  @override
+  String shareBusinessCategory(String value) {
+    return 'زمرہ: $value';
+  }
+
+  @override
+  String shareBusinessAddress(String value) {
+    return 'پتہ: $value';
+  }
+
+  @override
+  String shareBusinessArea(String value) {
+    return 'علاقہ: $value';
+  }
+
+  @override
+  String shareBusinessPhone(String value) {
+    return 'فون: $value';
+  }
+
+  @override
+  String shareBusinessLink(String url) {
+    return 'تفصیلات دیکھیں: $url';
+  }
+
+  @override
+  String get shareBusinessFailed =>
+      'شیئر کی ونڈو نہیں کھل سکی۔ براہ کرم دوبارہ کوشش کریں۔';
+
+  @override
+  String get sharedBusinessTitle => 'آپ کے ساتھ شیئر کیا گیا';
+
+  @override
+  String get sharedBusinessMissing => 'یہ کاروبار اب دستیاب نہیں ہے۔';
 }

@@ -209,13 +209,15 @@ void main() {
       expect(find.text('Al-Baqara'), findsNothing, reason: 'the sheet closed');
     });
 
-    testWidgets('the reciter menu changes the voice', (tester) async {
+    testWidgets('the Reciter button changes the voice; there is no three-dot menu',
+        (tester) async {
       _phone(tester);
       c = _controller(backend);
       await c.play(1);
       await _openPlayer(tester, c);
 
-      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+      await tester.tap(find.text('Reciter'));
       await tester.pumpAndSettle();
       await tester.tap(find.text(kReciters[2].name));
       await tester.pumpAndSettle();

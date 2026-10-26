@@ -137,7 +137,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  // Top bar: close, "now playing", reciter menu.
+                  // Top bar: close and "now playing" (the reciter is chosen with the
+                  // Reciter button below).
                   Row(children: [
                     IconButton(
                       onPressed: () => Navigator.of(context).maybePop(),
@@ -152,11 +153,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                               fontWeight: FontWeight.w600,
                               color: muted)),
                     ),
-                    IconButton(
-                      onPressed: _pickReciter,
-                      tooltip: l.deenReciter,
-                      icon: const Icon(Icons.more_vert_rounded),
-                    ),
+                    // As wide as the close button, so the title stays centred.
+                    const SizedBox(width: 48),
                   ]),
                   const SizedBox(height: 8),
                   Center(

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart' show DateFormat;
 
 import '../../l10n/l10n.dart';
 import '../../services/customer_location.dart';
+import '../../services/prayer_alarm/prayer_alarm_service.dart';
 import '../../theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
@@ -19,6 +20,7 @@ import '../../widgets/app_widgets.dart';
 import '../../widgets/error_retry.dart';
 import 'audio_screen.dart';
 import 'duas_screen.dart';
+import 'prayer_alarm_sheet.dart';
 import 'prayer_service.dart';
 import 'quran_screens.dart';
 import 'quran_service.dart';
@@ -43,6 +45,7 @@ class _DeenTabState extends State<DeenTab> {
   String? _place;
   PrayerDay? _day;
   PrayerSettings _settings = const PrayerSettings();
+  bool _alarmsOn = false; // the prayer-time beep switch, for the bell icon
   int _timesReq = 0; // ignores answers to older settings
   double? _qibla;
   LocationProblem? _problem;
@@ -68,6 +71,9 @@ class _DeenTabState extends State<DeenTab> {
     });
     _loadLastRead();
     _bootstrap();
+    PrayerAlarmService.instance.prefs().then((p) {
+      if (mounted) setState(() => _alarmsOn = p.enabled);
+    });
     context.read<LiveSync>().refreshCredits();
     if (widget.isActive) _startCompass();
   }
@@ -395,7 +401,9 @@ class _DeenTabState extends State<DeenTab> {
   /// Saves the new choice and recalculates the times on screen right away.
   Future<void> _applySettings(PrayerSettings next) async {
     setState(() => _settings = next);
-    next.save();
+    // Saved first: the alarms are planned again from what is saved.
+    await next.save();
+    PrayerAlarmService.instance.onPrayerSettingsChanged();
     final pos = _pos;
     if (pos == null) return;
     final req = ++_timesReq;
@@ -409,6 +417,11 @@ class _DeenTabState extends State<DeenTab> {
     } catch (_) {
       // Keep showing the previous times if this request fails.
     }
+  }
+
+  Future<void> _openPrayerAlarms() async {
+    final on = await showPrayerAlarmSheet(context);
+    if (mounted) setState(() => _alarmsOn = on);
   }
 
   void _openPrayerSettings() {
@@ -482,6 +495,18 @@ class _DeenTabState extends State<DeenTab> {
                     fontSize: AppText.heading,
                     fontWeight: FontWeight.w800,
                     color: cs.onSurface)),
+          ),
+          // The prayer-time beep: master switch and one switch per prayer.
+          IconButton(
+            onPressed: _openPrayerAlarms,
+            tooltip: l.prayerAlarms,
+            visualDensity: VisualDensity.compact,
+            icon: Icon(
+                _alarmsOn
+                    ? Icons.notifications_active_rounded
+                    : Icons.notifications_none_rounded,
+                size: 22,
+                color: AppColors.primary),
           ),
           // The prayer settings (madhhab and calculation method).
           InkWell(

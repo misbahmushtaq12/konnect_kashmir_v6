@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'local_notifications.dart';
 import 'shared_http.dart';
 
 import '../providers/auth_provider.dart';
@@ -14,50 +15,20 @@ import 'backend_config.dart';
 /// Opens screens from a tapped notification.
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
-const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-  'konnect_alerts',
-  'Alerts',
-  description: 'Leads, credits and other account updates',
-  importance: Importance.high,
-);
-
-final FlutterLocalNotificationsPlugin _local = FlutterLocalNotificationsPlugin();
-bool _localReady = false;
-
-Future<void> _initLocal({void Function(String? payload)? onTap}) async {
-  if (_localReady) return;
-  await _local.initialize(
-    settings: const InitializationSettings(
-      android: AndroidInitializationSettings('@drawable/ic_notification'),
-      iOS: DarwinInitializationSettings(
-        requestAlertPermission: false,
-        requestBadgePermission: false,
-        requestSoundPermission: false,
-      ),
-    ),
-    onDidReceiveNotificationResponse: (r) => onTap?.call(r.payload),
-  );
-  await _local
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
-      ?.createNotificationChannel(_channel);
-  _localReady = true;
-}
-
 Future<void> _showLocal(RemoteMessage m) async {
   final title = m.notification?.title ?? m.data['title']?.toString();
   final body = m.notification?.body ?? m.data['body']?.toString();
   if (title == null && body == null) return;
-  await _initLocal();
-  await _local.show(
+  await ensureLocalNotifications();
+  await localNotifications.show(
     id: m.hashCode,
     title: title,
     body: body,
     notificationDetails: NotificationDetails(
       android: AndroidNotificationDetails(
-        _channel.id,
-        _channel.name,
-        channelDescription: _channel.description,
+        kAlertsChannel.id,
+        kAlertsChannel.name,
+        channelDescription: kAlertsChannel.description,
         importance: Importance.high,
         priority: Priority.high,
         icon: '@drawable/ic_notification',
@@ -135,14 +106,15 @@ class NotificationService {
     }
 
     FirebaseMessaging.onBackgroundMessage(firebaseBackgroundHandler);
-    await _initLocal(onTap: (payload) {
+    localNotificationTapHandler = (payload) {
       Map<String, dynamic> data = {};
       try {
         final d = jsonDecode(payload ?? '{}');
         if (d is Map<String, dynamic>) data = d;
       } catch (_) {}
       _open(data);
-    });
+    };
+    await ensureLocalNotifications();
 
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true, badge: true, sound: true);
@@ -301,6 +273,9 @@ class NotificationService {
       tab = MainShell.tabMyBusiness;
     } else if (kind.contains('credit') || kind.contains('transaction')) {
       tab = MainShell.tabProfile;
+    } else if (kind.contains('prayer')) {
+      // A prayer-time alarm that was tapped: show the prayer times.
+      tab = MainShell.tabDeen;
     }
     if (tab != null) MainShell.tabRequest.value = tab;
     if (!MainShell.isShowing) {

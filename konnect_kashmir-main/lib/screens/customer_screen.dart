@@ -14,6 +14,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:konnect_kashmir/services/api_service.dart';
 import '../services/live_sync.dart';
 import '../services/analytics_service.dart';
+import '../services/app_links.dart';
+import '../services/business_share.dart';
 import '../services/category_groups.dart';
 import '../services/customer_location.dart';
 import '../services/map_link.dart';
@@ -27,6 +29,7 @@ import '../widgets/app_chip.dart';
 import '../widgets/app_header.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/error_retry.dart';
+import '../widgets/share_business_button.dart';
 import '../widgets/category_meta.dart';
 import 'ad_watch_dialog.dart';
 
@@ -326,6 +329,13 @@ class _HomeScreenState extends State<CustomerScreen>
 
   final ScrollController _scrollController = ScrollController();
 
+  // A business opened from a shared link (https://konnectkashmir.com/business/<id>),
+  // shown above the list as a full provider card.
+  Map<String, dynamic>? _sharedVendor;
+  String? _sharedId;
+  bool _sharedLoading = false;
+  String? _sharedError;
+
   int _selectedNavIndex = 0;
 
   int totalVendors = 382;
@@ -405,12 +415,118 @@ class _HomeScreenState extends State<CustomerScreen>
     _favoritesOnly = widget.initialFavoritesOnly;
     _searchFocus.addListener(_onSearchFocusChange);
     _scrollController.addListener(_onScrollTick);
+    AppLinks.businessRequest.addListener(_onBusinessRequest);
+    _onBusinessRequest();
     _loadFavorites();
     _loadData().then((_) {
       if (widget.openAdsOnStart && mounted && _hasWatchableAds) {
         _showWatchAdSheet();
       }
     });
+  }
+
+  /// A link asked for one business: load it and show it at the top. The request is
+  /// cleared once taken, so it is shown once.
+  void _onBusinessRequest() {
+    final id = AppLinks.businessRequest.value;
+    if (id == null) return;
+    AppLinks.businessRequest.value = null;
+    _loadSharedVendor(id);
+  }
+
+  Future<void> _loadSharedVendor(String id) async {
+    setState(() {
+      _sharedId = id;
+      _sharedLoading = true;
+      _sharedError = null;
+      _sharedVendor = null;
+    });
+    Map<String, dynamic>? found;
+    String? error;
+    try {
+      // Same request, same fields as the list, so the card behaves the same.
+      final list = await _api.getVendors(ids: [id], limit: 1, throwOnError: true);
+      if (list.isNotEmpty) found = list.first;
+    } catch (e) {
+      error = e.toString();
+    }
+    if (!mounted || _sharedId != id) return;
+    setState(() {
+      _sharedLoading = false;
+      _sharedError = error;
+      _sharedVendor = found;
+      if (found != null) _expandedCards.add(id);
+    });
+    // The business is the first thing on the page: show it.
+    if (_scrollController.hasClients && _scrollController.offset > 0) {
+      _scrollController.animateTo(0,
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+    }
+  }
+
+  void _closeSharedVendor() => setState(() {
+        _sharedId = null;
+        _sharedVendor = null;
+        _sharedError = null;
+        _sharedLoading = false;
+      });
+
+  /// "Shared with you": the business from a link, as the usual provider card.
+  List<Widget> _sharedBusinessSection() {
+    final id = _sharedId;
+    if (id == null) return const [];
+    final cs = Theme.of(context).colorScheme;
+    final vendor = _sharedVendor;
+
+    Widget body;
+    if (_sharedLoading) {
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 28),
+        child: Center(
+          child: SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(
+                  strokeWidth: 3, color: AppColors.primary)),
+        ),
+      );
+    } else if (_sharedError != null) {
+      body = ErrorRetry.fromError(_sharedError, onRetry: () => _loadSharedVendor(id));
+    } else if (vendor == null) {
+      body = Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Text(context.l10n.sharedBusinessMissing,
+            style: TextStyle(
+                fontSize: AppText.secondary,
+                color: cs.onSurface.withValues(alpha: 0.7))),
+      );
+    } else {
+      body = KeyedSubtree(key: ValueKey('shared-$id'), child: _buildVendorCard(vendor));
+    }
+
+    return [
+      const SizedBox(height: 12),
+      Row(children: [
+        const Icon(Icons.share_rounded, size: 16, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(context.l10n.sharedBusinessTitle,
+              style: const TextStyle(
+                  fontSize: AppText.secondary,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary)),
+        ),
+        IconButton(
+          onPressed: _closeSharedVendor,
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+          visualDensity: VisualDensity.compact,
+          icon: Icon(Icons.close_rounded,
+              size: 18, color: cs.onSurface.withValues(alpha: 0.6)),
+        ),
+      ]),
+      body,
+      const SizedBox(height: 6),
+    ];
   }
 
   /// Publishes a balance the backend just reported, plus the transaction it made.
@@ -427,6 +543,7 @@ class _HomeScreenState extends State<CustomerScreen>
     _coveringRoute?.removeStatusListener(_onRouteCovered);
     _searchFocus.removeListener(_onSearchFocusChange);
     _scrollController.removeListener(_onScrollTick);
+    AppLinks.businessRequest.removeListener(_onBusinessRequest);
     _showSticky.dispose();
     _searchFocus.dispose();
     _searchAnim.dispose();
@@ -2132,6 +2249,7 @@ class _HomeScreenState extends State<CustomerScreen>
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 children: [
+                  ..._sharedBusinessSection(),
                   if (isHomeTab) _buildHomeHero(auth),
                   if (isHomeTab && _searchActive)
                     ..._buildSearchModeResults()
@@ -2738,6 +2856,17 @@ class _HomeScreenState extends State<CustomerScreen>
             address: rawAddress, locality: localityDisplay, businessName: name)
         : null;
 
+    // What is shared. The address and number only once this contact is unlocked
+    // (a locked contact costs credits, so sharing must not give it away).
+    final shareData = BusinessShareData(
+      id: vendorId,
+      name: name,
+      category: serviceTypeDisplay,
+      locality: localityDisplay,
+      address: isRevealed ? addressText : '',
+      phone: isRevealed ? phone : '',
+    );
+
     final muted = cs.onSurface.withValues(alpha: 0.66);
     // A slightly lighter teal card on the dark teal page.
     final cardColor = cs.brightness == Brightness.dark
@@ -2756,7 +2885,8 @@ class _HomeScreenState extends State<CustomerScreen>
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         // Header: avatar, name, then service, place and "See more" along one
         // line. What does not fit moves to the next line, so nothing is cut off.
-        Semantics(
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: Semantics(
           button: true,
           expanded: cardOpen,
           label: '$name, ${cardOpen ? context.l10n.seeLess : context.l10n.seeMore}',
@@ -2837,7 +2967,9 @@ class _HomeScreenState extends State<CustomerScreen>
               ),
             ]),
           ),
-        ),
+        )),
+        ShareBusinessButton(data: shareData),
+        ]),
         // Description: hidden until "See more" is tapped, then shown in full.
         AnimatedSize(
           duration: const Duration(milliseconds: 220),

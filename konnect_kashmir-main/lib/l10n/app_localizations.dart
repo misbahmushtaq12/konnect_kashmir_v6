@@ -2019,6 +2019,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Same as business number'**
   String get sameAsBusinessNumber;
+
+  /// No description provided for @prayerAlarms.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer alarms'**
+  String get prayerAlarms;
+
+  /// No description provided for @prayerAlarmsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A short beep at each prayer time, even when the app is closed.'**
+  String get prayerAlarmsSubtitle;
+
+  /// No description provided for @prayerAlarmsMaster.
+  ///
+  /// In en, this message translates to:
+  /// **'Beep at prayer times'**
+  String get prayerAlarmsMaster;
+
+  /// No description provided for @prayerAlarmNotifTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{prayer} prayer time'**
+  String prayerAlarmNotifTitle(String prayer);
+
+  /// No description provided for @prayerAlarmNotifBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s time for {prayer} prayer.'**
+  String prayerAlarmNotifBody(String prayer);
+
+  /// No description provided for @prayerAlarmNotifBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are off for Konnect Kashmir, so the alarms cannot sound.'**
+  String get prayerAlarmNotifBlocked;
+
+  /// No description provided for @prayerAlarmAllowNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow notifications'**
+  String get prayerAlarmAllowNotifications;
+
+  /// No description provided for @prayerAlarmOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get prayerAlarmOpenSettings;
+
+  /// No description provided for @prayerAlarmExactOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact alarms are off, so a beep can arrive a few minutes late.'**
+  String get prayerAlarmExactOff;
+
+  /// No description provided for @prayerAlarmAllowExact.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow exact alarms'**
+  String get prayerAlarmAllowExact;
+
+  /// No description provided for @prayerAlarmNoLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location once so we can work out prayer times for where you are.'**
+  String get prayerAlarmNoLocation;
+
+  /// No description provided for @prayerAlarmNoTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer times could not be loaded yet. Connect to the internet and try again.'**
+  String get prayerAlarmNoTimes;
+
+  /// No description provided for @prayerAlarmNoRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone has no room left for more alarms.'**
+  String get prayerAlarmNoRoom;
+
+  /// No description provided for @prayerAlarmSetThrough.
+  ///
+  /// In en, this message translates to:
+  /// **'Alarms are set through {date}.'**
+  String prayerAlarmSetThrough(String date);
+
+  /// No description provided for @prayerAlarmFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'The beep follows your phone\'s volume, silent mode and Do Not Disturb settings.'**
+  String get prayerAlarmFooter;
+
+  /// No description provided for @prayerAlarmRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh alarms'**
+  String get prayerAlarmRefresh;
+
+  /// No description provided for @prayerAlarmFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some alarms could not be set. Try Refresh alarms.'**
+  String get prayerAlarmFailed;
+
+  /// No description provided for @prayerAlarmValidDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Alarms are set for {days} days at a time. After that, open the app to keep them going.'**
+  String prayerAlarmValidDays(int days);
+
+  /// No description provided for @shareBusiness.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get shareBusiness;
+
+  /// No description provided for @shareBusinessIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Check out {name} on Konnect Kashmir'**
+  String shareBusinessIntro(String name);
+
+  /// No description provided for @shareBusinessCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category: {value}'**
+  String shareBusinessCategory(String value);
+
+  /// No description provided for @shareBusinessAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address: {value}'**
+  String shareBusinessAddress(String value);
+
+  /// No description provided for @shareBusinessArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Area: {value}'**
+  String shareBusinessArea(String value);
+
+  /// No description provided for @shareBusinessPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone: {value}'**
+  String shareBusinessPhone(String value);
+
+  /// No description provided for @shareBusinessLink.
+  ///
+  /// In en, this message translates to:
+  /// **'View details: {url}'**
+  String shareBusinessLink(String url);
+
+  /// No description provided for @shareBusinessFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the share sheet. Please try again.'**
+  String get shareBusinessFailed;
+
+  /// No description provided for @sharedBusinessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared with you'**
+  String get sharedBusinessTitle;
+
+  /// No description provided for @sharedBusinessMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This business is not available any more.'**
+  String get sharedBusinessMissing;
 }
 
 class _AppLocalizationsDelegate
