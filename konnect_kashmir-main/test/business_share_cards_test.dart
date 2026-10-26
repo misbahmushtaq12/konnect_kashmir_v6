@@ -554,16 +554,27 @@ void main() {
       expect(find.byType(BusinessDetailsScreen), findsNothing);
     });
 
-    testWidgets('"See more" still opens the card in place', (tester) async {
+    testWidgets('"See more" opens the details; the card never expands', (
+      tester,
+    ) async {
       await _pumpHome(
         tester,
         _Backend(list: [_vendor('v1', 'Sajad Khatmband')]),
       );
-      expect(find.text('Fine woodwork.'), findsNothing);
+      expect(
+        find.text('Fine woodwork.'),
+        findsNothing,
+        reason: 'the description is not on the card',
+      );
       await tester.tap(find.text('See more'));
       await _settle(tester);
-      expect(find.text('Fine woodwork.'), findsOneWidget);
-      expect(find.byType(BusinessDetailsScreen), findsNothing);
+      expect(find.byType(BusinessDetailsScreen), findsOneWidget);
+      expect(
+        find.text('Fine woodwork.'),
+        findsOneWidget,
+        reason: 'it is on the details screen',
+      );
+      expect(find.text('See less'), findsNothing);
     });
 
     testWidgets(

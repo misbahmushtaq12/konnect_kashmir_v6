@@ -386,8 +386,6 @@ class _HomeScreenState extends State<CustomerScreen>
   int _unlockedTick = 0;
   // Vendors whose number is being looked up (it is not free to re-ask).
   final Set<String> _phoneRequested = {};
-  // Vendor cards that are opened to show everything (the others show a summary).
-  final Set<String> _expandedCards = {};
   Map<dynamic, bool> revealedVendors = {};
   Map<dynamic, String> _revealedPhones = {};
   Map<dynamic, bool> _isRevealingVendor = {};
@@ -788,20 +786,38 @@ class _HomeScreenState extends State<CustomerScreen>
   /// - which may come from the customer location -, category...), so the
   /// pages always belong together.
   Future<List<Map<String, dynamic>>> _vendorPage(int offset,
-          {void Function(int total)? onTotal}) =>
-      _api.getVendors(
-        search: searchQuery,
-        districtId: selectedDistrictId,
-        localityId: selectedLocalityId,
-        serviceSlug: selectedServiceSlug ?? selectedBrowseCategory,
-        verifiedOnly: verifiedOnly,
-        limit: _pageSize,
-        offset: offset,
-        throwOnError: true,
-        order: _vendorOrder,
-        ids: _favoritesOnly ? _favorites.toList() : null,
-        onTotal: onTotal,
-      );
+      {void Function(int total)? onTotal}) async {
+    final page = await _api.getVendors(
+      search: searchQuery,
+      districtId: selectedDistrictId,
+      localityId: selectedLocalityId,
+      serviceSlug: selectedServiceSlug ?? selectedBrowseCategory,
+      verifiedOnly: verifiedOnly,
+      limit: _pageSize,
+      offset: offset,
+      throwOnError: true,
+      order: _vendorOrder,
+      ids: _favoritesOnly ? _favorites.toList() : null,
+      onTotal: onTotal,
+    );
+    _prefetchCategories(page); // in the background; the page does not wait
+    return page;
+  }
+
+  /// The categories of the businesses in [page], asked for in one request so a
+  /// business's details can show them the moment it opens.
+  final Map<String, List<String>> _categorySlugsById = {};
+  void _prefetchCategories(List<Map<String, dynamic>> page) {
+    final ids = [
+      for (final v in page)
+        if (!_categorySlugsById.containsKey(v['id'].toString())) v['id'].toString(),
+    ];
+    if (ids.isEmpty) return;
+    _api.fetchVendorCategorySlugs(ids).then(
+          (found) => _categorySlugsById.addAll(found),
+          onError: (Object _) {}, // the details screen asks for them itself then
+        );
+  }
 
   /// The next page, requested when the customer scrolls near the end.
   Future<void> _loadMoreVendors() async {
@@ -1651,7 +1667,8 @@ class _HomeScreenState extends State<CustomerScreen>
       );
 
   @override
-  BusinessDetailsSource get source => ApiBusinessDetailsSource(_api);
+  BusinessDetailsSource get source =>
+      CachedCategoriesSource(ApiBusinessDetailsSource(_api), _categorySlugsById);
   @override
   Listenable get changes => _detailsTick;
   @override
@@ -2766,7 +2783,6 @@ class _HomeScreenState extends State<CustomerScreen>
     final exp = _asNum(vendor['experience_years']);
     final homeService = vendor['provides_home_service'] == true;
     final onlinePay = vendor['accepts_online_payment'] == true;
-    final desc = (vendor['description'] ?? '').toString().trim();
 
     final initials = name
         .trim()
@@ -2779,12 +2795,6 @@ class _HomeScreenState extends State<CustomerScreen>
           style: TextStyle(
               color: meta.color, fontSize: AppText.heading, fontWeight: FontWeight.w800)),
     );
-    final cardOpen = _expandedCards.contains(vendorId.toString());
-    void toggleCard() => setState(() {
-          final id = vendorId.toString();
-          if (!_expandedCards.remove(id)) _expandedCards.add(id);
-        });
-
     Widget tag(IconData icon, String text) =>
         AppChip(text, icon: icon, compact: true);
     final tags = <Widget>[
@@ -2903,7 +2913,7 @@ class _HomeScreenState extends State<CustomerScreen>
                     Row(children: [
                       Flexible(
                         child: Text(name,
-                            maxLines: cardOpen ? 2 : 1,
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: AppText.heading,
@@ -2937,18 +2947,14 @@ class _HomeScreenState extends State<CustomerScreen>
                                       color: muted)),
                             ),
                           ]),
-                        InkWell(
-                          onTap: toggleCard,
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Text(
-                                cardOpen ? context.l10n.seeLess : context.l10n.seeMore,
-                                style: const TextStyle(
-                                    fontSize: AppText.secondary,
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w700)),
-                          ),
+                        // Part of the header, so it opens the details like the rest of it.
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(context.l10n.seeMore,
+                              style: const TextStyle(
+                                  fontSize: AppText.secondary,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700)),
                         ),
                       ],
                     ),
@@ -2960,22 +2966,6 @@ class _HomeScreenState extends State<CustomerScreen>
         )),
         ShareBusinessButton(data: shareData),
         ]),
-        // Description: hidden until "See more" is tapped, then shown in full.
-        AnimatedSize(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeInOut,
-          alignment: Alignment.topCenter,
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (cardOpen && desc.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(desc,
-                  style: TextStyle(
-                      fontSize: AppText.secondary,
-                      height: 1.35,
-                      color: cs.onSurface.withValues(alpha: 0.72))),
-            ],
-          ]),
-        ),
         // Price, experience and services as small, quiet chips.
         if (tags.isNotEmpty) ...[
           const SizedBox(height: 8),

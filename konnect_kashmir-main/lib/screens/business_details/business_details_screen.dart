@@ -111,6 +111,8 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
       final show = _scroll.hasClients && _scroll.offset > 220;
       if (show != _titleShown) setState(() => _titleShown = show);
     });
+    // Known already (the list asked for them): shown in the very first frame.
+    _categorySlugs = _host.source.cachedCategorySlugs(_id) ?? const [];
     _load();
   }
 
@@ -120,40 +122,61 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
     super.dispose();
   }
 
-  Future<void> _load() async {
+  /// Whether the card already carries everything the screen shows, so the full
+  /// record does not have to be asked for again.
+  static bool _hasFullRecord(Map<String, dynamic> v) => const [
+    'gallery_urls',
+    'working_hours',
+    'services_offered',
+    'other_service_description',
+  ].every(v.containsKey);
+
+  /// Asks for what is missing. Each answer is shown the moment it arrives; the
+  /// screen never waits for the slowest request before showing the others.
+  Future<void> _load({bool force = false}) async {
+    final card = widget.vendor;
+    final needDetails = force || card == null || !_hasFullRecord(card);
+    final needCategories =
+        force || _host.source.cachedCategorySlugs(_id) == null;
     setState(() {
-      _loading = true;
+      _loading = needDetails && card == null;
       _error = null;
       _notFound = false;
     });
-    // Three independent requests: a failing one only leaves its part out.
-    final results = await Future.wait<Object?>([
-      _host.source
-          .details(_id)
-          .then<Object?>((v) => v, onError: (Object e) => e),
-      _host.source
-          .categorySlugs(_id)
-          .then<Object?>((v) => v, onError: (Object e) => null),
-      _host.source
-          .reviews(_id)
-          .then<Object?>((v) => v, onError: (Object e) => null),
+    await Future.wait<void>([
+      if (needDetails)
+        _host.source
+            .details(_id)
+            .then<void>(
+              (d) {
+                if (!mounted) return;
+                setState(() {
+                  _loading = false;
+                  if (d != null) {
+                    _fetched = d;
+                  } else {
+                    // Asked fine, nothing there: gone, unless the card still has it.
+                    _notFound = card == null;
+                  }
+                });
+              },
+              onError: (Object e) {
+                if (!mounted) return;
+                // Could not ask: keep what the card gave; with nothing, offer a retry.
+                setState(() {
+                  _loading = false;
+                  _error = card == null ? e.toString() : null;
+                });
+              },
+            ),
+      if (needCategories)
+        _host.source.categorySlugs(_id).then<void>((c) {
+          if (mounted) setState(() => _categorySlugs = c);
+        }, onError: (Object _) {}),
+      _host.source.reviews(_id).then<void>((r) {
+        if (mounted) setState(() => _reviews = r);
+      }, onError: (Object _) {}),
     ]);
-    if (!mounted) return;
-    final d = results[0];
-    setState(() {
-      _loading = false;
-      if (d is Map<String, dynamic>) {
-        _fetched = d;
-      } else if (d == null) {
-        // Asked fine, nothing there: gone, unless the card still has it.
-        _notFound = widget.vendor == null;
-      } else {
-        // Could not ask: keep what the card gave; with nothing, offer a retry.
-        _error = widget.vendor == null ? d.toString() : null;
-      }
-      _categorySlugs = (results[1] as List<String>?) ?? _categorySlugs;
-      _reviews = (results[2] as List<Map<String, dynamic>>?) ?? _reviews;
-    });
   }
 
   // ── Small readers over the record ──────────────────────────────────────────
@@ -302,7 +325,7 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
     ];
 
     return RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: () => _load(force: true),
       child: ListView(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
@@ -976,8 +999,19 @@ class _GalleryState extends State<_Gallery> {
     super.dispose();
   }
 
+  /// The first letters of the first two words of the name ("Ajaz Koul" -> "AK"),
+  /// the same as on the business card.
+  String get _initials => widget.name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .take(2)
+      .map((w) => String.fromCharCode(w.runes.first).toUpperCase())
+      .join();
+
   Widget _placeholder() {
     final c = widget.meta.color;
+    final initials = _initials;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -994,7 +1028,18 @@ class _GalleryState extends State<_Gallery> {
             shape: BoxShape.circle,
             color: c.withValues(alpha: 0.16),
           ),
-          child: Icon(widget.meta.icon, size: 42, color: c),
+          alignment: Alignment.center,
+          child: initials.isEmpty
+              ? Icon(widget.meta.icon, size: 42, color: c)
+              : Text(
+                  initials,
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    color: c,
+                    height: 1,
+                  ),
+                ),
         ),
       ),
     );

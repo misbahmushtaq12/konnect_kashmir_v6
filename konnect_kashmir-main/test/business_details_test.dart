@@ -44,6 +44,12 @@ class _FakeSource implements BusinessDetailsSource {
   Completer<void>? gate;
   int detailRequests = 0;
 
+  /// Categories already known to the list (shown with no waiting).
+  List<String>? cached;
+  Completer<void>? categoriesGate;
+  Completer<void>? reviewsGate;
+  int categoryRequests = 0;
+
   @override
   Future<Map<String, dynamic>?> details(String id) async {
     detailRequests++;
@@ -53,10 +59,20 @@ class _FakeSource implements BusinessDetailsSource {
   }
 
   @override
-  Future<List<String>> categorySlugs(String id) async => categories;
+  Future<List<String>> categorySlugs(String id) async {
+    categoryRequests++;
+    await categoriesGate?.future;
+    return categories;
+  }
 
   @override
-  Future<List<Map<String, dynamic>>> reviews(String id) async => reviewList;
+  List<String>? cachedCategorySlugs(String id) => cached;
+
+  @override
+  Future<List<Map<String, dynamic>>> reviews(String id) async {
+    await reviewsGate?.future;
+    return reviewList;
+  }
 }
 
 class _FakeHost implements BusinessDetailsHost {
@@ -264,6 +280,93 @@ void main() {
     });
   });
 
+  group('nothing arrives late', () {
+    testWidgets(
+      'a card with the whole record shows services and hours in the first frame, with no extra request',
+      (tester) async {
+        final src = _FakeSource(detail: _full())
+          ..cached = ['car_rental', 'tour_travels']
+          ..gate = Completer<void>(); // would hold the details back forever
+        await _show(tester, _FakeHost(src), vendor: _full());
+
+        expect(find.text('Services'), findsOneWidget);
+        expect(find.text('Tour & Travels'), findsOneWidget);
+        expect(find.text('Airport pickup'), findsOneWidget);
+        expect(find.text('Mon to Sat, 9am to 7pm'), findsOneWidget);
+        expect(src.detailRequests, 0, reason: 'the card already has it all');
+        expect(src.categoryRequests, 0, reason: 'the list already asked');
+      },
+    );
+
+    testWidgets('each part is shown the moment it arrives', (tester) async {
+      final src =
+          _FakeSource(
+              detail: _full(),
+              categories: ['car_rental', 'tour_travels'],
+              reviewList: [
+                {
+                  'id': 1,
+                  'rating': 5,
+                  'review_text': 'Very good',
+                  'created_at': '2026-10-01T10:00:00Z',
+                },
+              ],
+            )
+            ..categoriesGate = Completer<void>()
+            ..reviewsGate = Completer<void>();
+      // The card only knows the basics (as one from a link would).
+      final card = {
+        'id': 'b1',
+        'business_name': 'Orchid Cab Services',
+        'service_type': 'car_rental',
+        'localities': {'name': 'Srinagar'},
+      };
+      await _show(tester, _FakeHost(src), vendor: card);
+      expect(
+        find.text('Mon to Sat, 9am to 7pm'),
+        findsOneWidget,
+        reason: 'the details came back first and are shown at once',
+      );
+      expect(find.text('Airport pickup'), findsOneWidget);
+      expect(
+        find.text('Very good'),
+        findsNothing,
+        reason: 'reviews still on the way',
+      );
+      expect(
+        find.text('Tour & Travels'),
+        findsOneWidget,
+      ); // from the offered services
+
+      src.reviewsGate!.complete();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('Very good'), findsOneWidget);
+      src.categoriesGate!.complete();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('pulling down to refresh asks for the record again', (
+      tester,
+    ) async {
+      final src = _FakeSource(detail: _full());
+      // A phone-sized screen: the pull distance depends on the screen height.
+      await _show(
+        tester,
+        _FakeHost(src),
+        vendor: _full(),
+        size: const Size(390, 844),
+      );
+      expect(src.detailRequests, 0);
+
+      await tester.drag(find.byType(ListView), const Offset(0, 400));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(src.detailRequests, 1);
+    });
+  });
+
   group('photos', () {
     testWidgets('several photos swipe, with a count', (tester) async {
       final v = _full()
@@ -281,7 +384,7 @@ void main() {
       expect(find.text('2/3'), findsOneWidget);
     });
 
-    testWidgets('no photo: a picture for the category, nothing broken', (
+    testWidgets('no photo: the name\'s initials, not a category icon', (
       tester,
     ) async {
       await _show(tester, _FakeHost(_FakeSource(detail: _full())), id: 'b1');
@@ -295,7 +398,44 @@ void main() {
         ),
         findsNothing,
       );
+      expect(
+        find.descendant(
+          of: find.byType(AspectRatio),
+          matching: find.text('OC'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(AspectRatio),
+          matching: find.byIcon(Icons.vpn_key_rounded),
+        ),
+        findsNothing,
+        reason: 'no category icon in the photo area',
+      );
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('initials of one word, of a non-Latin name, and of no name', (
+      tester,
+    ) async {
+      Future<void> check(String name, String initials) async {
+        final v = _full()..['business_name'] = name;
+        await _show(tester, _FakeHost(_FakeSource(detail: v)), id: 'b1');
+        expect(
+          find.descendant(
+            of: find.byType(AspectRatio),
+            matching: find.text(initials),
+          ),
+          findsOneWidget,
+          reason: name,
+        );
+        await tester.pumpWidget(const SizedBox());
+      }
+
+      await check('Bakery', 'B');
+      await check('  ajaz   koul  carpenter ', 'AK');
+      await check('कश्मीर टूर', 'कट');
     });
 
     testWidgets('a photo that cannot load falls back to the picture', (
@@ -306,6 +446,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       expect(tester.takeException(), isNull);
       expect(find.text('Orchid Cab Services'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byType(AspectRatio),
+          matching: find.text('OC'),
+        ),
+        findsOneWidget,
+        reason: 'the initials stand in for the photo',
+      );
     });
   });
 

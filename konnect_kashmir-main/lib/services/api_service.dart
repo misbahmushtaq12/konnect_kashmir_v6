@@ -486,6 +486,8 @@ class ApiService {
             'description,is_verified,logo_url,created_at,'
             'min_price,max_price,experience_years,'
             'provides_home_service,accepts_online_payment,'
+            // What the details screen shows, so opening a card needs no wait:
+            'gallery_urls,working_hours,services_offered,other_service_description,'
             'phone,address',
         'is_approved': 'eq.true',
         'limit': '$limit',
@@ -622,6 +624,29 @@ class ApiService {
     final list = jsonDecode(res.body);
     if (list is! List || list.isEmpty) return null;
     return Map<String, dynamic>.from(list.first as Map);
+  }
+
+  /// The categories each of [vendorIds] is listed in, in one request. Throws when
+  /// it could not be asked (so a failure is never mistaken for "no categories").
+  Future<Map<String, List<String>>> fetchVendorCategorySlugs(
+      List<String> vendorIds) async {
+    final out = {for (final id in vendorIds) id: <String>[]};
+    if (vendorIds.isEmpty) return out;
+    final ids = vendorIds.map((id) => '"$id"').join(',');
+    final uri = Uri.parse('$_baseUrl/rest/v1/vendor_categories')
+        .replace(queryParameters: {'vendor_id': 'in.($ids)'});
+    final res = await sharedHttp
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 20));
+    if (res.statusCode != 200) {
+      throw Exception('Categories unavailable (${res.statusCode})');
+    }
+    for (final r in jsonDecode(res.body) as List) {
+      final id = r['vendor_id']?.toString();
+      final slug = r['category_slug']?.toString() ?? '';
+      if (id != null && slug.isNotEmpty) out[id]?.add(slug);
+    }
+    return out;
   }
 
   Future<List<Map<String, dynamic>>> getVendorCategories(

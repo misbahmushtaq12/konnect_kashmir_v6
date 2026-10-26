@@ -12,6 +12,9 @@ abstract class BusinessDetailsSource {
   /// The slugs of every category the business is listed in.
   Future<List<String>> categorySlugs(String id);
 
+  /// The same, when they are already known (no waiting); null when they are not.
+  List<String>? cachedCategorySlugs(String id);
+
   /// The approved reviews of the business.
   Future<List<Map<String, dynamic>>> reviews(String id);
 }
@@ -24,11 +27,11 @@ class ApiBusinessDetailsSource implements BusinessDetailsSource {
   Future<Map<String, dynamic>?> details(String id) => api.getVendorDetails(id);
 
   @override
-  Future<List<String>> categorySlugs(String id) async => [
-    for (final r in await api.getVendorCategories([id]))
-      if ((r['category_slug'] ?? '').toString().isNotEmpty)
-        r['category_slug'].toString(),
-  ];
+  Future<List<String>> categorySlugs(String id) async =>
+      (await api.fetchVendorCategorySlugs([id]))[id] ?? const [];
+
+  @override
+  List<String>? cachedCategorySlugs(String id) => null;
 
   @override
   Future<List<Map<String, dynamic>>> reviews(String id) =>
@@ -76,4 +79,25 @@ abstract class BusinessDetailsHost {
   /// The "leave a review" form (only for a contact that is unlocked).
   Widget reviewForm(String id);
   void report(Map<String, dynamic> vendor);
+}
+
+/// [inner] plus the categories of the businesses on screen, which the list asks
+/// for in one request as each page arrives. Opening a card then has them already.
+class CachedCategoriesSource implements BusinessDetailsSource {
+  final BusinessDetailsSource inner;
+  final Map<String, List<String>> cache;
+  const CachedCategoriesSource(this.inner, this.cache);
+
+  @override
+  Future<Map<String, dynamic>?> details(String id) => inner.details(id);
+
+  @override
+  Future<List<String>> categorySlugs(String id) async =>
+      cache[id] ?? await inner.categorySlugs(id);
+
+  @override
+  List<String>? cachedCategorySlugs(String id) => cache[id];
+
+  @override
+  Future<List<Map<String, dynamic>>> reviews(String id) => inner.reviews(id);
 }
