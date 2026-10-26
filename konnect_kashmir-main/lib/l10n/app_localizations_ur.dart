@@ -1128,10 +1128,6 @@ class AppLocalizationsUr extends AppLocalizations {
   String get prayerAlarms => 'نماز الارم';
 
   @override
-  String get prayerAlarmsSubtitle =>
-      'ہر نماز کے وقت ایک مختصر بیپ، ایپ بند ہونے پر بھی۔';
-
-  @override
   String get prayerAlarmsMaster => 'نماز کے وقت بیپ';
 
   @override
@@ -1156,7 +1152,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get prayerAlarmExactOff =>
-      'درست الارم بند ہیں، اس لیے بیپ چند منٹ دیر سے آ سکتی ہے۔';
+      'درست الارم کی اجازت بند ہے، اس لیے جب تک آپ اجازت نہیں دیتے، نماز الارم شاید نہ بجیں۔';
 
   @override
   String get prayerAlarmAllowExact => 'درست الارم کی اجازت دیں';
@@ -1171,11 +1167,6 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get prayerAlarmNoRoom => 'اس فون میں مزید الارم کے لیے جگہ نہیں بچی۔';
-
-  @override
-  String prayerAlarmSetThrough(String date) {
-    return 'الارم $date تک سیٹ ہیں۔';
-  }
 
   @override
   String get prayerAlarmFooter =>
@@ -1308,4 +1299,43 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get detailsVerified => 'تصدیق شدہ';
+
+  @override
+  String get prayerAlarmExactDialogTitle => 'درست الارم کی اجازت دیں';
+
+  @override
+  String get prayerAlarmExactDialogBody =>
+      'ٹھیک نماز کے وقت پر بجنے کے لیے Android کو درست الارم کی آپ کی اجازت چاہیے۔ اس کے بغیر نماز الارم دیر سے بج سکتے ہیں یا بج ہی نہیں سکتے۔\n\n“اجازت دیں” دبائیں، پھر اگلی اسکرین پر Konnect Kashmir کو آن کریں۔';
+
+  @override
+  String get prayerAlarmGrantPermission => 'اجازت دیں';
+
+  @override
+  String get prayerAlarmExactStillNeeded =>
+      'نماز الارم ٹھیک وقت پر بجیں، اس کے لیے درست الارم کی اجازت ابھی بھی چاہیے۔';
+
+  @override
+  String get prayerAlarmEnabledConfirm =>
+      'نماز الارم آن ہو گئے ہیں۔ یہ ٹھیک وقت پر بجیں گے۔';
+
+  @override
+  String get prayerAlarmWarningTooltip => 'نماز الارم کو اجازت چاہیے';
+
+  @override
+  String get prayerAlarmNotifDialogTitle => 'نوٹیفکیشنز کی اجازت دیں';
+
+  @override
+  String get prayerAlarmNotifDialogBody =>
+      '“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز (اور آواز) آن کریں۔';
+
+  @override
+  String get prayerAlarmNotSetTooltip => 'نماز الارم سیٹ نہیں ہو سکے';
+
+  @override
+  String get prayerAlarmNotifBlockedAndroid =>
+      'Konnect Kashmir کے “Prayer alarms” نوٹیفکیشنز بند یا خاموش ہیں، اس لیے بیپ نہیں بج سکتی۔';
+
+  @override
+  String get prayerAlarmNotifDialogBodyAndroid =>
+      '“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز میں “Prayer alarms” آن کریں۔';
 }

@@ -57,14 +57,11 @@ class _Rig {
   String lang = 'en';
   final List<({bool foreground, bool ask})> lookups = [];
 
-  Future<void> switchOn({Set<Prayer>? prayers}) => PrayerAlarmPrefs(
-    enabled: true,
-    prayers: prayers ?? {...Prayer.values},
-  ).save();
+  Future<void> switchOn() => const PrayerAlarmPrefs(enabled: true).save();
 
   /// Switched on and planned once; the counters are then reset.
-  Future<void> running({Set<Prayer>? prayers}) async {
-    await switchOn(prayers: prayers);
+  Future<void> running() async {
+    await switchOn();
     await service.refresh(reason: 'test');
     scheduler.resetCalls();
   }
@@ -145,74 +142,56 @@ void main() {
       expect(rig.scheduler.cancelCalls.every(isPrayerAlarmId), isTrue);
     });
 
-    test('on, but with every prayer switched off, schedules nothing', () async {
-      final rig = _Rig();
-      await rig.running();
-      await PrayerAlarmPrefs(enabled: true, prayers: {}).save();
-      await rig.service.refresh();
-      expect(rig.scheduler.alarms, isEmpty);
-    });
   });
 
-  group('each prayer\'s switch', () {
-    test(
-      'switching a prayer off cancels just its alarms; on adds just those back',
-      () async {
-        final rig = _Rig();
-        rig.scheduler.addForeign(42);
-        await rig.service.setEnabled(true);
-        rig.scheduler.resetCalls();
-        final asrIds = rig.scheduler.alarms
-            .where((a) => FakeAlarmScheduler.prayerOf(a) == 'asr')
-            .map((a) => a.id)
-            .toSet();
-        expect(asrIds.length, 10);
-
-        await rig.service.setPrayer(Prayer.asr, false);
-        expect(rig.scheduler.alarms.length, 49 - 10);
-        expect(
-          rig.scheduler.alarms.map(FakeAlarmScheduler.prayerOf),
-          isNot(contains('asr')),
-        );
-        expect(rig.scheduler.cancelCalls.toSet(), asrIds);
-        expect(
-          rig.scheduler.scheduleCalls,
-          isEmpty,
-          reason: 'nothing else is touched',
-        );
-        expect(rig.scheduler.foreignIds, [42]);
-
-        rig.scheduler.resetCalls();
-        await rig.service.setPrayer(Prayer.asr, true);
-        expect(rig.scheduler.alarms.length, 49);
-        expect(rig.scheduler.scheduleCalls.toSet(), asrIds);
-        expect(rig.scheduler.cancelCalls, isEmpty);
-      },
-    );
-
-    test('only the chosen prayers are planned', () async {
+  group('one switch for all five prayers', () {
+    test('turning it on plans all five prayers, together', () async {
       final rig = _Rig();
-      await rig.switchOn(prayers: {Prayer.fajr, Prayer.maghrib});
+      rig.scheduler.addForeign(42);
+      await rig.service.setEnabled(true);
+      expect(rig.scheduler.alarms.map(FakeAlarmScheduler.prayerOf).toSet(), {
+        'fajr',
+        'dhuhr',
+        'asr',
+        'maghrib',
+        'isha',
+      });
+      expect(rig.scheduler.alarms.length, 49);
+      expect(rig.scheduler.foreignIds, [42]);
+    });
+
+    test('turning it off takes down every one of them and only them', () async {
+      final rig = _Rig();
+      rig.scheduler.addForeign(42);
+      await rig.service.setEnabled(true);
+      await rig.service.setEnabled(false);
+      expect(rig.scheduler.alarms, isEmpty);
+      expect(rig.scheduler.foreignIds, [42]);
+    });
+
+    test('per-prayer choices saved by an earlier version are ignored', () async {
+      SharedPreferences.setMockInitialValues({
+        'prayer_alarm_enabled': true,
+        'prayer_alarm_asr': false,
+        'prayer_alarm_isha': false,
+      });
+      final rig = _Rig();
       await rig.service.refresh();
       expect(rig.scheduler.alarms.map(FakeAlarmScheduler.prayerOf).toSet(), {
         'fajr',
+        'dhuhr',
+        'asr',
         'maghrib',
+        'isha',
       });
-      expect(rig.scheduler.alarms.length, 9 + 10); // fajr from tomorrow
     });
 
-    test('a switch is remembered', () async {
+    test('the choice is remembered', () async {
       final rig = _Rig();
       await rig.service.setEnabled(true);
-      await rig.service.setPrayer(Prayer.isha, false);
-      final p = await PrayerAlarmPrefs.load();
-      expect(p.enabled, isTrue);
-      expect(p.prayers, {
-        Prayer.fajr,
-        Prayer.dhuhr,
-        Prayer.asr,
-        Prayer.maghrib,
-      });
+      expect((await PrayerAlarmPrefs.load()).enabled, isTrue);
+      await rig.service.setEnabled(false);
+      expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
     });
   });
 
@@ -459,6 +438,7 @@ void main() {
         expect(st.issues, contains(PrayerAlarmIssue.noRoom));
         expect(rig.scheduler.alarms, isEmpty);
         expect(rig.scheduler.foreignIds.length, 55);
+        expect(st.hasWarning, isTrue, reason: 'on, but nothing was set');
       },
     );
 
@@ -517,22 +497,175 @@ void main() {
       },
     );
 
-    test('blocked before anything was planned: nothing is scheduled', () async {
-      final rig = _Rig();
-      rig.scheduler.perms = const AlarmPermissions(
-        notifications: false,
-        exactAlarms: true,
-      );
-      await rig.service.setEnabled(true);
-      expect(rig.scheduler.alarms, isEmpty);
-      expect(
-        rig.service.status.value.issues,
-        contains(PrayerAlarmIssue.notificationsBlocked),
-      );
-    });
+    test(
+      'notifications refused: it does not switch on and says which permission is missing',
+      () async {
+        final rig = _Rig();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        );
+        final st = await rig.service.setEnabled(true);
+
+        expect(st.enabled, isFalse);
+        expect(st.missingPermission, PrayerAlarmPermission.notifications);
+        expect(st.issues, {PrayerAlarmIssue.notificationsBlocked});
+        expect(st.justEnabled, isFalse);
+        expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
+        expect(rig.scheduler.alarms, isEmpty);
+      },
+    );
 
     test(
-      'exact alarms not allowed: it still plans, and says the beeps may be late',
+      'notifications: the user opens the settings, allows them, comes back: on and confirmed',
+      () async {
+        final rig = _Rig();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        );
+        await rig.service.setEnabled(true);
+
+        final confirmations = <bool>[];
+        rig.service.status.addListener(
+          () => confirmations.add(rig.service.status.value.justEnabled),
+        );
+        rig.scheduler.onSettingsScreen = () async {
+          rig.scheduler.perms = const AlarmPermissions(
+            notifications: true,
+            exactAlarms: true,
+          ); // switched on in the settings
+          rig.service.appPaused();
+          await rig.service.appResumed(); // and the app is back
+        };
+        final st = await rig.service.openNotificationSettings();
+
+        expect(rig.scheduler.settingsOpened, 1);
+        expect(st.enabled, isTrue);
+        expect(st.issues, isEmpty);
+        expect(confirmations, contains(true));
+        expect((await PrayerAlarmPrefs.load()).enabled, isTrue);
+        expect(rig.scheduler.alarms.length, 49);
+        expect(rig.alarmIds.length, 49, reason: 'none doubled');
+      },
+    );
+
+    test(
+      'notifications: back from the settings without allowing: still off, nothing set, not switched on later by itself',
+      () async {
+        final rig = _Rig();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        );
+        await rig.service.setEnabled(true);
+        rig.scheduler.onSettingsScreen = () async {
+          rig.service.appPaused();
+          await rig.service.appResumed(); // came back, changed nothing
+        };
+        final st = await rig.service.openNotificationSettings();
+
+        expect(st.enabled, isFalse);
+        expect(st.missingPermission, PrayerAlarmPermission.notifications);
+        expect(st.justEnabled, isFalse);
+        expect(rig.scheduler.alarms, isEmpty);
+
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: true,
+        );
+        await rig.service.onResume();
+        expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
+        expect(rig.scheduler.alarms, isEmpty);
+      },
+    );
+
+    test(
+      'both missing: notifications first, then exact alarms, then it is on',
+      () async {
+        final rig = _Rig();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: false,
+        );
+        var st = await rig.service.setEnabled(true);
+        expect(st.missingPermission, PrayerAlarmPermission.notifications);
+
+        rig.scheduler.onSettingsScreen = () async {
+          rig.scheduler.perms = const AlarmPermissions(
+            notifications: true,
+            exactAlarms: false,
+          ); // notifications on, exact alarms still off
+          rig.service.appPaused();
+          await rig.service.appResumed();
+        };
+        st = await rig.service.openNotificationSettings();
+        expect(st.enabled, isFalse);
+        expect(
+          st.missingPermission,
+          PrayerAlarmPermission.exactAlarms,
+          reason: 'progress: the next one',
+        );
+
+        rig.scheduler.onExactScreen = () async => rig.scheduler.perms =
+            const AlarmPermissions(notifications: true, exactAlarms: true);
+        st = await rig.service.openExactAlarmSettings();
+        expect(st.enabled, isTrue);
+        expect(rig.scheduler.alarms.length, 49);
+        expect(st.issues, isEmpty);
+      },
+    );
+
+    test(
+      'allowed in the settings while the app was closed: it finishes turning on when the app is back',
+      () async {
+        final rig = _Rig();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        );
+        await rig.service.setEnabled(true);
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: true,
+        );
+        await rig.service.onResume();
+        expect((await PrayerAlarmPrefs.load()).enabled, isTrue);
+        expect(rig.scheduler.alarms.length, 49);
+      },
+    );
+
+    test(
+      'without exact alarms, turning on does not switch it on and says what is needed',
+      () async {
+        final rig = _Rig();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: false,
+        );
+        final st = await rig.service.setEnabled(true);
+
+        expect(st.enabled, isFalse);
+        expect(st.missingPermission, PrayerAlarmPermission.exactAlarms);
+        expect(st.justEnabled, isFalse, reason: 'no success message');
+        expect(st.issues, {PrayerAlarmIssue.exactAlarmsOff});
+        expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
+        expect(rig.scheduler.alarms, isEmpty);
+        expect(
+          rig.scheduler.scheduleCalls,
+          isEmpty,
+          reason: 'never an inexact one',
+        );
+        expect(
+          rig.scheduler.exactRequests,
+          0,
+          reason: 'the screen explains first',
+        );
+      },
+    );
+
+    test(
+      'the user agrees and allows it: switched on, all five prayers set, confirmed once',
       () async {
         final rig = _Rig();
         rig.scheduler.perms = const AlarmPermissions(
@@ -540,45 +673,212 @@ void main() {
           exactAlarms: false,
         );
         await rig.service.setEnabled(true);
+
+        final confirmations = <bool>[];
+        rig.service.status.addListener(
+          () => confirmations.add(rig.service.status.value.justEnabled),
+        );
+        // On Android's screen the user switches the permission on.
+        rig.scheduler.onExactScreen = () async => rig.scheduler.perms =
+            const AlarmPermissions(notifications: true, exactAlarms: true);
+        final st = await rig.service.openExactAlarmSettings();
+
+        expect(rig.scheduler.exactRequests, 1);
+        expect(st.enabled, isTrue);
+        expect(st.issues, isEmpty);
+        expect(confirmations, contains(true));
+        expect((await PrayerAlarmPrefs.load()).enabled, isTrue);
         expect(rig.scheduler.alarms.length, 49);
-        expect(rig.service.status.value.issues, {
-          PrayerAlarmIssue.exactAlarmsOff,
+        expect(rig.scheduler.alarms.map(FakeAlarmScheduler.prayerOf).toSet(), {
+          'fajr',
+          'dhuhr',
+          'asr',
+          'maghrib',
+          'isha',
         });
+
+        // Planning again changes nothing and does not confirm a second time.
+        rig.scheduler.resetCalls();
+        final again = await rig.service.refresh();
+        expect(again.justEnabled, isFalse);
+        expect(rig.scheduler.scheduleCalls, isEmpty);
+        expect(rig.scheduler.cancelCalls, isEmpty);
+        expect(rig.alarmIds.length, 49);
       },
     );
 
     test(
-      'allowing exact alarms later sets every alarm again, as exact ones',
+      'allowed while the app was closed: it finishes turning on when the app is back',
       () async {
         final rig = _Rig();
         rig.scheduler.perms = const AlarmPermissions(
           notifications: true,
           exactAlarms: false,
         );
-        await rig.running();
-        expect(rig.scheduler.alarms.map(FakeAlarmScheduler.exactOf).toSet(), {
-          false,
-        });
-
-        // The user allows exact alarms in the system settings and comes back.
+        await rig.service.setEnabled(true);
+        // The user went to the system settings, allowed it, and the app came back
+        // (or was opened again) on its own.
         rig.scheduler.perms = const AlarmPermissions(
           notifications: true,
           exactAlarms: true,
         );
-        final st = await rig.service.refresh();
+        await rig.service.onResume();
+
+        expect((await PrayerAlarmPrefs.load()).enabled, isTrue);
+        expect(rig.scheduler.alarms.length, 49);
+        expect(rig.service.status.value.enabled, isTrue);
+      },
+    );
+
+    test(
+      'the user comes back without allowing it: still off, still needed, nothing set',
+      () async {
+        final rig = _Rig();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: false,
+        );
+        await rig.service.setEnabled(true);
+        final st = await rig.service
+            .openExactAlarmSettings(); // nothing changes there
+
+        expect(rig.scheduler.exactRequests, 1);
+        expect(st.enabled, isFalse);
+        expect(st.missingPermission, PrayerAlarmPermission.exactAlarms);
+        expect(st.justEnabled, isFalse);
+        expect(st.issues, {PrayerAlarmIssue.exactAlarmsOff});
+        expect(rig.scheduler.alarms, isEmpty);
+        expect(rig.scheduler.scheduleCalls, isEmpty);
+
+        // Allowing it much later, by itself, must not switch the beep on behind the
+        // user's back: they have to turn it on again.
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: true,
+        );
+        await rig.service.onResume();
+        expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
+        expect(rig.scheduler.alarms, isEmpty);
+      },
+    );
+
+    test('Cancel leaves it off, with nothing remembered', () async {
+      final rig = _Rig();
+      rig.scheduler.perms = const AlarmPermissions(
+        notifications: true,
+        exactAlarms: false,
+      );
+      await rig.service.setEnabled(true);
+      await rig.service.cancelPendingEnable();
+      expect(rig.service.status.value.missingPermission, isNull);
+      expect(rig.service.status.value.enabled, isFalse);
+
+      rig.scheduler.perms = const AlarmPermissions(
+        notifications: true,
+        exactAlarms: true,
+      );
+      await rig.service.onResume();
+      expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
+      expect(rig.scheduler.alarms, isEmpty);
+    });
+
+    test(
+      'with exact alarms already allowed it switches on at once, with no extra screen',
+      () async {
+        final rig = _Rig();
+        final st = await rig.service.setEnabled(true);
+        expect(rig.scheduler.exactRequests, 0);
+        expect(st.enabled, isTrue);
+        expect(rig.scheduler.alarms.length, 49);
+      },
+    );
+
+    test(
+      'permission taken back later: warning, nothing left to ring late; restored: set again, no duplicates',
+      () async {
+        final rig = _Rig();
+        await rig.running();
+        expect(rig.scheduler.alarms.length, 49);
+        expect(rig.service.status.value.hasWarning, isFalse);
+
+        // Taken back in the system settings; the app resumes soon after (inside the
+        // ten minutes in which a resume is normally ignored): it is still noticed.
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: false,
+        );
+        rig.now = rig.now.add(const Duration(minutes: 3));
+        await rig.service.onResume();
+        var st = rig.service.status.value;
+        expect(st.hasWarning, isTrue);
+        expect(
+          st.enabled,
+          isTrue,
+          reason: 'still wanted; it comes back by itself',
+        );
+        expect(st.issues, {PrayerAlarmIssue.exactAlarmsOff});
+        expect(rig.scheduler.alarms, isEmpty);
+
+        // Given back: planned again, every alarm once.
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: true,
+        );
+        rig.now = rig.now.add(const Duration(minutes: 3));
+        await rig.service.onResume();
+        st = rig.service.status.value;
+        expect(st.hasWarning, isFalse);
         expect(st.issues, isEmpty);
         expect(rig.scheduler.alarms.length, 49);
-        expect(rig.scheduler.alarms.map(FakeAlarmScheduler.exactOf).toSet(), {
-          true,
-        });
-        expect(rig.scheduler.scheduleCalls.length, 49);
-        expect(rig.alarmIds.length, 49, reason: 'none doubled');
+        expect(rig.alarmIds.length, 49);
+        expect(
+          rig.scheduler.scheduleCalls.toSet().length,
+          rig.scheduler.scheduleCalls.length,
+          reason: 'no alarm was set twice',
+        );
+      },
+    );
 
-        // Nothing more to do while it stays that way.
-        rig.scheduler.resetCalls();
-        await rig.service.refresh();
-        expect(rig.scheduler.scheduleCalls, isEmpty);
-        expect(rig.scheduler.cancelCalls, isEmpty);
+    test(
+      'notifications taken back later also give the warning, and the alarms come back with them',
+      () async {
+        final rig = _Rig();
+        await rig.running();
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        );
+        rig.now = rig.now.add(const Duration(minutes: 3));
+        await rig.service.onResume();
+        var st = rig.service.status.value;
+        expect(st.hasWarning, isTrue);
+        expect(
+          st.enabled,
+          isTrue,
+          reason: 'still wanted; it comes back by itself',
+        );
+        expect(st.issues, {PrayerAlarmIssue.notificationsBlocked});
+
+        rig.scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: true,
+        );
+        rig.now = rig.now.add(const Duration(minutes: 3));
+        await rig.service.onResume();
+        st = rig.service.status.value;
+        expect(st.hasWarning, isFalse);
+        expect(rig.scheduler.alarms.length, 49);
+        expect(rig.alarmIds.length, 49);
+      },
+    );
+
+    test(
+      'coming back with nothing on and nothing waiting does not touch the phone',
+      () async {
+        final rig = _Rig();
+        await rig.service.onResume();
+        expect(rig.scheduler.ensureReadyCalls, 0);
+        expect(rig.scheduler.permissionRequests, 0);
       },
     );
 
@@ -602,8 +902,21 @@ void main() {
         expect(st.issues, contains(PrayerAlarmIssue.noLocation));
         expect(rig.scheduler.alarms, isEmpty);
         expect(rig.api.calls, isEmpty);
+        expect(st.enabled, isTrue);
+        expect(st.hasWarning, isTrue, reason: 'on, but nothing was set');
+        expect(st.needsPermission, isFalse, reason: 'it is not a permission');
       },
     );
+
+    test('turned on with no place: stays on, with the warning', () async {
+      final rig = _Rig();
+      rig.place = null;
+      final st = await rig.service.setEnabled(true);
+      expect(st.enabled, isTrue);
+      expect(st.scheduled, 0);
+      expect(st.hasWarning, isTrue);
+      expect(st.justEnabled, isFalse, reason: 'no confirmation: nothing is set');
+    });
 
     test(
       'the place cannot be found now: the last place used is used',
@@ -625,6 +938,7 @@ void main() {
       final st = await rig.service.refresh();
       expect(st.issues, contains(PrayerAlarmIssue.noTimes));
       expect(rig.scheduler.alarms, isEmpty);
+      expect(st.hasWarning, isTrue, reason: 'on, but nothing was set');
     });
 
     test('works offline from saved months, with no request at all', () async {
@@ -655,6 +969,11 @@ void main() {
         expect(rig.scheduler.cancelCalls, isEmpty);
         expect(rig.alarmIds, before);
         expect(st.scheduled, before.length);
+        expect(
+          st.hasWarning,
+          isFalse,
+          reason: 'the alarms that are waiting are good; only a note',
+        );
       },
     );
 
@@ -668,11 +987,13 @@ void main() {
         final st = await rig.service.refresh();
         expect(st.issues, contains(PrayerAlarmIssue.failed));
         expect(rig.scheduler.alarms.length, 48);
+        expect(st.hasWarning, isTrue, reason: 'one alarm is missing');
 
         rig.scheduler.failIds = {};
         rig.scheduler.resetCalls();
         final again = await rig.service.refresh();
         expect(again.issues, isEmpty);
+        expect(again.hasWarning, isFalse);
         expect(rig.scheduler.scheduleCalls, [refused]);
         expect(rig.scheduler.alarms.length, 49);
       },
@@ -686,8 +1007,26 @@ void main() {
         rig.scheduler.failPending = true;
         final st = await rig.service.refresh();
         expect(st.issues, contains(PrayerAlarmIssue.failed));
+        expect(st.hasWarning, isTrue);
       },
     );
+
+    test('a note about a place or times that cannot be refreshed is only a warning '
+        'while nothing is waiting on the phone', () {
+      const waiting = PrayerAlarmStatus(
+        enabled: true,
+        scheduled: 40,
+        issues: {PrayerAlarmIssue.noLocation},
+      );
+      const empty = PrayerAlarmStatus(
+        enabled: true,
+        issues: {PrayerAlarmIssue.noLocation},
+      );
+      const off = PrayerAlarmStatus(issues: {PrayerAlarmIssue.failed});
+      expect(waiting.hasWarning, isFalse);
+      expect(empty.hasWarning, isTrue);
+      expect(off.hasWarning, isFalse, reason: 'the beep is off');
+    });
   });
 
   group('coming back to the app, restarts and time changes', () {

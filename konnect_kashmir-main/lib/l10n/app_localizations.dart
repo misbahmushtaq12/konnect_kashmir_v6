@@ -2026,12 +2026,6 @@ abstract class AppLocalizations {
   /// **'Prayer alarms'**
   String get prayerAlarms;
 
-  /// No description provided for @prayerAlarmsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'A short beep at each prayer time, even when the app is closed.'**
-  String get prayerAlarmsSubtitle;
-
   /// No description provided for @prayerAlarmsMaster.
   ///
   /// In en, this message translates to:
@@ -2071,7 +2065,7 @@ abstract class AppLocalizations {
   /// No description provided for @prayerAlarmExactOff.
   ///
   /// In en, this message translates to:
-  /// **'Exact alarms are off, so a beep can arrive a few minutes late.'**
+  /// **'Exact alarm permission is off, so prayer alarms may not ring until you allow it.'**
   String get prayerAlarmExactOff;
 
   /// No description provided for @prayerAlarmAllowExact.
@@ -2097,12 +2091,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This phone has no room left for more alarms.'**
   String get prayerAlarmNoRoom;
-
-  /// No description provided for @prayerAlarmSetThrough.
-  ///
-  /// In en, this message translates to:
-  /// **'Alarms are set through {date}.'**
-  String prayerAlarmSetThrough(String date);
 
   /// No description provided for @prayerAlarmFooter.
   ///
@@ -2307,6 +2295,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Verified'**
   String get detailsVerified;
+
+  /// No description provided for @prayerAlarmExactDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow exact alarms'**
+  String get prayerAlarmExactDialogTitle;
+
+  /// No description provided for @prayerAlarmExactDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'To ring at the exact prayer time, Android needs your permission for exact alarms. Without it, prayer alarms can be late or may not ring.\n\nTap Grant permission, then switch on Konnect Kashmir on the next screen.'**
+  String get prayerAlarmExactDialogBody;
+
+  /// No description provided for @prayerAlarmGrantPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Grant permission'**
+  String get prayerAlarmGrantPermission;
+
+  /// No description provided for @prayerAlarmExactStillNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact alarm permission is still needed for prayer alarms to ring at the exact time.'**
+  String get prayerAlarmExactStillNeeded;
+
+  /// No description provided for @prayerAlarmEnabledConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer alarms are on. They will ring at the exact time.'**
+  String get prayerAlarmEnabledConfirm;
+
+  /// No description provided for @prayerAlarmWarningTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer alarms need permission'**
+  String get prayerAlarmWarningTooltip;
+
+  /// No description provided for @prayerAlarmNotifDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow notifications'**
+  String get prayerAlarmNotifDialogTitle;
+
+  /// No description provided for @prayerAlarmNotifDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Open settings, then switch on Notifications (and Sounds).'**
+  String get prayerAlarmNotifDialogBody;
+
+  /// No description provided for @prayerAlarmNotSetTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer alarms could not be set'**
+  String get prayerAlarmNotSetTooltip;
+
+  /// No description provided for @prayerAlarmNotifBlockedAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'The “Prayer alarms” notifications are off or silent for Konnect Kashmir, so the beep cannot sound.'**
+  String get prayerAlarmNotifBlockedAndroid;
+
+  /// No description provided for @prayerAlarmNotifDialogBodyAndroid.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Open settings, then Notifications, and switch on “Prayer alarms”.'**
+  String get prayerAlarmNotifDialogBodyAndroid;
 }
 
 class _AppLocalizationsDelegate

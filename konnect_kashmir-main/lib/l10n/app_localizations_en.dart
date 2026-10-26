@@ -1122,10 +1122,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prayerAlarms => 'Prayer alarms';
 
   @override
-  String get prayerAlarmsSubtitle =>
-      'A short beep at each prayer time, even when the app is closed.';
-
-  @override
   String get prayerAlarmsMaster => 'Beep at prayer times';
 
   @override
@@ -1150,7 +1146,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get prayerAlarmExactOff =>
-      'Exact alarms are off, so a beep can arrive a few minutes late.';
+      'Exact alarm permission is off, so prayer alarms may not ring until you allow it.';
 
   @override
   String get prayerAlarmAllowExact => 'Allow exact alarms';
@@ -1166,11 +1162,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get prayerAlarmNoRoom =>
       'This phone has no room left for more alarms.';
-
-  @override
-  String prayerAlarmSetThrough(String date) {
-    return 'Alarms are set through $date.';
-  }
 
   @override
   String get prayerAlarmFooter =>
@@ -1304,4 +1295,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailsVerified => 'Verified';
+
+  @override
+  String get prayerAlarmExactDialogTitle => 'Allow exact alarms';
+
+  @override
+  String get prayerAlarmExactDialogBody =>
+      'To ring at the exact prayer time, Android needs your permission for exact alarms. Without it, prayer alarms can be late or may not ring.\n\nTap Grant permission, then switch on Konnect Kashmir on the next screen.';
+
+  @override
+  String get prayerAlarmGrantPermission => 'Grant permission';
+
+  @override
+  String get prayerAlarmExactStillNeeded =>
+      'Exact alarm permission is still needed for prayer alarms to ring at the exact time.';
+
+  @override
+  String get prayerAlarmEnabledConfirm =>
+      'Prayer alarms are on. They will ring at the exact time.';
+
+  @override
+  String get prayerAlarmWarningTooltip => 'Prayer alarms need permission';
+
+  @override
+  String get prayerAlarmNotifDialogTitle => 'Allow notifications';
+
+  @override
+  String get prayerAlarmNotifDialogBody =>
+      'Tap Open settings, then switch on Notifications (and Sounds).';
+
+  @override
+  String get prayerAlarmNotSetTooltip => 'Prayer alarms could not be set';
+
+  @override
+  String get prayerAlarmNotifBlockedAndroid =>
+      'The “Prayer alarms” notifications are off or silent for Konnect Kashmir, so the beep cannot sound.';
+
+  @override
+  String get prayerAlarmNotifDialogBodyAndroid =>
+      'Tap Open settings, then Notifications, and switch on “Prayer alarms”.';
 }

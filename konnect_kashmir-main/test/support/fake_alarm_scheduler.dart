@@ -18,6 +18,15 @@ class FakeAlarmScheduler implements AlarmScheduler {
   int dropped = 0;
   int ensureReadyCalls = 0;
   int permissionRequests = 0;
+  int exactRequests = 0; // asks that opened the exact-alarm screen
+
+  /// What the user does on the phone's settings page for this app, run when it is
+  /// opened. Null: they come back without changing anything.
+  Future<void> Function()? onSettingsScreen;
+
+  /// What the user does on Android's exact-alarm screen, run when it is opened.
+  /// Null: they come back without giving the permission.
+  Future<void> Function()? onExactScreen;
   int settingsOpened = 0;
 
   AlarmPermissions perms = const AlarmPermissions(
@@ -74,11 +83,18 @@ class FakeAlarmScheduler implements AlarmScheduler {
     bool exactAlarms = false,
   }) async {
     permissionRequests++;
+    if (exactAlarms) {
+      exactRequests++;
+      await onExactScreen?.call();
+    }
     return perms;
   }
 
   @override
-  Future<void> openSettings() async => settingsOpened++;
+  Future<void> openSettings() async {
+    settingsOpened++;
+    await onSettingsScreen?.call();
+  }
 
   // ── Helpers for the tests ─────────────────────────────────────────────────
 
@@ -104,10 +120,6 @@ class FakeAlarmScheduler implements AlarmScheduler {
     (jsonDecode(p.payload!) as Map)['at'] as int,
     isUtc: true,
   );
-
-  /// Whether the alarm was set as an exact one.
-  static bool exactOf(PendingAlarm p) =>
-      (jsonDecode(p.payload!) as Map)['exact'] as bool;
 
   static String prayerOf(PendingAlarm p) =>
       (jsonDecode(p.payload!) as Map)['prayer'] as String;

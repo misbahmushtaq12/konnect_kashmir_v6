@@ -4,44 +4,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'prayer_alarm_planner.dart';
 
-/// What the user chose: the master switch and one switch per prayer.
+/// What the user chose: one switch for all five prayers together.
 ///
-/// Nothing is switched on for anyone: the master switch starts OFF. The five
-/// prayer switches start ON, so turning the master switch on gives all five
-/// alarms and the user can then untick the ones they do not want.
+/// Nothing is switched on for anyone: the switch starts OFF. (Earlier versions
+/// also saved one switch per prayer; those saved values are ignored.)
 class PrayerAlarmPrefs {
   final bool enabled;
-  final Set<Prayer> prayers;
-  const PrayerAlarmPrefs({
-    this.enabled = false,
-    this.prayers = const {...Prayer.values},
-  });
+  const PrayerAlarmPrefs({this.enabled = false});
 
   static const _master = 'prayer_alarm_enabled';
-  static String _key(Prayer p) => 'prayer_alarm_${p.name}';
 
-  /// The prayers that will actually sound: none while the master switch is off.
-  Set<Prayer> get active => enabled ? prayers : const {};
+  /// The prayers that will sound: all five, or none while the switch is off.
+  Set<Prayer> get active => enabled ? {...Prayer.values} : const <Prayer>{};
 
-  PrayerAlarmPrefs copyWith({bool? enabled, Set<Prayer>? prayers}) =>
-      PrayerAlarmPrefs(
-        enabled: enabled ?? this.enabled,
-        prayers: prayers ?? this.prayers,
-      );
-
-  PrayerAlarmPrefs withPrayer(Prayer p, bool on) =>
-      copyWith(prayers: on ? {...prayers, p} : ({...prayers}..remove(p)));
+  PrayerAlarmPrefs copyWith({bool? enabled}) =>
+      PrayerAlarmPrefs(enabled: enabled ?? this.enabled);
 
   static Future<PrayerAlarmPrefs> load() async {
     try {
       final sp = await SharedPreferences.getInstance();
-      return PrayerAlarmPrefs(
-        enabled: sp.getBool(_master) ?? false,
-        prayers: {
-          for (final p in Prayer.values)
-            if (sp.getBool(_key(p)) ?? true) p,
-        },
-      );
+      return PrayerAlarmPrefs(enabled: sp.getBool(_master) ?? false);
     } catch (_) {
       return const PrayerAlarmPrefs();
     }
@@ -51,9 +33,6 @@ class PrayerAlarmPrefs {
     try {
       final sp = await SharedPreferences.getInstance();
       await sp.setBool(_master, enabled);
-      for (final p in Prayer.values) {
-        await sp.setBool(_key(p), prayers.contains(p));
-      }
     } catch (_) {}
   }
 }

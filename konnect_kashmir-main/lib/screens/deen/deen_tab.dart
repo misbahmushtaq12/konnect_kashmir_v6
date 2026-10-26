@@ -46,6 +46,8 @@ class _DeenTabState extends State<DeenTab> {
   PrayerDay? _day;
   PrayerSettings _settings = const PrayerSettings();
   bool _alarmsOn = false; // the prayer-time beep switch, for the bell icon
+  bool _alarmWarning = false; // on, but it will not ring: a mark on the bell
+  bool _alarmNeedsPermission = false; // ...and a permission is why (the tooltip)
   int _timesReq = 0; // ignores answers to older settings
   double? _qibla;
   LocationProblem? _problem;
@@ -74,6 +76,12 @@ class _DeenTabState extends State<DeenTab> {
     PrayerAlarmService.instance.prefs().then((p) {
       if (mounted) setState(() => _alarmsOn = p.enabled);
     });
+    // The alarm service looks at the permissions at launch and every time the app
+    // comes back, so a permission taken back shows on the bell by itself.
+    final alarmStatus = PrayerAlarmService.instance.status.value;
+    _alarmWarning = alarmStatus.hasWarning;
+    _alarmNeedsPermission = alarmStatus.needsPermission;
+    PrayerAlarmService.instance.status.addListener(_alarmStatusChanged);
     context.read<LiveSync>().refreshCredits();
     if (widget.isActive) _startCompass();
   }
@@ -90,8 +98,23 @@ class _DeenTabState extends State<DeenTab> {
     }
   }
 
+  void _alarmStatusChanged() {
+    final st = PrayerAlarmService.instance.status.value;
+    if (!mounted) return;
+    if (st.hasWarning != _alarmWarning ||
+        st.needsPermission != _alarmNeedsPermission ||
+        st.enabled != _alarmsOn) {
+      setState(() {
+        _alarmWarning = st.hasWarning;
+        _alarmNeedsPermission = st.needsPermission;
+        _alarmsOn = st.enabled;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    PrayerAlarmService.instance.status.removeListener(_alarmStatusChanged);
     _clock?.cancel();
     _stopCompass();
     _heading.dispose();
@@ -499,14 +522,25 @@ class _DeenTabState extends State<DeenTab> {
           // The prayer-time beep: master switch and one switch per prayer.
           IconButton(
             onPressed: _openPrayerAlarms,
-            tooltip: l.prayerAlarms,
+            tooltip: !_alarmWarning
+                ? l.prayerAlarms
+                : (_alarmNeedsPermission
+                      ? l.prayerAlarmWarningTooltip
+                      : l.prayerAlarmNotSetTooltip),
             visualDensity: VisualDensity.compact,
-            icon: Icon(
-                _alarmsOn
-                    ? Icons.notifications_active_rounded
-                    : Icons.notifications_none_rounded,
-                size: 22,
-                color: AppColors.primary),
+            // A small amber mark when the beep is on but will not ring (a permission
+            // is missing, or the alarms could not be set).
+            icon: Badge(
+              isLabelVisible: _alarmWarning,
+              smallSize: 10,
+              backgroundColor: AppColors.warning,
+              child: Icon(
+                  _alarmsOn
+                      ? Icons.notifications_active_rounded
+                      : Icons.notifications_none_rounded,
+                  size: 22,
+                  color: AppColors.primary),
+            ),
           ),
           // The prayer settings (madhhab and calculation method).
           InkWell(

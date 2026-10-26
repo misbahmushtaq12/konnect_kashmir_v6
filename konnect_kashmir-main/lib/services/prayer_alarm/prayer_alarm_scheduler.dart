@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -28,6 +28,17 @@ const AndroidNotificationChannel kPrayerChannel = AndroidNotificationChannel(
   sound: RawResourceAndroidNotificationSound(kPrayerSoundAndroid),
 );
 
+/// Whether the user's own settings for the Prayer alarms category still let it
+/// beep. Android lets people switch a category off, make it silent (low
+/// importance) or take its sound away, all without touching the app-wide
+/// "notifications" switch. A category that does not exist yet (null) is fine: it
+/// is created with the right settings.
+bool prayerChannelCanSound(AndroidNotificationChannel? channel) =>
+    channel == null ||
+    channel.importance == Importance.unspecified ||
+    (channel.importance.value >= Importance.defaultImportance.value &&
+        channel.playSound);
+
 /// A notification that is waiting on the phone.
 class PendingAlarm {
   final int id;
@@ -39,7 +50,9 @@ class PendingAlarm {
 
 /// What the phone lets the app do.
 class AlarmPermissions {
-  /// The app may show notifications (and play their sound).
+  /// The app may show notifications and play their sound. On iPhone that is
+  /// notifications AND Sounds switched on in its settings; on Android it is
+  /// notifications on AND the Prayer alarms category neither off nor silent.
   final bool notifications;
 
   /// The app may fire at the exact minute. Always true where that is not a
@@ -147,28 +160,28 @@ class LocalAlarmScheduler implements AlarmScheduler {
   }) async {
     // One moment in time; the zone only labels it.
     final when = tz.TZDateTime.from(at, tz.UTC);
-    Future<void> go(AndroidScheduleMode mode) => _plugin.zonedSchedule(
+    // Always exact: the beep rings at the exact minute. (The service only sets
+    // alarms once the phone allows exact alarms.)
+    await _plugin.zonedSchedule(
       id: id,
       title: title,
       body: body,
       payload: payload,
       scheduledDate: when,
       notificationDetails: _details,
-      androidScheduleMode: mode,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
+  }
 
-    // Exact alarms only when the phone allows them; otherwise the system may
-    // deliver a few minutes late, which is better than not at all.
-    final exact = await _canScheduleExact();
+  Future<bool> _channelCanSound(AndroidFlutterLocalNotificationsPlugin a) async {
     try {
-      await go(
-        exact
-            ? AndroidScheduleMode.exactAllowWhileIdle
-            : AndroidScheduleMode.inexactAllowWhileIdle,
+      final channels = await a.getNotificationChannels();
+      final mine = channels?.where((c) => c.id == kPrayerChannelId);
+      return prayerChannelCanSound(
+        mine == null || mine.isEmpty ? null : mine.first,
       );
-    } on PlatformException catch (e) {
-      if (e.code != 'exact_alarms_not_permitted') rethrow;
-      await go(AndroidScheduleMode.inexactAllowWhileIdle);
+    } catch (_) {
+      return true; // cannot tell: do not warn about something unknown
     }
   }
 
@@ -185,16 +198,19 @@ class LocalAlarmScheduler implements AlarmScheduler {
   Future<AlarmPermissions> permissions() async {
     final android = _android;
     if (android != null) {
+      final appOn = (await android.areNotificationsEnabled()) ?? true;
       return AlarmPermissions(
-        notifications: (await android.areNotificationsEnabled()) ?? true,
+        notifications: appOn && await _channelCanSound(android),
         exactAlarms: await _canScheduleExact(),
       );
     }
     final ios = _ios;
     if (ios != null) {
       final o = await ios.checkPermissions();
+      // The alarm is a beep: notifications that are allowed but have their Sounds
+      // switched off in the iPhone's settings cannot ring, so they do not count.
       return AlarmPermissions(
-        notifications: o?.isEnabled ?? false,
+        notifications: (o?.isEnabled ?? false) && (o?.isSoundEnabled ?? false),
         exactAlarms: true,
       );
     }

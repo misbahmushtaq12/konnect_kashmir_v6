@@ -37,11 +37,14 @@ Future<void> _loadRoboto() async {
 
 final _now = DateTime.utc(2026, 10, 24, 2); // 07:30 in Srinagar
 
-PrayerAlarmService _service(FakeAlarmScheduler scheduler) => PrayerAlarmService(
+PrayerAlarmService _service(
+  FakeAlarmScheduler scheduler, {
+  bool noPlace = false,
+}) => PrayerAlarmService(
   scheduler: scheduler,
   calendar: PrayerCalendarSource(fetch: FakeAladhan().fetch),
   location: ({required foreground, required ask}) async =>
-      (lat: 34.08, lng: 74.8),
+      noPlace ? null : (lat: 34.08, lng: 74.8),
   clock: () => _now,
   language: () async => 'en',
 );
@@ -111,7 +114,7 @@ void main() {
   setUpAll(_loadRoboto);
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('starts off, with no prayer rows', (tester) async {
+  testWidgets('starts off, with just the one switch', (tester) async {
     _phone(tester);
     final scheduler = FakeAlarmScheduler();
     await _open(tester, _service(scheduler));
@@ -132,7 +135,7 @@ void main() {
   });
 
   testWidgets(
-    'the master switch plans the alarms and shows one switch per prayer',
+    'the one switch plans all five prayers and there is no switch per prayer',
     (tester) async {
       _phone(tester);
       final scheduler = FakeAlarmScheduler();
@@ -142,40 +145,28 @@ void main() {
       await _settle(tester);
 
       expect(scheduler.alarms.length, 49);
-      expect(find.byType(Switch), findsNWidgets(6));
+      expect(scheduler.alarms.map(FakeAlarmScheduler.prayerOf).toSet(), {
+        'fajr',
+        'dhuhr',
+        'asr',
+        'maghrib',
+        'isha',
+      });
+      expect(find.byType(Switch), findsOneWidget);
       for (final name in ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
-        expect(find.text(name), findsOneWidget);
+        expect(find.text(name), findsNothing);
       }
-      expect(find.textContaining('Alarms are set through'), findsOneWidget);
+      // The two lines that were taken out.
+      expect(find.textContaining('Alarms are set through'), findsNothing);
+      expect(
+        find.textContaining('A short beep at each prayer time'),
+        findsNothing,
+      );
       expect((await PrayerAlarmPrefs.load()).enabled, isTrue);
     },
   );
 
-  testWidgets('a prayer switch cancels just that prayer', (tester) async {
-    _phone(tester);
-    final scheduler = FakeAlarmScheduler();
-    scheduler.addForeign(42);
-    await _open(tester, _service(scheduler));
-    await tester.tap(find.byType(Switch));
-    await _settle(tester);
-
-    // Switches: master, Fajr, Dhuhr, Asr, ...
-    await tester.tap(find.byType(Switch).at(3));
-    await _settle(tester);
-
-    expect(
-      scheduler.alarms.map(FakeAlarmScheduler.prayerOf),
-      isNot(contains('asr')),
-    );
-    expect(scheduler.alarms.length, 39);
-    expect(scheduler.foreignIds, [42]);
-    expect(
-      (await PrayerAlarmPrefs.load()).prayers,
-      isNot(contains(Prayer.asr)),
-    );
-  });
-
-  testWidgets('the master switch off cancels everything and hides the rows', (
+  testWidgets('the switch off cancels everything and the extras go', (
     tester,
   ) async {
     _phone(tester);
@@ -190,7 +181,7 @@ void main() {
     expect(find.text('Fajr'), findsNothing);
   });
 
-  testWidgets('blocked notifications: explains, and the buttons work', (
+  testWidgets('notifications refused: explains first and Cancel keeps it off', (
     tester,
   ) async {
     _phone(tester);
@@ -200,19 +191,204 @@ void main() {
     await tester.tap(find.byType(Switch));
     await _settle(tester);
 
-    expect(find.textContaining('Notifications are off'), findsOneWidget);
-    final before = scheduler.permissionRequests;
-    await tester.tap(find.text('Allow notifications'));
-    await _settle(tester);
-    expect(scheduler.permissionRequests, before + 1);
+    expect(find.text('Allow notifications'), findsOneWidget);
+    expect(
+      find.textContaining('Tap Open settings'),
+      findsOneWidget,
+    );
+    expect(find.text('Open settings'), findsOneWidget);
+    expect(scheduler.settingsOpened, 0, reason: 'the explanation comes first');
 
-    await tester.tap(find.text('Open settings'));
-    await tester.pump();
-    expect(scheduler.settingsOpened, 1);
+    await tester.tap(find.text('Cancel'));
+    await _settle(tester);
+    expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+    expect(find.text('Fajr'), findsNothing);
+    expect(scheduler.alarms, isEmpty);
+    expect(find.textContaining('Prayer alarms are on'), findsNothing);
+    expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
   });
 
   testWidgets(
-    'exact alarms off: says a beep may be late and offers to allow them',
+    'notifications: Open settings, allowed there: switched on and confirmed',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler()
+        ..perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        );
+      final service = _service(scheduler);
+      scheduler.onSettingsScreen = () async {
+        scheduler.perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: true,
+        );
+        service.appPaused();
+        await service.appResumed();
+      };
+      await _open(tester, service);
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+      await tester.tap(find.text('Open settings'));
+      await _settle(tester);
+
+      expect(scheduler.settingsOpened, 1);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+      expect(
+        find.text('Prayer alarms are on. They will ring at the exact time.'),
+        findsOneWidget,
+      );
+      expect(scheduler.alarms.length, 49);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'notifications: back from the settings without allowing: off, the note, one button, no success',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler()
+        ..perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        );
+      final service = _service(scheduler);
+      scheduler.onSettingsScreen = () async {
+        service.appPaused();
+        await service.appResumed(); // came back, changed nothing
+      };
+      await _open(tester, service);
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+      await tester.tap(find.text('Open settings'));
+      await _settle(tester);
+
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isFalse);
+      expect(find.textContaining('notifications are off or silent'), findsOneWidget);
+      expect(
+        find.text('Open settings'),
+        findsOneWidget,
+        reason: 'the one button that always works',
+      );
+      expect(
+        find.text('Allow notifications'),
+        findsNothing,
+        reason: 'no button that does nothing',
+      );
+      expect(find.textContaining('Prayer alarms are on'), findsNothing);
+      expect(scheduler.alarms, isEmpty);
+      expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
+    },
+  );
+
+  testWidgets('both missing: notifications first, then exact alarms, then on', (
+    tester,
+  ) async {
+    _phone(tester);
+    final scheduler = FakeAlarmScheduler()
+      ..perms = const AlarmPermissions(
+        notifications: false,
+        exactAlarms: false,
+      );
+    final service = _service(scheduler);
+    scheduler.onSettingsScreen = () async {
+      scheduler.perms = const AlarmPermissions(
+        notifications: true,
+        exactAlarms: false,
+      );
+      service.appPaused();
+      await service.appResumed();
+    };
+    scheduler.onExactScreen = () async => scheduler.perms =
+        const AlarmPermissions(notifications: true, exactAlarms: true);
+    await _open(tester, service);
+    await tester.tap(find.byType(Switch));
+    await _settle(tester);
+
+    expect(find.text('Allow notifications'), findsOneWidget);
+    await tester.tap(find.text('Open settings'));
+    await _settle(tester);
+    // Progress was made, so the next permission is explained straight away.
+    expect(find.text('Allow exact alarms'), findsOneWidget);
+    await tester.tap(find.text('Grant permission'));
+    await _settle(tester);
+
+    expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+    expect(
+      find.text('Prayer alarms are on. They will ring at the exact time.'),
+      findsOneWidget,
+    );
+    expect(scheduler.alarms.length, 49);
+  });
+
+  testWidgets(
+    'notifications taken back while on: a warning and one button; restored: gone',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler();
+      final service = _service(scheduler);
+      await _open(tester, service);
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+      expect(scheduler.alarms.length, 49);
+
+      scheduler.perms = const AlarmPermissions(
+        notifications: false,
+        exactAlarms: true,
+      );
+      await service.onResume();
+      await _settle(tester);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(find.textContaining('notifications are off or silent'), findsOneWidget);
+      expect(find.text('Open settings'), findsOneWidget);
+      expect(find.text('Allow notifications'), findsNothing);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+
+      scheduler.perms = const AlarmPermissions(
+        notifications: true,
+        exactAlarms: true,
+      );
+      await service.onResume();
+      await _settle(tester);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(scheduler.alarms.length, 49);
+      expect(scheduler.alarms.map((a) => a.id).toSet().length, 49);
+    },
+  );
+
+  testWidgets('Android: the words name the "Prayer alarms" category', (
+    tester,
+  ) async {
+    _phone(tester);
+    final scheduler = FakeAlarmScheduler()
+      ..perms = const AlarmPermissions(notifications: false, exactAlarms: true);
+    await _open(tester, _service(scheduler));
+    await tester.tap(find.byType(Switch));
+    await _settle(tester);
+    expect(find.textContaining('switch on “Prayer alarms”'), findsOneWidget);
+    expect(find.textContaining('Sounds'), findsNothing);
+  });
+
+  testWidgets('iPhone: the words name Notifications and Sounds', (tester) async {
+    _phone(tester);
+    final scheduler = FakeAlarmScheduler()
+      ..perms = const AlarmPermissions(notifications: false, exactAlarms: true);
+    await _open(
+      tester,
+      _service(scheduler),
+      theme: AppTheme.light.copyWith(platform: TargetPlatform.iOS),
+    );
+    await tester.tap(find.byType(Switch));
+    await _settle(tester);
+    expect(
+      find.textContaining('switch on Notifications (and Sounds)'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('“Prayer alarms” category'), findsNothing);
+  });
+
+  testWidgets(
+    'without exact alarms, turning on explains first and Cancel keeps it off',
     (tester) async {
       _phone(tester);
       final scheduler = FakeAlarmScheduler()
@@ -224,11 +400,186 @@ void main() {
       await tester.tap(find.byType(Switch));
       await _settle(tester);
 
-      expect(find.textContaining('a few minutes late'), findsOneWidget);
-      expect(scheduler.alarms.length, 49, reason: 'planned anyway');
-      await tester.tap(find.text('Allow exact alarms'));
+      // The explanation, with both choices; the system screen is not opened yet.
+      expect(find.text('Allow exact alarms'), findsOneWidget);
+      expect(
+        find.textContaining('To ring at the exact prayer time'),
+        findsOneWidget,
+      );
+      expect(find.text('Grant permission'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(scheduler.exactRequests, 0);
+
+      await tester.tap(find.text('Cancel'));
       await _settle(tester);
-      expect(scheduler.permissionRequests, 2); // once on turning on, once here
+      expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+      expect(find.text('Fajr'), findsNothing);
+      expect(scheduler.alarms, isEmpty);
+      expect(scheduler.exactRequests, 0);
+      expect(find.textContaining('Prayer alarms are on'), findsNothing);
+      expect((await PrayerAlarmPrefs.load()).enabled, isFalse);
+    },
+  );
+
+  testWidgets(
+    'Grant permission opens the system screen; once allowed, the alarms are set and confirmed',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler()
+        ..perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: false,
+        );
+      scheduler.onExactScreen = () async => scheduler.perms =
+          const AlarmPermissions(notifications: true, exactAlarms: true);
+      await _open(tester, _service(scheduler));
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+      await tester.tap(find.text('Grant permission'));
+      await _settle(tester);
+
+      expect(scheduler.exactRequests, 1);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+      expect(
+        find.text('Prayer alarms are on. They will ring at the exact time.'),
+        findsOneWidget,
+      );
+      expect(scheduler.alarms.length, 49);
+      expect(find.byType(Switch), findsOneWidget);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect((await PrayerAlarmPrefs.load()).enabled, isTrue);
+    },
+  );
+
+  testWidgets(
+    'back without allowing it: off, says it is still needed, no success message, easy to try again',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler()
+        ..perms = const AlarmPermissions(
+          notifications: true,
+          exactAlarms: false,
+        );
+      await _open(tester, _service(scheduler));
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+      await tester.tap(find.text('Grant permission'));
+      await _settle(tester);
+
+      expect(scheduler.exactRequests, 1);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isFalse);
+      expect(find.textContaining('still needed'), findsOneWidget);
+      expect(find.textContaining('Prayer alarms are on'), findsNothing);
+      expect(scheduler.alarms, isEmpty);
+
+      // The button in the note tries again, and this time the user allows it.
+      scheduler.onExactScreen = () async => scheduler.perms =
+          const AlarmPermissions(notifications: true, exactAlarms: true);
+      await tester.tap(find.text('Grant permission'));
+      await _settle(tester);
+      expect(scheduler.exactRequests, 2);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+      expect(find.textContaining('still needed'), findsNothing);
+      expect(scheduler.alarms.length, 49);
+    },
+  );
+
+  testWidgets(
+    'permission taken back while on: a warning beside the switch, and it clears when restored',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler();
+      final service = _service(scheduler);
+      await _open(tester, service);
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+      expect(scheduler.alarms.length, 49);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+
+      // Taken back in the system settings; the app resumes.
+      scheduler.perms = const AlarmPermissions(
+        notifications: true,
+        exactAlarms: false,
+      );
+      await service.onResume();
+      await _settle(tester);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(
+        find.textContaining('may not ring until you allow it'),
+        findsOneWidget,
+      );
+      expect(find.text('Allow exact alarms'), findsOneWidget);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+
+      // Restored: the warning goes and the alarms are back, once each.
+      scheduler.perms = const AlarmPermissions(
+        notifications: true,
+        exactAlarms: true,
+      );
+      await service.onResume();
+      await _settle(tester);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(find.textContaining('may not ring'), findsNothing);
+      expect(scheduler.alarms.length, 49);
+      expect(scheduler.alarms.map((a) => a.id).toSet().length, 49);
+    },
+  );
+
+  testWidgets(
+    'on, but no place known so nothing was set: a warning beside the switch, the reason under it',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler();
+      await _open(tester, _service(scheduler, noPlace: true));
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
+      expect(scheduler.alarms, isEmpty);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(
+        find.byTooltip('Prayer alarms could not be set'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Allow location once so we can work out prayer times for where you are.',
+        ),
+        findsOneWidget,
+      );
+      // Nothing was set, so no "alarms are on" confirmation.
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'the system refused an alarm: a warning until Refresh sets it, then it is gone',
+    (tester) async {
+      _phone(tester);
+      final scheduler = FakeAlarmScheduler()
+        ..failIds = {prayerAlarmId(2026, 10, 25, Prayer.fajr)};
+      await _open(tester, _service(scheduler));
+      await tester.tap(find.byType(Switch));
+      await _settle(tester);
+
+      expect(scheduler.alarms.length, 48);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(
+        find.byTooltip('Prayer alarms could not be set'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Some alarms could not be set. Try Refresh alarms.'),
+        findsOneWidget,
+      );
+
+      scheduler.failIds = {};
+      await tester.ensureVisible(find.text('Refresh alarms'));
+      await tester.tap(find.text('Refresh alarms'));
+      await _settle(tester);
+      expect(scheduler.alarms.length, 49);
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(find.textContaining('could not be set'), findsNothing);
     },
   );
 
@@ -263,32 +614,68 @@ void main() {
   });
 
   testWidgets(
-    'dark theme, Urdu, a small screen and large text, without overflow',
+    'dark theme, Urdu, Hindi, a small screen and large text: the warning and notes fit',
     (tester) async {
       for (final (theme, locale) in [
         (AppTheme.dark, const Locale('en')),
         (AppTheme.light, const Locale('ur')),
         (AppTheme.light, const Locale('hi')),
       ]) {
-        SharedPreferences.setMockInitialValues({}); // switched off again
+        SharedPreferences.setMockInitialValues({});
         _phone(tester, w: 320, h: 640);
-        final scheduler = FakeAlarmScheduler()
-          ..perms = const AlarmPermissions(
-            notifications: false,
-            exactAlarms: false,
-          );
+        final scheduler = FakeAlarmScheduler();
+        final service = _service(scheduler);
         await _open(
           tester,
-          _service(scheduler),
+          service,
           theme: theme,
           textScale: 1.3,
           locale: locale,
         );
         await tester.tap(find.byType(Switch));
         await _settle(tester);
-        expect(find.byType(Switch), findsNWidgets(6));
+        scheduler.perms = const AlarmPermissions(
+          notifications: false,
+          exactAlarms: true,
+        ); // taken back
+        await service.onResume();
+        await _settle(tester);
+        expect(find.byType(Switch), findsOneWidget);
+        expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
         expect(tester.takeException(), isNull, reason: '$locale');
         await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
+
+  testWidgets(
+    'the explanation dialogs fit in every language, dark theme, small screen, large text',
+    (tester) async {
+      for (final missing in [
+        const AlarmPermissions(notifications: false, exactAlarms: true),
+        const AlarmPermissions(notifications: true, exactAlarms: false),
+      ]) {
+        for (final (theme, locale) in [
+          (AppTheme.dark, const Locale('en')),
+          (AppTheme.light, const Locale('ur')),
+          (AppTheme.light, const Locale('hi')),
+        ]) {
+          SharedPreferences.setMockInitialValues({});
+          _phone(tester, w: 320, h: 640);
+          final scheduler = FakeAlarmScheduler()..perms = missing;
+          await _open(
+            tester,
+            _service(scheduler),
+            theme: theme,
+            textScale: 1.3,
+            locale: locale,
+          );
+          await tester.tap(find.byType(Switch));
+          await _settle(tester);
+          expect(find.byType(AlertDialog), findsOneWidget, reason: '$locale');
+          expect(tester.takeException(), isNull, reason: '$locale');
+          await tester.pumpWidget(const SizedBox());
+        }
       }
     },
   );

@@ -10,6 +10,7 @@ import 'package:konnect_kashmir/providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/deen/deen_tab.dart';
 import 'package:konnect_kashmir/screens/deen/prayer_service.dart';
 import 'package:konnect_kashmir/screens/main_shell.dart';
+import 'package:konnect_kashmir/services/prayer_alarm/prayer_alarm_service.dart';
 import 'package:konnect_kashmir/services/live_sync.dart';
 import 'package:konnect_kashmir/theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -145,6 +146,70 @@ void main() {
       expect(find.text('5:15 AM'), findsOneWidget);
       expect(find.text('Continue Reading'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('the prayer bell', () {
+    tearDown(() => PrayerAlarmService.instance.status.value = PrayerAlarmStatus.idle);
+
+    testWidgets('shows a warning mark while the beep is on but cannot ring, and clears it', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        ..._saved(),
+        'prayer_alarm_enabled': true,
+      });
+      PrayerAlarmService.instance.status.value = const PrayerAlarmStatus(
+        enabled: true,
+        issues: {PrayerAlarmIssue.exactAlarmsOff},
+      );
+      _phone(tester);
+      await tester.pumpWidget(_app(const DeenTab(), theme: AppTheme.light));
+      await _settle(tester);
+
+      Badge mark() => tester.widget<Badge>(find.byType(Badge));
+      expect(mark().isLabelVisible, isTrue);
+      expect(find.byTooltip('Prayer alarms need permission'), findsOneWidget);
+
+      // The permission is given back: the mark goes without anything else.
+      PrayerAlarmService.instance.status.value = const PrayerAlarmStatus(enabled: true);
+      await tester.pump();
+      expect(mark().isLabelVisible, isFalse);
+      expect(find.byTooltip('Prayer alarms'), findsOneWidget);
+    });
+
+    testWidgets('shows the mark, with its own tooltip, when the alarms could not be set', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({
+        ..._saved(),
+        'prayer_alarm_enabled': true,
+      });
+      PrayerAlarmService.instance.status.value = const PrayerAlarmStatus(
+        enabled: true,
+        issues: {PrayerAlarmIssue.noLocation},
+      );
+      _phone(tester);
+      await tester.pumpWidget(_app(const DeenTab(), theme: AppTheme.light));
+      await _settle(tester);
+
+      expect(tester.widget<Badge>(find.byType(Badge)).isLabelVisible, isTrue);
+      expect(find.byTooltip('Prayer alarms could not be set'), findsOneWidget);
+
+      // Set after all (the place is known now): the mark goes.
+      PrayerAlarmService.instance.status.value = const PrayerAlarmStatus(
+        enabled: true,
+        scheduled: 49,
+      );
+      await tester.pump();
+      expect(tester.widget<Badge>(find.byType(Badge)).isLabelVisible, isFalse);
+    });
+
+    testWidgets('has no mark when the beep is off', (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_app(const DeenTab(), theme: AppTheme.light));
+      await _settle(tester);
+      expect(tester.widget<Badge>(find.byType(Badge)).isLabelVisible, isFalse);
     });
   });
 

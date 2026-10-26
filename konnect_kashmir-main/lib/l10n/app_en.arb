@@ -476,7 +476,6 @@
   "seeLess": "See less",
   "sameAsBusinessNumber": "Same as business number",
   "prayerAlarms": "Prayer alarms",
-  "prayerAlarmsSubtitle": "A short beep at each prayer time, even when the app is closed.",
   "prayerAlarmsMaster": "Beep at prayer times",
   "prayerAlarmNotifTitle": "{prayer} prayer time",
   "@prayerAlarmNotifTitle": {
@@ -493,17 +492,11 @@
   "prayerAlarmNotifBlocked": "Notifications are off for Konnect Kashmir, so the alarms cannot sound.",
   "prayerAlarmAllowNotifications": "Allow notifications",
   "prayerAlarmOpenSettings": "Open settings",
-  "prayerAlarmExactOff": "Exact alarms are off, so a beep can arrive a few minutes late.",
+  "prayerAlarmExactOff": "Exact alarm permission is off, so prayer alarms may not ring until you allow it.",
   "prayerAlarmAllowExact": "Allow exact alarms",
   "prayerAlarmNoLocation": "Allow location once so we can work out prayer times for where you are.",
   "prayerAlarmNoTimes": "Prayer times could not be loaded yet. Connect to the internet and try again.",
   "prayerAlarmNoRoom": "This phone has no room left for more alarms.",
-  "prayerAlarmSetThrough": "Alarms are set through {date}.",
-  "@prayerAlarmSetThrough": {
-    "placeholders": {
-      "date": {"type": "String"}
-    }
-  },
   "prayerAlarmFooter": "The beep follows your phone's volume, silent mode and Do Not Disturb settings.",
   "prayerAlarmRefresh": "Refresh alarms",
   "prayerAlarmFailed": "Some alarms could not be set. Try Refresh alarms.",
@@ -588,5 +581,16 @@
       "total": {"type": "int"}
     }
   },
-  "detailsVerified": "Verified"
+  "detailsVerified": "Verified",
+  "prayerAlarmExactDialogTitle": "Allow exact alarms",
+  "prayerAlarmExactDialogBody": "To ring at the exact prayer time, Android needs your permission for exact alarms. Without it, prayer alarms can be late or may not ring.\n\nTap Grant permission, then switch on Konnect Kashmir on the next screen.",
+  "prayerAlarmGrantPermission": "Grant permission",
+  "prayerAlarmExactStillNeeded": "Exact alarm permission is still needed for prayer alarms to ring at the exact time.",
+  "prayerAlarmEnabledConfirm": "Prayer alarms are on. They will ring at the exact time.",
+  "prayerAlarmWarningTooltip": "Prayer alarms need permission",
+  "prayerAlarmNotifDialogTitle": "Allow notifications",
+  "prayerAlarmNotifDialogBody": "Tap Open settings, then switch on Notifications (and Sounds).",
+  "prayerAlarmNotSetTooltip": "Prayer alarms could not be set",
+  "prayerAlarmNotifBlockedAndroid": "The “Prayer alarms” notifications are off or silent for Konnect Kashmir, so the beep cannot sound.",
+  "prayerAlarmNotifDialogBodyAndroid": "Tap Open settings, then Notifications, and switch on “Prayer alarms”."
 }

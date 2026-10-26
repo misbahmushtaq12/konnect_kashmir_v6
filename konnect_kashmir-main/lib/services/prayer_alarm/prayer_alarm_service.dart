@@ -37,6 +37,16 @@ enum PrayerAlarmIssue {
   failed,
 }
 
+/// A permission the beep needs before it can be switched on.
+enum PrayerAlarmPermission {
+  /// Notifications (and their sound): the beep is a notification. Needed on
+  /// iPhone and Android alike.
+  notifications,
+
+  /// Android 12+: exact alarms, so it rings at the exact minute.
+  exactAlarms,
+}
+
 /// What the settings screen shows.
 class PrayerAlarmStatus {
   final bool enabled;
@@ -47,12 +57,39 @@ class PrayerAlarmStatus {
   /// The moment of the last one (UTC), or null.
   final DateTime? through;
   final Set<PrayerAlarmIssue> issues;
+
+  /// True for the one status that finishes turning the beep on: alarms were set
+  /// and nothing is wrong. The screen shows its confirmation for it.
+  final bool justEnabled;
+
+  /// The beep is NOT on, because this permission is missing (the user is being
+  /// asked for it, or was asked and did not give it). Null when nothing is.
+  final PrayerAlarmPermission? missingPermission;
   const PrayerAlarmStatus({
     this.enabled = false,
     this.scheduled = 0,
     this.through,
     this.issues = const {},
+    this.justEnabled = false,
+    this.missingPermission,
   });
+
+  /// A permission is what stops the beep (not the place, the prayer times or the
+  /// room on the phone).
+  bool get needsPermission =>
+      issues.contains(PrayerAlarmIssue.exactAlarmsOff) ||
+      issues.contains(PrayerAlarmIssue.notificationsBlocked);
+
+  /// The beep is on but it will not (fully) ring: a permission is missing, the
+  /// system refused some alarms, or there is nothing on the phone because the place
+  /// or the prayer times are missing. The screens show a warning next to the bell
+  /// and the switch. Not a warning: a note about a place or prayer times that could
+  /// not be refreshed while good alarms are still waiting on the phone.
+  bool get hasWarning =>
+      enabled &&
+      (needsPermission ||
+          issues.contains(PrayerAlarmIssue.failed) ||
+          (issues.isNotEmpty && scheduled == 0));
 
   static const PrayerAlarmStatus idle = PrayerAlarmStatus();
 }
@@ -139,6 +176,53 @@ class PrayerAlarmService {
   bool _started = false;
   DateTime? _lastRefresh;
   bool _forceNextResume = false;
+
+  /// What the phone allowed when the alarms were last planned: coming back to
+  /// the app plans again at once when this has changed (a permission was given
+  /// or taken back in the system settings).
+  AlarmPermissions? _lastPerms;
+
+  /// The next planning is the one that finishes turning the beep on.
+  bool _confirmNext = false;
+
+  /// The permission that stopped the beep from being turned on (not given yet).
+  PrayerAlarmPermission? _blockedOn;
+
+  /// While the user is in the phone's settings: completed when they come back.
+  Completer<void>? _backFromSettings;
+  bool _wentToBackground = false;
+
+  static PrayerAlarmPermission? _missing(AlarmPermissions? p) {
+    if (p == null) return null;
+    if (!p.notifications) return PrayerAlarmPermission.notifications;
+    if (!p.exactAlarms) return PrayerAlarmPermission.exactAlarms;
+    return null;
+  }
+
+  static PrayerAlarmIssue _issueFor(PrayerAlarmPermission p) => switch (p) {
+    PrayerAlarmPermission.notifications =>
+      PrayerAlarmIssue.notificationsBlocked,
+    PrayerAlarmPermission.exactAlarms => PrayerAlarmIssue.exactAlarmsOff,
+  };
+
+  // Remembered on the phone, so it survives the app being closed while the user
+  // is in the system settings.
+  static const _pendingKey = 'prayer_alarm_pending_exact';
+  Future<bool> _isPending() async {
+    try {
+      return (await SharedPreferences.getInstance()).getBool(_pendingKey) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _setPending(bool on) async {
+    try {
+      await (await SharedPreferences.getInstance()).setBool(_pendingKey, on);
+    } catch (_) {}
+  }
+
   String? _languageNow;
   Future<void> _queue = Future<void>.value();
 
@@ -153,11 +237,41 @@ class PrayerAlarmService {
     await refresh(reason: 'launch');
   }
 
-  /// The app came back to the front. Plans again unless that was done a moment ago.
+  /// The app went to the background (the observer tells us).
+  void appPaused() => _wentToBackground = true;
+
+  /// The app came back to the front. If the user was in the phone's settings, the
+  /// waiting [openNotificationSettings] is released; then everything is looked at.
+  Future<void> appResumed() {
+    if (_wentToBackground) {
+      _wentToBackground = false;
+      final back = _backFromSettings;
+      if (back != null && !back.isCompleted) back.complete();
+    }
+    return onResume();
+  }
+
+  /// The app came back to the front. The permissions are looked at every time
+  /// (one may have been given or taken back in the system settings); planning
+  /// again is skipped only when nothing changed and it was done a moment ago.
   Future<void> onResume() async {
+    // Nothing is on and nothing is waiting for a permission: nothing to check.
+    if (!(await PrayerAlarmPrefs.load()).enabled && !await _isPending()) return;
+    AlarmPermissions? now;
+    try {
+      now = await scheduler.permissions();
+    } catch (_) {}
+    final before = _lastPerms;
+    final changed =
+        now == null ||
+        before == null ||
+        now.exactAlarms != before.exactAlarms ||
+        now.notifications != before.notifications;
     final last = _lastRefresh;
     final recent = last != null && _clock().difference(last) < minResumeGap;
-    if (recent && !_forceNextResume && !await _zoneChanged()) return;
+    if (recent && !_forceNextResume && !changed && !await _zoneChanged()) {
+      return;
+    }
     _forceNextResume = false;
     await refresh(reason: 'resume');
   }
@@ -181,25 +295,102 @@ class PrayerAlarmService {
 
   Future<PrayerAlarmPrefs> prefs() => PrayerAlarmPrefs.load();
 
-  /// The master switch. Turning it on asks for the notification permission and
-  /// (once) the location, then plans the alarms; turning it off cancels them.
+  /// The switch (one for all five prayers).
+  ///
+  /// Turning it ON needs two permissions, and the beep is NOT switched on until
+  /// it has both: notifications (iPhone and Android 13+; the alarm is a
+  /// notification, with a sound) and, on Android 12+, exact alarms (so it rings
+  /// at the exact minute). The one that is missing is in
+  /// [PrayerAlarmStatus.missingPermission]; the screen explains it and sends the
+  /// user to the right system screen ([openNotificationSettings],
+  /// [openExactAlarmSettings]) or calls [cancelPendingEnable]. With both, the
+  /// alarms are planned (asking once for the place).
+  ///
+  /// Turning it OFF cancels the alarms.
   Future<PrayerAlarmStatus> setEnabled(bool on) async {
-    await (await PrayerAlarmPrefs.load()).copyWith(enabled: on).save();
-    if (on) {
-      try {
-        await scheduler.ensureReady();
-        await scheduler.requestPermissions();
-      } catch (e) {
-        debugPrint('[PrayerAlarm] permission request failed: $e');
-      }
+    if (!on) {
+      await _setPending(false);
+      _blockedOn = null;
+      _confirmNext = false;
+      await (await PrayerAlarmPrefs.load()).copyWith(enabled: false).save();
+      return refresh(reason: 'turned off');
     }
-    return refresh(reason: on ? 'turned on' : 'turned off', askLocation: on);
+    AlarmPermissions? perms;
+    try {
+      await scheduler.ensureReady();
+      // The system's own prompt for notifications, where there still is one.
+      perms = await scheduler.requestPermissions();
+    } catch (e) {
+      debugPrint('[PrayerAlarm] permission request failed: $e');
+      try {
+        perms = await scheduler.permissions();
+      } catch (_) {}
+    }
+    final missing = _missing(perms);
+    if (missing != null) {
+      // Not on. Remembered, so that if the user goes to the phone's settings and
+      // comes back (even after the app was closed meanwhile) it is finished.
+      await _setPending(true);
+      _blockedOn = missing;
+      final s = PrayerAlarmStatus(
+        issues: {_issueFor(missing)},
+        missingPermission: missing,
+      );
+      status.value = s;
+      return s;
+    }
+    _blockedOn = null;
+    await _setPending(false);
+    await (await PrayerAlarmPrefs.load()).copyWith(enabled: true).save();
+    _confirmNext = true;
+    return refresh(reason: 'turned on', askLocation: true);
   }
 
-  /// One prayer's switch.
-  Future<PrayerAlarmStatus> setPrayer(Prayer prayer, bool on) async {
-    await (await PrayerAlarmPrefs.load()).withPrayer(prayer, on).save();
-    return refresh(reason: '${prayer.name} ${on ? 'on' : 'off'}');
+  /// The user agreed to give the exact-alarm permission: opens Android's screen
+  /// for it (the one for this app) and returns when they come back. If the beep
+  /// was waiting for it, the alarms are planned now that it is allowed; if not
+  /// allowed, the status says it is still missing. Nothing is set without it.
+  Future<PrayerAlarmStatus> openExactAlarmSettings() async {
+    if (!(await PrayerAlarmPrefs.load()).enabled) await _setPending(true);
+    _forceNextResume = true;
+    try {
+      await scheduler.requestPermissions(exactAlarms: true);
+    } catch (e) {
+      debugPrint('[PrayerAlarm] permission request failed: $e');
+    }
+    return refresh(
+      reason: 'back from the exact-alarm screen',
+      askLocation: true,
+    );
+  }
+
+  /// The user agreed to turn notifications on: opens this app's page in the
+  /// phone's settings and returns when they come back. (A notification permission
+  /// can be asked for only once or twice, and on iPhone only once, so the
+  /// settings are the way that always works.) Like [openExactAlarmSettings], it
+  /// finishes turning the beep on if everything is allowed now.
+  Future<PrayerAlarmStatus> openNotificationSettings() async {
+    if (!(await PrayerAlarmPrefs.load()).enabled) await _setPending(true);
+    _forceNextResume = true;
+    final back = _backFromSettings = Completer<void>();
+    _wentToBackground = false;
+    try {
+      await scheduler.openSettings();
+      // Until the user is back. If the app is closed meanwhile, the next time it
+      // opens finishes the job (the waiting was saved above).
+      await back.future.timeout(const Duration(minutes: 30), onTimeout: () {});
+    } catch (e) {
+      debugPrint('[PrayerAlarm] could not open the settings: $e');
+    }
+    _backFromSettings = null;
+    return refresh(reason: 'back from the settings', askLocation: true);
+  }
+
+  /// The user chose not to give the permission now: the beep stays off.
+  Future<void> cancelPendingEnable() async {
+    await _setPending(false);
+    _blockedOn = null;
+    status.value = const PrayerAlarmStatus();
   }
 
   /// Asks again for what is missing. With [exactAlarms] (Android 12+) this opens
@@ -243,16 +434,45 @@ class PrayerAlarmService {
   ) async {
     _ensureTimeZones();
     final now = _clock();
+
+    // Turning the beep on was waiting for the exact-alarm permission. Whenever the
+    // app looks again (it came back from the system settings, or was opened anew):
+    // allowed now -> finish turning it on; still not allowed -> it stays off and
+    // the screen says the permission is still needed.
+    if (await _isPending()) {
+      AlarmPermissions? p;
+      try {
+        p = await scheduler.permissions();
+      } catch (_) {}
+      if (p != null) {
+        await _setPending(false);
+        final missing = _missing(p);
+        if (missing == null) {
+          await (await PrayerAlarmPrefs.load()).copyWith(enabled: true).save();
+          _blockedOn = null;
+          _confirmNext = true;
+        } else {
+          _blockedOn = missing; // asked, and still not given
+        }
+      }
+    }
+
     final prefs = await PrayerAlarmPrefs.load();
     final state = await PrayerAlarmState.load();
     final issues = <PrayerAlarmIssue>{};
 
     PrayerAlarmStatus publish(int scheduled, {DateTime? through}) {
+      // The first planning after turning the beep on confirms it, and only when it
+      // really set alarms and nothing is wrong.
+      final confirm = _confirmNext && issues.isEmpty && scheduled > 0;
+      _confirmNext = false;
       final s = PrayerAlarmStatus(
         enabled: prefs.enabled,
         scheduled: scheduled,
         through: through ?? state.scheduledThrough,
         issues: issues,
+        justEnabled: confirm,
+        missingPermission: prefs.enabled ? null : _blockedOn,
       );
       status.value = s;
       return s;
@@ -279,6 +499,8 @@ class PrayerAlarmService {
       debugPrint(
         '[PrayerAlarm] $reason: off, ${owned.length} alarms cancelled',
       );
+      final blocked = _blockedOn;
+      if (blocked != null) issues.add(_issueFor(blocked));
       return publish(0);
     }
     await _syncMaintenance(true, foreground);
@@ -286,10 +508,23 @@ class PrayerAlarmService {
     // Without notification permission nothing can sound; what is already
     // planned is kept so it works again the moment the user allows it.
     final perms = await scheduler.permissions();
+    _lastPerms = perms;
     if (!perms.exactAlarms) issues.add(PrayerAlarmIssue.exactAlarmsOff);
     if (!perms.notifications) {
       issues.add(PrayerAlarmIssue.notificationsBlocked);
       return publish(owned.length);
+    }
+    // The beep is meant to ring at the exact minute and never a few minutes late,
+    // so without permission for exact alarms none is set (and any that is left
+    // from before is taken down). The user is told and can allow it.
+    if (!perms.exactAlarms) {
+      for (final o in owned) {
+        await _cancel(o.id);
+      }
+      debugPrint(
+        '[PrayerAlarm] $reason: exact alarms are not allowed, none set',
+      );
+      return publish(0);
     }
 
     var place = await _locate(foreground, askLocation);
@@ -350,9 +585,6 @@ class PrayerAlarmService {
       'prayer': a.prayer.name,
       'at': a.at.millisecondsSinceEpoch,
       'lang': lang,
-      // How it was set: if the user allows (or takes back) exact alarms later, the
-      // payload no longer matches and every alarm is set again in the right mode.
-      'exact': perms.exactAlarms,
     });
 
     final byId = {for (final a in plan) a.id: a};
@@ -510,6 +742,7 @@ class _ResumeObserver with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) unawaited(_service.onResume());
+    if (state == AppLifecycleState.paused) _service.appPaused();
+    if (state == AppLifecycleState.resumed) unawaited(_service.appResumed());
   }
 }
