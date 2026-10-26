@@ -1235,4 +1235,77 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get sharedBusinessMissing => 'یہ کاروبار اب دستیاب نہیں ہے۔';
+
+  @override
+  String get detailsAbout => 'تعارف';
+
+  @override
+  String get detailsServices => 'خدمات';
+
+  @override
+  String get detailsWorkingHours => 'کام کے اوقات';
+
+  @override
+  String get detailsPriceRange => 'قیمت کی حد';
+
+  @override
+  String get detailsExperience => 'تجربہ';
+
+  @override
+  String get detailsContactLocation => 'رابطہ اور پتہ';
+
+  @override
+  String get detailsPhone => 'فون';
+
+  @override
+  String get detailsAddress => 'پتہ';
+
+  @override
+  String get detailsArea => 'علاقہ';
+
+  @override
+  String get detailsDirections => 'راستہ';
+
+  @override
+  String get detailsLocked =>
+      'فون نمبر اور مکمل پتہ دیکھنے کے لیے اس کاروبار کا رابطہ انلاک کریں۔';
+
+  @override
+  String get detailsReviews => 'ریویوز';
+
+  @override
+  String get detailsNoReviews => 'ابھی کوئی ریویو نہیں';
+
+  @override
+  String detailsReviewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count ریویوز',
+      one: '1 ریویو',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailsShowAllReviews(int count) {
+    return 'تمام $count ریویوز دیکھیں';
+  }
+
+  @override
+  String get detailsShowFewerReviews => 'کم دکھائیں';
+
+  @override
+  String get detailsReport => 'اس کاروبار کی شکایت کریں';
+
+  @override
+  String get detailsNotFound => 'یہ کاروبار اب دستیاب نہیں ہے۔';
+
+  @override
+  String detailsPhotoLabel(int n, int total) {
+    return 'تصویر $n / $total';
+  }
+
+  @override
+  String get detailsVerified => 'تصدیق شدہ';
 }

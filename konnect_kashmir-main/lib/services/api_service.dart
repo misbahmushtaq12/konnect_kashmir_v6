@@ -595,6 +595,35 @@ class ApiService {
     }
   }
 
+  /// One approved business with every public field the details screen shows
+  /// (photos, working hours, services...), found by its id. Returns null when
+  /// there is no such approved business; throws when it could not be asked, so
+  /// the screen can offer a retry instead of saying the business is gone.
+  Future<Map<String, dynamic>?> getVendorDetails(String id) async {
+    final uri = Uri.parse('$_baseUrl/rest/v1/vendors_public').replace(
+      queryParameters: {
+        'select': 'id,business_name,service_type,locality_id,localities(name),'
+            'description,is_verified,logo_url,gallery_urls,working_hours,'
+            'services_offered,other_service_description,'
+            'min_price,max_price,experience_years,'
+            'provides_home_service,accepts_online_payment,'
+            'phone,address',
+        'id': 'eq.$id',
+        'is_approved': 'eq.true',
+        'limit': '1',
+      },
+    );
+    final res = await sharedHttp
+        .get(uri, headers: _headers)
+        .timeout(const Duration(seconds: 20));
+    if (res.statusCode != 200) {
+      throw Exception('Business details unavailable (${res.statusCode})');
+    }
+    final list = jsonDecode(res.body);
+    if (list is! List || list.isEmpty) return null;
+    return Map<String, dynamic>.from(list.first as Map);
+  }
+
   Future<List<Map<String, dynamic>>> getVendorCategories(
       List<String> vendorIds) async {
     try {

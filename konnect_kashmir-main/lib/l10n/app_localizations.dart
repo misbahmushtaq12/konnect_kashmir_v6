@@ -2187,6 +2187,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This business is not available any more.'**
   String get sharedBusinessMissing;
+
+  /// No description provided for @detailsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get detailsAbout;
+
+  /// No description provided for @detailsServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Services'**
+  String get detailsServices;
+
+  /// No description provided for @detailsWorkingHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Working hours'**
+  String get detailsWorkingHours;
+
+  /// No description provided for @detailsPriceRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Price range'**
+  String get detailsPriceRange;
+
+  /// No description provided for @detailsExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Experience'**
+  String get detailsExperience;
+
+  /// No description provided for @detailsContactLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact & location'**
+  String get detailsContactLocation;
+
+  /// No description provided for @detailsPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone'**
+  String get detailsPhone;
+
+  /// No description provided for @detailsAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get detailsAddress;
+
+  /// No description provided for @detailsArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Area'**
+  String get detailsArea;
+
+  /// No description provided for @detailsDirections.
+  ///
+  /// In en, this message translates to:
+  /// **'Directions'**
+  String get detailsDirections;
+
+  /// No description provided for @detailsLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock this business to see its phone number and exact address.'**
+  String get detailsLocked;
+
+  /// No description provided for @detailsReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviews'**
+  String get detailsReviews;
+
+  /// No description provided for @detailsNoReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'No reviews yet'**
+  String get detailsNoReviews;
+
+  /// No description provided for @detailsReviewCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 review} other{{count} reviews}}'**
+  String detailsReviewCount(int count);
+
+  /// No description provided for @detailsShowAllReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all {count} reviews'**
+  String detailsShowAllReviews(int count);
+
+  /// No description provided for @detailsShowFewerReviews.
+  ///
+  /// In en, this message translates to:
+  /// **'Show fewer'**
+  String get detailsShowFewerReviews;
+
+  /// No description provided for @detailsReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report this business'**
+  String get detailsReport;
+
+  /// No description provided for @detailsNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This business is not available any more.'**
+  String get detailsNotFound;
+
+  /// No description provided for @detailsPhotoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo {n} of {total}'**
+  String detailsPhotoLabel(int n, int total);
+
+  /// No description provided for @detailsVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get detailsVerified;
 }
 
 class _AppLocalizationsDelegate

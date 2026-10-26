@@ -36,8 +36,8 @@ the website (it shows the site's 404), so it should not be used in the SMS.
   `https://konnectkashmir.com/business/<id>`. That is a real page on the website (its
   `/business/:id` route loads the business whose `vendors_public.id` is in the address), so
   someone without the app sees the business there. A phone that has the app opens the **app
-  on Home, showing that business at the top** ("Shared with you"). Someone who is signed out
-  signs in first and then sees it. Android needs nothing more from the website; **iPhone
+  on that business's details screen** (the same screen a business card opens). Someone who is
+  signed out signs in first and then sees it. Android needs nothing more from the website; **iPhone
   needs one line added to the apple-app-site-association file** (below).
 
 ## What is left

@@ -552,5 +552,41 @@
   },
   "shareBusinessFailed": "Couldn't open the share sheet. Please try again.",
   "sharedBusinessTitle": "Shared with you",
-  "sharedBusinessMissing": "This business is not available any more."
+  "sharedBusinessMissing": "This business is not available any more.",
+  "detailsAbout": "About",
+  "detailsServices": "Services",
+  "detailsWorkingHours": "Working hours",
+  "detailsPriceRange": "Price range",
+  "detailsExperience": "Experience",
+  "detailsContactLocation": "Contact & location",
+  "detailsPhone": "Phone",
+  "detailsAddress": "Address",
+  "detailsArea": "Area",
+  "detailsDirections": "Directions",
+  "detailsLocked": "Unlock this business to see its phone number and exact address.",
+  "detailsReviews": "Reviews",
+  "detailsNoReviews": "No reviews yet",
+  "detailsReviewCount": "{count, plural, =1{1 review} other{{count} reviews}}",
+  "@detailsReviewCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "detailsShowAllReviews": "Show all {count} reviews",
+  "@detailsShowAllReviews": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "detailsShowFewerReviews": "Show fewer",
+  "detailsReport": "Report this business",
+  "detailsNotFound": "This business is not available any more.",
+  "detailsPhotoLabel": "Photo {n} of {total}",
+  "@detailsPhotoLabel": {
+    "placeholders": {
+      "n": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "detailsVerified": "Verified"
 }

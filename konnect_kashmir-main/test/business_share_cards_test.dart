@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:konnect_kashmir/l10n/l10n.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
+import 'package:konnect_kashmir/screens/business_details/business_details_screen.dart';
 import 'package:konnect_kashmir/screens/customer_screen.dart';
 import 'package:konnect_kashmir/services/app_links.dart';
 import 'package:konnect_kashmir/services/live_sync.dart';
@@ -138,7 +139,7 @@ class _Backend {
   });
   final List<Map<String, dynamic>> list;
   final Map<String, Map<String, dynamic>> byId;
-  final bool failShared;
+  bool failShared;
   final List<String> asked = [];
 
   _Reply respond(Uri uri) {
@@ -153,8 +154,21 @@ class _Backend {
         ]),
       );
     }
+    if (uri.path.endsWith('/vendor_categories') ||
+        uri.path.endsWith('/vendor_reviews_public')) {
+      return (status: 200, body: '[]');
+    }
     if (!uri.path.endsWith('/vendors_public')) return (status: 404, body: '{}');
     final idFilter = uri.queryParameters['id'];
+    // The details screen asks for one business by its id.
+    if (idFilter != null && idFilter.startsWith('eq.')) {
+      asked.add(idFilter);
+      if (failShared) return (status: 500, body: '{}');
+      final found =
+          byId[idFilter.substring(3)] ??
+          {for (final v in list) v['id'] as String: v}[idFilter.substring(3)];
+      return (status: 200, body: jsonEncode([?found]));
+    }
     if (idFilter != null && idFilter.startsWith('in.(')) {
       asked.add(idFilter);
       if (failShared) return (status: 500, body: '{}');
@@ -380,33 +394,28 @@ void main() {
   });
 
   group('a shared business link', () {
-    testWidgets(
-      'the business is shown at the top, as a card with its own share icon',
-      (tester) async {
-        AppLinks.businessRequest.value = 'shared-1';
-        final backend = _Backend(
-          list: [_vendor('v9', 'Filler Co')],
-          byId: {
-            'shared-1': _vendor('shared-1', 'Shared Plumbing', type: 'plumber'),
-          },
-        );
-        await _pumpHome(tester, backend);
+    testWidgets('opens the business details screen', (tester) async {
+      AppLinks.businessRequest.value = 'shared-1';
+      final backend = _Backend(
+        list: [_vendor('v9', 'Filler Co')],
+        byId: {
+          'shared-1': _vendor('shared-1', 'Shared Plumbing', type: 'plumber'),
+        },
+      );
+      await _pumpHome(tester, backend);
 
-        expect(find.text('Shared with you'), findsOneWidget);
-        expect(find.text('Shared Plumbing'), findsOneWidget);
-        expect(backend.asked, ['in.(shared-1)']);
-        expect(
-          AppLinks.businessRequest.value,
-          isNull,
-          reason: 'taken, so it is shown once',
-        );
-        // The card opens in full, with its share icon (and the list's own card has one).
-        expect(find.byTooltip('Share'), findsNWidgets(2));
-        expect(find.text('Fine woodwork.'), findsOneWidget);
-      },
-    );
+      expect(find.byType(BusinessDetailsScreen), findsOneWidget);
+      expect(find.text('Shared Plumbing'), findsWidgets);
+      expect(backend.asked, ['eq.shared-1']);
+      expect(find.text('Fine woodwork.'), findsOneWidget);
+      expect(
+        AppLinks.businessRequest.value,
+        isNull,
+        reason: 'taken, so it is shown once',
+      );
+    });
 
-    testWidgets('a link that arrives while Home is open shows it too', (
+    testWidgets('a link that arrives while Home is open opens it too', (
       tester,
     ) async {
       final backend = _Backend(
@@ -420,15 +429,15 @@ void main() {
         },
       );
       await _pumpHome(tester, backend);
-      expect(find.text('Shared with you'), findsNothing);
+      expect(find.byType(BusinessDetailsScreen), findsNothing);
 
       AppLinks.businessRequest.value = 'shared-2';
       await _settle(tester);
-      expect(find.text('Shared with you'), findsOneWidget);
-      expect(find.text('Later Electric'), findsOneWidget);
+      expect(find.byType(BusinessDetailsScreen), findsOneWidget);
+      expect(find.text('Later Electric'), findsWidgets);
     });
 
-    testWidgets('it can be closed', (tester) async {
+    testWidgets('back returns to Home', (tester) async {
       AppLinks.businessRequest.value = 'shared-1';
       await _pumpHome(
         tester,
@@ -437,18 +446,18 @@ void main() {
           byId: {'shared-1': _vendor('shared-1', 'Shared Plumbing')},
         ),
       );
-      expect(find.text('Shared Plumbing'), findsOneWidget);
+      expect(find.byType(BusinessDetailsScreen), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Close'));
-      await tester.pump();
-      expect(find.text('Shared with you'), findsNothing);
-      expect(find.text('Shared Plumbing'), findsNothing);
+      await tester.tap(find.byType(BackButton));
+      await _settle(tester);
+      expect(find.byType(BusinessDetailsScreen), findsNothing);
+      expect(find.text('Filler Co'), findsOneWidget);
     });
 
     testWidgets('a business that is gone says so', (tester) async {
       AppLinks.businessRequest.value = 'gone-1';
       await _pumpHome(tester, _Backend(list: [_vendor('v9', 'Filler Co')]));
-      expect(find.text('Shared with you'), findsOneWidget);
+      expect(find.byType(BusinessDetailsScreen), findsOneWidget);
       expect(
         find.text('This business is not available any more.'),
         findsOneWidget,
@@ -463,8 +472,113 @@ void main() {
       );
       await _pumpHome(tester, backend);
       expect(find.text('Shared Plumbing'), findsNothing);
-      expect(find.text('Shared with you'), findsOneWidget);
-      expect(backend.asked, hasLength(1));
+      expect(find.text('Retry'), findsOneWidget);
+
+      backend.failShared = false;
+      await tester.tap(find.text('Retry'));
+      await _settle(tester);
+      expect(find.text('Shared Plumbing'), findsWidgets);
+      expect(backend.asked, hasLength(2));
     });
+  });
+
+  group('a card opens the details', () {
+    testWidgets('tapping the name opens that business, and back returns', (
+      tester,
+    ) async {
+      await _pumpHome(
+        tester,
+        _Backend(
+          list: [
+            _vendor('v1', 'Sajad Khatmband'),
+            _vendor('v2', 'Beta Bakery', type: 'bakery', locality: 'Rajbagh'),
+          ],
+        ),
+      );
+      await tester.scrollUntilVisible(
+        find.text('Beta Bakery'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Beta Bakery'));
+      await _settle(tester);
+
+      expect(find.byType(BusinessDetailsScreen), findsOneWidget);
+      expect(find.text('Beta Bakery'), findsWidgets);
+      expect(find.text('Sajad Khatmband'), findsNothing);
+      expect(find.text('Rajbagh'), findsWidgets);
+
+      await tester.tap(find.byType(BackButton));
+      await _settle(tester);
+      expect(find.byType(BusinessDetailsScreen), findsNothing);
+      expect(
+        find.text('Beta Bakery'),
+        findsOneWidget,
+        reason: 'same place in the list',
+      );
+    });
+
+    testWidgets('tapping anywhere on the card, not only the name, opens it', (
+      tester,
+    ) async {
+      await _pumpHome(
+        tester,
+        _Backend(list: [_vendor('v1', 'Sajad Khatmband')]),
+      );
+      await tester.scrollUntilVisible(
+        find.text('Contact'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('Contact'));
+      await _settle(tester);
+      expect(find.byType(BusinessDetailsScreen), findsOneWidget);
+    });
+
+    testWidgets('the share icon shares and does not open the details', (
+      tester,
+    ) async {
+      final shared = _watchShare(tester);
+      await _pumpHome(
+        tester,
+        _Backend(list: [_vendor('v1', 'Sajad Khatmband')]),
+      );
+      await tester.scrollUntilVisible(
+        find.byTooltip('Share'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byTooltip('Share'));
+      await _settle(tester);
+      expect(shared, hasLength(1));
+      expect(find.byType(BusinessDetailsScreen), findsNothing);
+    });
+
+    testWidgets('"See more" still opens the card in place', (tester) async {
+      await _pumpHome(
+        tester,
+        _Backend(list: [_vendor('v1', 'Sajad Khatmband')]),
+      );
+      expect(find.text('Fine woodwork.'), findsNothing);
+      await tester.tap(find.text('See more'));
+      await _settle(tester);
+      expect(find.text('Fine woodwork.'), findsOneWidget);
+      expect(find.byType(BusinessDetailsScreen), findsNothing);
+    });
+
+    testWidgets(
+      'a signed-out visitor sees the business and is asked to sign in',
+      (tester) async {
+        await _pumpHome(
+          tester,
+          _Backend(list: [_vendor('v1', 'Sajad Khatmband')]),
+        );
+        await tester.tap(find.text('Sajad Khatmband'));
+        await _settle(tester);
+        expect(find.byType(BusinessDetailsScreen), findsOneWidget);
+        expect(find.text('Sign in to unlock'), findsWidgets);
+        expect(find.textContaining('9876543210'), findsNothing);
+      },
+    );
   });
 }

@@ -15,6 +15,8 @@ import 'package:konnect_kashmir/services/api_service.dart';
 import '../services/live_sync.dart';
 import '../services/analytics_service.dart';
 import '../services/app_links.dart';
+import 'business_details/business_details_host.dart';
+import 'business_details/business_details_screen.dart';
 import '../services/business_share.dart';
 import '../services/category_groups.dart';
 import '../services/customer_location.dart';
@@ -68,7 +70,8 @@ class CustomerScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<CustomerScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin
+    implements BusinessDetailsHost {
   bool _showAllCategories = false;
 
   // Temporary UI state only: collapse context.l10n.ourServices whenever Home is left,
@@ -329,13 +332,6 @@ class _HomeScreenState extends State<CustomerScreen>
 
   final ScrollController _scrollController = ScrollController();
 
-  // A business opened from a shared link (https://konnectkashmir.com/business/<id>),
-  // shown above the list as a full provider card.
-  Map<String, dynamic>? _sharedVendor;
-  String? _sharedId;
-  bool _sharedLoading = false;
-  String? _sharedError;
-
   int _selectedNavIndex = 0;
 
   int totalVendors = 382;
@@ -425,108 +421,20 @@ class _HomeScreenState extends State<CustomerScreen>
     });
   }
 
-  /// A link asked for one business: load it and show it at the top. The request is
-  /// cleared once taken, so it is shown once.
+  /// A link asked for one business: open its details screen. The request is
+  /// cleared once taken, so it is shown once. (The screen loads the business by
+  /// its id itself, with its own loading, not-found and retry states.)
   void _onBusinessRequest() {
     final id = AppLinks.businessRequest.value;
     if (id == null) return;
     AppLinks.businessRequest.value = null;
-    _loadSharedVendor(id);
-  }
-
-  Future<void> _loadSharedVendor(String id) async {
-    setState(() {
-      _sharedId = id;
-      _sharedLoading = true;
-      _sharedError = null;
-      _sharedVendor = null;
+    // After this frame: a screen cannot be opened while this one is being built.
+    // (A frame is asked for, because an idle screen would not draw one.)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).push(businessDetailsRoute(host: this, vendorId: id));
     });
-    Map<String, dynamic>? found;
-    String? error;
-    try {
-      // Same request, same fields as the list, so the card behaves the same.
-      final list = await _api.getVendors(ids: [id], limit: 1, throwOnError: true);
-      if (list.isNotEmpty) found = list.first;
-    } catch (e) {
-      error = e.toString();
-    }
-    if (!mounted || _sharedId != id) return;
-    setState(() {
-      _sharedLoading = false;
-      _sharedError = error;
-      _sharedVendor = found;
-      if (found != null) _expandedCards.add(id);
-    });
-    // The business is the first thing on the page: show it.
-    if (_scrollController.hasClients && _scrollController.offset > 0) {
-      _scrollController.animateTo(0,
-          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-    }
-  }
-
-  void _closeSharedVendor() => setState(() {
-        _sharedId = null;
-        _sharedVendor = null;
-        _sharedError = null;
-        _sharedLoading = false;
-      });
-
-  /// "Shared with you": the business from a link, as the usual provider card.
-  List<Widget> _sharedBusinessSection() {
-    final id = _sharedId;
-    if (id == null) return const [];
-    final cs = Theme.of(context).colorScheme;
-    final vendor = _sharedVendor;
-
-    Widget body;
-    if (_sharedLoading) {
-      body = const Padding(
-        padding: EdgeInsets.symmetric(vertical: 28),
-        child: Center(
-          child: SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                  strokeWidth: 3, color: AppColors.primary)),
-        ),
-      );
-    } else if (_sharedError != null) {
-      body = ErrorRetry.fromError(_sharedError, onRetry: () => _loadSharedVendor(id));
-    } else if (vendor == null) {
-      body = Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Text(context.l10n.sharedBusinessMissing,
-            style: TextStyle(
-                fontSize: AppText.secondary,
-                color: cs.onSurface.withValues(alpha: 0.7))),
-      );
-    } else {
-      body = KeyedSubtree(key: ValueKey('shared-$id'), child: _buildVendorCard(vendor));
-    }
-
-    return [
-      const SizedBox(height: 12),
-      Row(children: [
-        const Icon(Icons.share_rounded, size: 16, color: AppColors.primary),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(context.l10n.sharedBusinessTitle,
-              style: const TextStyle(
-                  fontSize: AppText.secondary,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary)),
-        ),
-        IconButton(
-          onPressed: _closeSharedVendor,
-          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-          visualDensity: VisualDensity.compact,
-          icon: Icon(Icons.close_rounded,
-              size: 18, color: cs.onSurface.withValues(alpha: 0.6)),
-        ),
-      ]),
-      body,
-      const SizedBox(height: 6),
-    ];
+    WidgetsBinding.instance.scheduleFrame();
   }
 
   /// Publishes a balance the backend just reported, plus the transaction it made.
@@ -545,6 +453,7 @@ class _HomeScreenState extends State<CustomerScreen>
     _scrollController.removeListener(_onScrollTick);
     AppLinks.businessRequest.removeListener(_onBusinessRequest);
     _showSticky.dispose();
+    _detailsTick.dispose();
     _searchFocus.dispose();
     _searchAnim.dispose();
     _searchController.dispose();
@@ -1717,6 +1626,76 @@ class _HomeScreenState extends State<CustomerScreen>
     }
   }
 
+  // ── The business details screen (see business_details/) ──────────────────
+  //
+  // Opening a card shows a screen of its own. Unlocking, credits, calls, reviews
+  // and reports stay here, so the card and the details screen can never disagree;
+  // the details screen asks for them through BusinessDetailsHost.
+
+  final ValueNotifier<int> _detailsTick = ValueNotifier<int>(0);
+
+  /// Whatever changes here (a contact unlocked, the credits, the sign-in) is also
+  /// told to an open details screen, which shows the same state.
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    _detailsTick.value++;
+  }
+
+  /// A card was tapped: show that business.
+  Future<void> _openDetails(dynamic vendor) => Navigator.of(context).push(
+        businessDetailsRoute(
+          host: this,
+          vendor: Map<String, dynamic>.from(vendor as Map),
+        ),
+      );
+
+  @override
+  BusinessDetailsSource get source => ApiBusinessDetailsSource(_api);
+  @override
+  Listenable get changes => _detailsTick;
+  @override
+  bool get isSignedIn => context.read<AuthProvider>().isAuthenticated;
+  @override
+  int get credits => userCredits;
+  @override
+  bool isUnlocked(String id) => revealedVendors[id] == true;
+  @override
+  bool isUnlocking(String id) => _isRevealingVendor[id] == true;
+  @override
+  String phoneOf(String id, Map<String, dynamic> vendor) =>
+      (_revealedPhones[id] ?? vendor['phone'] ?? '').toString();
+  @override
+  void resolvePhone(String id) {
+    if (_phoneRequested.add(id)) _resolveUnlockedPhone(id);
+  }
+
+  @override
+  String categoryLabel(BuildContext context, String slug) => categoryName(
+      context,
+      slug,
+      _serviceCategories
+              .firstWhere(
+                  (s) => (s['slug']?.toString() ?? s['id']?.toString()) == slug,
+                  orElse: () => <String, dynamic>{'name': slug})['name']
+              ?.toString() ??
+          slug);
+  @override
+  Future<void> unlock(Map<String, dynamic> vendor) => _revealContact(vendor);
+  @override
+  void signIn() => Navigator.pushNamed(context, '/login');
+  @override
+  Future<void> call(String phone, String id) => _dialNumber(phone, vendorId: id);
+  @override
+  Future<void> whatsApp(String phone, String id) =>
+      _openWhatsApp(phone, vendorId: id);
+  @override
+  Future<void> openMap(Uri uri) => _openInMap(uri);
+  @override
+  Widget reviewForm(String id) => _buildReviewSection(id);
+  @override
+  void report(Map<String, dynamic> vendor) => _showReportDialog(vendor);
+
   Widget _searchPill() {
     final cs = Theme.of(context).colorScheme;
     const none = InputBorder.none;
@@ -2249,7 +2228,6 @@ class _HomeScreenState extends State<CustomerScreen>
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 children: [
-                  ..._sharedBusinessSection(),
                   if (isHomeTab) _buildHomeHero(auth),
                   if (isHomeTab && _searchActive)
                     ..._buildSearchModeResults()
@@ -2874,7 +2852,12 @@ class _HomeScreenState extends State<CustomerScreen>
             AppColors.primary.withValues(alpha: 0.07), AppColors.darkSurface)
         : cs.surface;
 
-    return Container(
+    return GestureDetector(
+      // The whole card opens the business. Its buttons (call, WhatsApp, share,
+      // unlock, "See more"...) take their own taps first.
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openDetails(vendor),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: EdgeInsets.fromLTRB(14, 12, 14, isRevealed ? 2 : 12),
       decoration: BoxDecoration(
@@ -2888,11 +2871,10 @@ class _HomeScreenState extends State<CustomerScreen>
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Expanded(child: Semantics(
           button: true,
-          expanded: cardOpen,
-          label: '$name, ${cardOpen ? context.l10n.seeLess : context.l10n.seeMore}',
+          label: name,
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadius.md),
-            onTap: toggleCard,
+            onTap: () => _openDetails(vendor),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Tooltip(
                 message: serviceTypeDisplay,
@@ -2955,11 +2937,19 @@ class _HomeScreenState extends State<CustomerScreen>
                                       color: muted)),
                             ),
                           ]),
-                        Text(cardOpen ? context.l10n.seeLess : context.l10n.seeMore,
-                            style: const TextStyle(
-                                fontSize: AppText.secondary,
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700)),
+                        InkWell(
+                          onTap: toggleCard,
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Text(
+                                cardOpen ? context.l10n.seeLess : context.l10n.seeMore,
+                                style: const TextStyle(
+                                    fontSize: AppText.secondary,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -3099,7 +3089,7 @@ class _HomeScreenState extends State<CustomerScreen>
           ),
         ],
       ]),
-    );
+    ));
   }
 
   Widget _buildSignInButton() => FilledButton.tonalIcon(

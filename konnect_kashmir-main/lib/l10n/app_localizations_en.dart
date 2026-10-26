@@ -1231,4 +1231,77 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sharedBusinessMissing =>
       'This business is not available any more.';
+
+  @override
+  String get detailsAbout => 'About';
+
+  @override
+  String get detailsServices => 'Services';
+
+  @override
+  String get detailsWorkingHours => 'Working hours';
+
+  @override
+  String get detailsPriceRange => 'Price range';
+
+  @override
+  String get detailsExperience => 'Experience';
+
+  @override
+  String get detailsContactLocation => 'Contact & location';
+
+  @override
+  String get detailsPhone => 'Phone';
+
+  @override
+  String get detailsAddress => 'Address';
+
+  @override
+  String get detailsArea => 'Area';
+
+  @override
+  String get detailsDirections => 'Directions';
+
+  @override
+  String get detailsLocked =>
+      'Unlock this business to see its phone number and exact address.';
+
+  @override
+  String get detailsReviews => 'Reviews';
+
+  @override
+  String get detailsNoReviews => 'No reviews yet';
+
+  @override
+  String detailsReviewCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count reviews',
+      one: '1 review',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String detailsShowAllReviews(int count) {
+    return 'Show all $count reviews';
+  }
+
+  @override
+  String get detailsShowFewerReviews => 'Show fewer';
+
+  @override
+  String get detailsReport => 'Report this business';
+
+  @override
+  String get detailsNotFound => 'This business is not available any more.';
+
+  @override
+  String detailsPhotoLabel(int n, int total) {
+    return 'Photo $n of $total';
+  }
+
+  @override
+  String get detailsVerified => 'Verified';
 }
