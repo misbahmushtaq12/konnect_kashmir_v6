@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../../l10n/l10n.dart';
+import '../../services/app_analytics.dart';
 import '../../services/business_share.dart';
 import '../../services/map_link.dart';
 import '../../theme/app_theme.dart';
@@ -23,7 +24,8 @@ Route<void> businessDetailsRoute({
   Map<String, dynamic>? vendor,
 }) {
   return MaterialPageRoute<void>(
-    settings: const RouteSettings(name: '/business'),
+    // The name is what analytics calls this screen (`business_details`).
+    settings: const RouteSettings(name: '/business_details'),
     builder: (_) =>
         BusinessDetailsScreen(host: host, vendorId: vendorId, vendor: vendor),
   );
@@ -113,6 +115,10 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
     });
     // Known already (the list asked for them): shown in the very first frame.
     _categorySlugs = _host.source.cachedCategorySlugs(_id) ?? const [];
+    AppAnalytics.instance.viewBusiness(
+      _id,
+      category: _categorySlugs.isEmpty ? null : _categorySlugs.first,
+    );
     _load();
   }
 

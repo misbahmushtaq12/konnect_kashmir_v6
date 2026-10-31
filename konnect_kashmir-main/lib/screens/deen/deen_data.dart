@@ -2,16 +2,41 @@ import 'package:flutter/widgets.dart';
 
 /// A reciter whose full-surah recordings are streamed from quranicaudio.com
 /// (every entry below was checked to serve audio for every surah number).
+///
+/// The list is kept in the database (table `audio_reciters`, shared with the
+/// website): the app reads it from there and falls back to [kReciters] below when
+/// it cannot. A reciter from the database has an [id] (used when plays are
+/// reported) and a [baseUrl]; the built-in ones are made from a [slug].
 class Reciter {
   final String name;
   final String slug;
-  const Reciter(this.name, this.slug);
+
+  /// `audio_reciters.id`; null for the built-in list.
+  final String? id;
+
+  /// `audio_reciters.source_base_url`; null for the built-in list.
+  final String? baseUrl;
+  const Reciter(this.name, this.slug, {this.id, this.baseUrl});
+
+  /// A reciter from the database.
+  const Reciter.fromCatalog({
+    required String this.id,
+    required this.name,
+    required String this.baseUrl,
+  }) : slug = '';
+
+  String get _base =>
+      (baseUrl ?? 'https://download.quranicaudio.com/quran/$slug')
+          .replaceAll(RegExp(r'/+$'), '');
 
   /// The files are numbered with three digits: 001.mp3 ... 114.mp3.
+  /// (The website builds the address the same way.)
   String surahUrl(int surah) =>
-      'https://download.quranicaudio.com/quran/$slug/${surah.toString().padLeft(3, '0')}.mp3';
+      '$_base/${surah.toString().padLeft(3, '0')}.mp3';
 }
 
+/// The built-in list: used when the database list is not available. Same names,
+/// same order and same files as the `audio_reciters` rows.
 const List<Reciter> kReciters = [
   Reciter('Mishary Rashid Alafasy', 'mishaari_raashid_al_3afaasee'),
   Reciter('Abdurrahmaan As-Sudais', 'abdurrahmaan_as-sudays'),

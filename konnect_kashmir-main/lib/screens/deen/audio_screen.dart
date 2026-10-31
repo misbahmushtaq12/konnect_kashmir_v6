@@ -7,8 +7,8 @@ import '../../widgets/app_snack.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/error_retry.dart';
 import 'audio_controller.dart';
-import 'deen_data.dart';
 import 'now_playing_screen.dart';
+import 'reciters_source.dart';
 
 /// Quran recitation, streamed surah by surah. Tapping a surah starts it and opens
 /// the full-screen player. "Islamic Audio" opens the same screen with the reciter
@@ -32,7 +32,9 @@ class AudioScreen extends StatefulWidget {
 
 class _AudioScreenState extends State<AudioScreen> {
   late final QuranAudioController _c =
-      widget.controller ?? QuranAudioController(JustAudioBackend());
+      widget.controller ??
+      QuranAudioController(JustAudioBackend(),
+          recitersSource: SupabaseRecitersSource());
   StreamSubscription<void>? _errSub;
 
   @override
@@ -65,7 +67,8 @@ class _AudioScreenState extends State<AudioScreen> {
   }
 
   Future<void> _pickReciter() async {
-    final picked = await showReciterSheet(context, _c.reciter);
+    final picked =
+        await showReciterSheet(context, _c.reciter, reciters: _c.reciters);
     if (picked != null && mounted) _c.setReciter(picked);
   }
 
@@ -109,7 +112,7 @@ class _AudioScreenState extends State<AudioScreen> {
                           style: TextStyle(
                               fontSize: AppText.caption,
                               color: cs.onSurface.withValues(alpha: 0.6))),
-                      Text(kReciters[_c.reciter].name,
+                      Text(_c.currentReciter.name,
                           style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: AppText.body)),

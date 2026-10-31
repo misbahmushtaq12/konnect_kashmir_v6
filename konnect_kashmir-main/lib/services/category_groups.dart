@@ -1,10 +1,15 @@
 /// The groups the service categories are shown in, the same ones the website's
-/// Browse page uses (Home & Repair, Health & Education, ...).
+/// Browse page uses (Featured, Home & Repair, Health & Education, ...).
 ///
 /// The database has no group column, so the website decides the group of each
 /// category by its slug. This copies that table; a slug it does not know goes to
 /// [CategoryGroup.moreServices], as on the website.
+///
+/// The one exception is [CategoryGroup.featured]: the categories an admin has
+/// pinned (`service_categories.is_pinned`, for example Instagram Shops) are shown
+/// first, on their own, and are left out of their usual group - as on the website.
 enum CategoryGroup {
+  featured('Featured'),
   homeRepair('Home & Repair'),
   healthEducation('Health & Education'),
   foodGrocery('Food & Grocery'),
@@ -99,20 +104,29 @@ class CategoryGroups {
   /// categories in the order given (the database's display order), and groups
   /// with nothing in them are left out. With [limit], only the first [limit]
   /// categories counting group by group are kept (the collapsed Home view).
+  ///
+  /// Items for which [pinned] says true form the Featured group, which comes
+  /// first, takes them out of their usual group and is never cut by [limit].
   static List<({CategoryGroup group, List<T> items})> group<T>(
     Iterable<T> items,
     String Function(T item) slugOf, {
     int? limit,
+    bool Function(T item)? pinned,
   }) {
     final byGroup = {for (final g in CategoryGroup.values) g: <T>[]};
     for (final it in items) {
-      byGroup[of(slugOf(it))]!.add(it);
+      final isPinned = pinned != null && pinned(it);
+      byGroup[isPinned ? CategoryGroup.featured : of(slugOf(it))]!.add(it);
     }
     final out = <({CategoryGroup group, List<T> items})>[];
     var left = limit;
     for (final g in CategoryGroup.values) {
       var list = byGroup[g]!;
       if (list.isEmpty) continue;
+      if (g == CategoryGroup.featured) {
+        out.add((group: g, items: list));
+        continue;
+      }
       if (left != null) {
         if (left <= 0) break;
         if (list.length > left) list = list.sublist(0, left);

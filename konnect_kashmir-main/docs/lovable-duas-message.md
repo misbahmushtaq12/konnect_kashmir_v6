@@ -1,0 +1,160 @@
+Yes, please build the Duas section and the Duas manager. The 12 duas are below, exactly as the mobile app shows them (they are also in the attached files deen-duas-seed.sql and deen-duas-seed.json - use whichever is easier; the content is identical). Load them unchanged: do not retype, translate, shorten or "correct" any Arabic text, translation or source.
+
+What to build (reuse the existing Supabase project, patterns and styling; do not create a separate system):
+
+1. Database: a table deen_duas with columns id (uuid, default gen_random_uuid()), sort_order (int), arabic, title_en, title_hi, title_ur, meaning_en, meaning_hi, meaning_ur, source (text), is_active (boolean, default true), created_at, updated_at. Row-level security: everyone (signed in or not) can read ACTIVE rows; insert / update / delete and reading inactive rows are for admins only, using the same admin check as audio_reciters. (deen-duas-seed.sql has the table, the read policy and the 12 inserts; add the admin write policies like audio_reciters.)
+2. Public Deen page: a Duas section listing the active duas in sort_order. Each card: the title, the Arabic (dir="rtl", lang="ar", large and readable, selectable), the meaning, and "Source: ..." in small text. Use the site's language (en / hi / ur); if that language's text is empty fall back to English. Mobile first, light and dark.
+3. Admin panel: a Duas manager like the Deen Audio manager - list (including hidden), add, edit (Arabic required; English title and meaning required; Hindi and Urdu optional; source; order; active), reorder, hide/show, delete with a confirmation. Show save errors.
+4. Do not change the existing UI or other features. Do not add any new analytics event names (the database/dashboard only know the existing ones).
+5. Test with the public key (the 12 rows are readable, any write is refused) and as an admin (add, edit, hide, delete). Tell me anything you could not test.
+
+The 12 duas (JSON, in display order):
+
+```json
+[
+  {
+    "sort_order": 1,
+    "arabic": "بِسْمِ اللَّهِ",
+    "title_en": "Before eating",
+    "title_hi": "खाने से पहले",
+    "title_ur": "کھانے سے پہلے",
+    "meaning_en": "In the name of Allah.",
+    "meaning_hi": "अल्लाह के नाम से।",
+    "meaning_ur": "اللہ کے نام سے۔",
+    "source": "Abu Dawud, Tirmidhi",
+    "is_active": true
+  },
+  {
+    "sort_order": 2,
+    "arabic": "الْحَمْدُ لِلَّهِ الَّذِي أَطْعَمَنَا وَسَقَانَا وَجَعَلَنَا مُسْلِمِينَ",
+    "title_en": "After eating",
+    "title_hi": "खाने के बाद",
+    "title_ur": "کھانے کے بعد",
+    "meaning_en": "All praise is for Allah who fed us, gave us drink and made us Muslims.",
+    "meaning_hi": "सारी प्रशंसा अल्लाह के लिए है जिसने हमें खिलाया, पिलाया और मुसलमान बनाया।",
+    "meaning_ur": "تمام تعریفیں اللہ کے لیے ہیں جس نے ہمیں کھلایا، پلایا اور مسلمان بنایا۔",
+    "source": "Abu Dawud, Tirmidhi",
+    "is_active": true
+  },
+  {
+    "sort_order": 3,
+    "arabic": "الْحَمْدُ لِلَّهِ الَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ النُّشُورُ",
+    "title_en": "On waking up",
+    "title_hi": "सुबह उठकर",
+    "title_ur": "صبح اٹھ کر",
+    "meaning_en": "All praise is for Allah who gave us life after causing us to die, and to Him is the resurrection.",
+    "meaning_hi": "सारी प्रशंसा अल्लाह के लिए है जिसने हमें मौत के बाद ज़िंदगी दी, और उसी की ओर लौटना है।",
+    "meaning_ur": "تمام تعریفیں اللہ کے لیے ہیں جس نے ہمیں موت کے بعد زندگی دی، اور اسی کی طرف لوٹنا ہے۔",
+    "source": "Sahih al-Bukhari",
+    "is_active": true
+  },
+  {
+    "sort_order": 4,
+    "arabic": "بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا",
+    "title_en": "Before sleeping",
+    "title_hi": "सोने से पहले",
+    "title_ur": "سونے سے پہلے",
+    "meaning_en": "In Your name, O Allah, I die and I live.",
+    "meaning_hi": "ऐ अल्लाह! तेरे ही नाम से मैं मरता हूँ और जीता हूँ।",
+    "meaning_ur": "اے اللہ! تیرے ہی نام سے میں مرتا ہوں اور جیتا ہوں۔",
+    "source": "Sahih al-Bukhari",
+    "is_active": true
+  },
+  {
+    "sort_order": 5,
+    "arabic": "بِسْمِ اللَّهِ تَوَكَّلْتُ عَلَى اللَّهِ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+    "title_en": "Leaving home",
+    "title_hi": "घर से निकलते समय",
+    "title_ur": "گھر سے نکلتے وقت",
+    "meaning_en": "In the name of Allah, I place my trust in Allah; there is no power and no strength except with Allah.",
+    "meaning_hi": "अल्लाह के नाम से, मैंने अल्लाह पर भरोसा किया; अल्लाह के बिना न कोई ताक़त है न कोई शक्ति।",
+    "meaning_ur": "اللہ کے نام سے، میں نے اللہ پر بھروسا کیا؛ اللہ کے بغیر نہ کوئی طاقت ہے نہ کوئی قوت۔",
+    "source": "Abu Dawud, Tirmidhi",
+    "is_active": true
+  },
+  {
+    "sort_order": 6,
+    "arabic": "اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ",
+    "title_en": "Entering the mosque",
+    "title_hi": "मस्जिद में दाख़िल होते समय",
+    "title_ur": "مسجد میں داخل ہوتے وقت",
+    "meaning_en": "O Allah, open for me the doors of Your mercy.",
+    "meaning_hi": "ऐ अल्लाह! मेरे लिए अपनी रहमत के दरवाज़े खोल दे।",
+    "meaning_ur": "اے اللہ! میرے لیے اپنی رحمت کے دروازے کھول دے۔",
+    "source": "Sahih Muslim",
+    "is_active": true
+  },
+  {
+    "sort_order": 7,
+    "arabic": "اللَّهُمَّ إِنِّي أَسْأَلُكَ مِنْ فَضْلِكَ",
+    "title_en": "Leaving the mosque",
+    "title_hi": "मस्जिद से निकलते समय",
+    "title_ur": "مسجد سے نکلتے وقت",
+    "meaning_en": "O Allah, I ask You for Your bounty.",
+    "meaning_hi": "ऐ अल्लाह! मैं तुझसे तेरे फ़ज़्ल का सवाल करता हूँ।",
+    "meaning_ur": "اے اللہ! میں تجھ سے تیرے فضل کا سوال کرتا ہوں۔",
+    "source": "Sahih Muslim",
+    "is_active": true
+  },
+  {
+    "sort_order": 8,
+    "arabic": "سُبْحَانَ الَّذِي سَخَّرَ لَنَا هَذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَى رَبِّنَا لَمُنقَلِبُونَ",
+    "title_en": "Starting a journey",
+    "title_hi": "सफ़र शुरू करते समय",
+    "title_ur": "سفر شروع کرتے وقت",
+    "meaning_en": "Glory to Him who has subjected this to us, and we could never have it by ourselves; and to our Lord we shall return.",
+    "meaning_hi": "पाक है वह जिसने इसे हमारे वश में कर दिया, वरना हम इसे वश में न कर सकते थे, और हम अपने रब की ओर लौटने वाले हैं।",
+    "meaning_ur": "پاک ہے وہ جس نے اسے ہمارے بس میں کر دیا، ورنہ ہم اسے بس میں نہ کر سکتے تھے، اور ہم اپنے رب کی طرف لوٹنے والے ہیں۔",
+    "source": "Quran 43:13-14",
+    "is_active": true
+  },
+  {
+    "sort_order": 9,
+    "arabic": "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+    "title_en": "Good in this life and the next",
+    "title_hi": "दुनिया और आख़िरत की भलाई",
+    "title_ur": "دنیا اور آخرت کی بھلائی",
+    "meaning_en": "Our Lord, give us good in this world and good in the Hereafter, and protect us from the punishment of the Fire.",
+    "meaning_hi": "ऐ हमारे रब! हमें दुनिया में भलाई दे और आख़िरत में भी भलाई दे, और हमें आग के अज़ाब से बचा।",
+    "meaning_ur": "اے ہمارے رب! ہمیں دنیا میں بھلائی دے اور آخرت میں بھی بھلائی دے، اور ہمیں آگ کے عذاب سے بچا۔",
+    "source": "Quran 2:201",
+    "is_active": true
+  },
+  {
+    "sort_order": 10,
+    "arabic": "رَبِّ زِدْنِي عِلْمًا",
+    "title_en": "For more knowledge",
+    "title_hi": "इल्म में बढ़ोतरी के लिए",
+    "title_ur": "علم میں اضافے کے لیے",
+    "meaning_en": "My Lord, increase me in knowledge.",
+    "meaning_hi": "ऐ मेरे रब! मेरे इल्म में इज़ाफ़ा फ़रमा।",
+    "meaning_ur": "اے میرے رب! میرے علم میں اضافہ فرما۔",
+    "source": "Quran 20:114",
+    "is_active": true
+  },
+  {
+    "sort_order": 11,
+    "arabic": "رَبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا",
+    "title_en": "For parents",
+    "title_hi": "माता-पिता के लिए",
+    "title_ur": "والدین کے لیے",
+    "meaning_en": "My Lord, have mercy on them as they brought me up when I was small.",
+    "meaning_hi": "ऐ मेरे रब! उन दोनों पर रहम फ़रमा जैसे उन्होंने बचपन में मुझे पाला।",
+    "meaning_ur": "اے میرے رب! ان دونوں پر رحم فرما جیسے انہوں نے بچپن میں مجھے پالا۔",
+    "source": "Quran 17:24",
+    "is_active": true
+  },
+  {
+    "sort_order": 12,
+    "arabic": "رَبَّنَا ظَلَمْنَا أَنفُسَنَا وَإِن لَّمْ تَغْفِرْ لَنَا وَتَرْحَمْنَا لَنَكُونَنَّ مِنَ الْخَاسِرِينَ",
+    "title_en": "Seeking forgiveness",
+    "title_hi": "माफ़ी माँगना",
+    "title_ur": "مغفرت طلب کرنا",
+    "meaning_en": "Our Lord, we have wronged ourselves; if You do not forgive us and have mercy on us, we will surely be among the losers.",
+    "meaning_hi": "ऐ हमारे रब! हमने अपने ऊपर ज़ुल्म किया; अगर तू हमें माफ़ न करे और हम पर रहम न करे तो हम घाटे में पड़ जाएँगे।",
+    "meaning_ur": "اے ہمارے رب! ہم نے اپنی جانوں پر ظلم کیا؛ اگر تو ہمیں معاف نہ کرے اور ہم پر رحم نہ کرے تو ہم نقصان اٹھانے والوں میں ہو جائیں گے۔",
+    "source": "Quran 7:23",
+    "is_active": true
+  }
+]
+```

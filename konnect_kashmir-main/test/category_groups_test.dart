@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:konnect_kashmir/l10n/category_names.dart';
 import 'package:konnect_kashmir/l10n/l10n.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/customer_screen.dart';
@@ -46,7 +47,51 @@ void main() {
         CategoryGroup.moreServices: 15,
         CategoryGroup.other: 1,
       });
-      expect(g.map((e) => e.group).toList(), CategoryGroup.values);
+      // Nothing is pinned here, so there is no Featured group.
+      expect(g.map((e) => e.group).toList(),
+          CategoryGroup.values.where((x) => x != CategoryGroup.featured).toList());
+    });
+
+    test('a pinned category (Instagram Shops) is shown first, under Featured, and not again in its group', () {
+      // As in the live database: Instagram Shops is first and is the only pinned one.
+      final cats = ['instagram-shops', ..._dbSlugs];
+      final g = CategoryGroups.group<String>(
+        cats,
+        (s) => s,
+        pinned: (s) => s == 'instagram-shops',
+      );
+      expect(g.first.group, CategoryGroup.featured);
+      expect(g.first.items, ['instagram-shops']);
+      expect(g.length, 9, reason: 'Featured and the eight usual groups');
+      // It is not in More Services any more, which keeps its other fifteen.
+      final more = g.firstWhere((e) => e.group == CategoryGroup.moreServices);
+      expect(more.items, isNot(contains('instagram-shops')));
+      expect(more.items.length, 15);
+      // Every other group is as before.
+      expect(g.skip(1).map((e) => e.items.length).toList(), [19, 10, 5, 7, 10, 7, 15, 1]);
+    });
+
+    test('Featured keeps the order given, and is never cut by the collapsed limit', () {
+      final g = CategoryGroups.group<String>(
+        ['instagram-shops', 'painter', 'plumber', 'tailor', 'electrician'],
+        (s) => s,
+        pinned: (s) => s == 'instagram-shops' || s == 'tailor',
+        limit: 1,
+      );
+      expect(g.map((e) => e.group).toList(), [CategoryGroup.featured, CategoryGroup.homeRepair]);
+      expect(g.first.items, ['instagram-shops', 'tailor']);
+      expect(g.last.items, ['painter'], reason: 'the limit counts the usual groups only');
+    });
+
+    test('without the pinned flag (the offline fallback) Instagram Shops is in More Services, as before', () {
+      expect(CategoryGroups.of('instagram-shops'), CategoryGroup.moreServices);
+      final g = CategoryGroups.group<String>(['plumber', 'instagram-shops'], (s) => s);
+      expect(g.map((e) => e.group).toList(), [CategoryGroup.homeRepair, CategoryGroup.moreServices]);
+    });
+
+    test('a group with only pinned items and nothing else still shows Featured', () {
+      final g = CategoryGroups.group<String>(['instagram-shops'], (s) => s, pinned: (_) => true);
+      expect(g.single.group, CategoryGroup.featured);
     });
 
     test('a group keeps the database order, like the website', () {
@@ -183,6 +228,29 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(find.byIcon(Icons.close), findsNothing);
+    });
+
+    testWidgets('Featured has a name in every language', (tester) async {
+      for (final e in {'en': 'Featured', 'hi': 'विशेष', 'ur': 'نمایاں'}.entries) {
+        late String name;
+        await tester.pumpWidget(
+          MaterialApp(
+            locale: Locale(e.key),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: Builder(builder: (context) {
+              name = categoryGroupName(context, CategoryGroup.featured);
+              return const SizedBox();
+            }),
+          ),
+        );
+        expect(name, e.value, reason: e.key);
+      }
     });
 
     testWidgets('the group names follow the app language', (tester) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Icon + color for each service category slug.
 /// Shared so Home, Search and Dashboard all show the same icons.
@@ -47,6 +48,180 @@ class CategoryMeta {
       if (val != null) return Color(val);
     }
     return null;
+  }
+
+  /// Font Awesome's Instagram logo (the same glyph as `FontAwesomeIcons.instagram`,
+  /// which is not an [IconData] itself).
+  static const IconData _instagram = IconData(
+    0xf16d,
+    fontFamily: 'FontAwesomeBrands',
+    fontPackage: 'font_awesome_flutter',
+  );
+
+  /// The icons the website draws for the categories. The database gives each
+  /// category an `icon_name` that is a Lucide icon name ("HousePlug", "Zap"...);
+  /// the keys here are those names in lowercase. Lucide has no brand icons, so
+  /// Instagram's comes from Font Awesome.
+  static const Map<String, IconData> _websiteIcons = {
+    'activity': LucideIcons.activity,
+    'anvil': LucideIcons.anvil,
+    'armchair': LucideIcons.armchair,
+    'baby': LucideIcons.baby,
+    'bookopen': LucideIcons.bookOpen,
+    'brain': LucideIcons.brain,
+    'brickwall': LucideIcons.brickWall,
+    'briefcasebusiness': LucideIcons.briefcaseBusiness,
+    'cake': LucideIcons.cake,
+    'calculator': LucideIcons.calculator,
+    'camera': LucideIcons.camera,
+    'car': LucideIcons.car,
+    'carfront': LucideIcons.carFront,
+    'cctv': LucideIcons.cctv,
+    'chefhat': LucideIcons.chefHat,
+    'code': LucideIcons.code,
+    'compass': LucideIcons.compass,
+    'construction': LucideIcons.construction,
+    'cupsoda': LucideIcons.cupSoda,
+    'droplets': LucideIcons.droplets,
+    'filetext': LucideIcons.fileText,
+    'flame': LucideIcons.flame,
+    'flower2': LucideIcons.flower2,
+    'footprints': LucideIcons.footprints,
+    'gift': LucideIcons.gift,
+    'globe': LucideIcons.globe,
+    'graduationcap': LucideIcons.graduationCap,
+    'hammer': LucideIcons.hammer,
+    'hand': LucideIcons.hand,
+    'handshake': LucideIcons.handshake,
+    'hardhat': LucideIcons.hardHat,
+    'heart': LucideIcons.heart,
+    'hearthandshake': LucideIcons.heartHandshake,
+    'houseplug': LucideIcons.housePlug,
+    'instagram': _instagram,
+    'keyround': LucideIcons.keyRound,
+    'landplot': LucideIcons.landPlot,
+    'megaphone': LucideIcons.megaphone,
+    'monitorsmartphone': LucideIcons.monitorSmartphone,
+    'morehorizontal': LucideIcons.moreHorizontal,
+    'music': LucideIcons.music,
+    'package': LucideIcons.package,
+    'paintroller': LucideIcons.paintRoller,
+    'palette': LucideIcons.palette,
+    'pawprint': LucideIcons.pawPrint,
+    'pentool': LucideIcons.penTool,
+    'plane': LucideIcons.plane,
+    'recycle': LucideIcons.recycle,
+    'ruler': LucideIcons.ruler,
+    'sandwich': LucideIcons.sandwich,
+    'scale': LucideIcons.scale,
+    'scissors': LucideIcons.scissors,
+    'shirt': LucideIcons.shirt,
+    'shoppingcart': LucideIcons.shoppingCart,
+    'sparkles': LucideIcons.sparkles,
+    'spraycan': LucideIcons.sprayCan,
+    'stethoscope': LucideIcons.stethoscope,
+    'sun': LucideIcons.sun,
+    'tent': LucideIcons.tent,
+    'treedeciduous': LucideIcons.treeDeciduous,
+    'truck': LucideIcons.truck,
+    'users': LucideIcons.users,
+    'washingmachine': LucideIcons.washingMachine,
+    'wrench': LucideIcons.wrench,
+    'zap': LucideIcons.zap,
+  };
+
+  /// The website's icon (a key of [_websiteIcons]) for each category slug, as the
+  /// database has them. Used where only the slug is known (the offline list,
+  /// Search, a business's category); the live `icon_name` wins where it is given.
+  static const Map<String, String> _websiteIconOfSlug = {
+    'instagram-shops': 'instagram',
+    'home_services': 'houseplug',
+    'electrician': 'zap',
+    'plumber': 'wrench',
+    'carpenter': 'hammer',
+    'painter': 'paintroller',
+    'mason_dasil': 'brickwall',
+    'labour': 'hardhat',
+    'gardener': 'treedeciduous',
+    'tailor': 'scissors',
+    'cleaner': 'sparkles',
+    'home_tutor': 'graduationcap',
+    'professional_instructor': 'users',
+    'education_consultant': 'bookopen',
+    'pharmacy': 'stethoscope',
+    'psychiatrist_therapist': 'brain',
+    'physiotherapist': 'activity',
+    'laptop_mobile_repair': 'monitorsmartphone',
+    'appliance_repair': 'washingmachine',
+    'laundry': 'shirt',
+    'mechanic': 'wrench',
+    'driver': 'carfront',
+    'car_rental': 'keyround',
+    'car_detailing': 'spraycan',
+    'Furniture & Fixture': 'armchair',
+    'architect': 'compass',
+    'lawyer': 'scale',
+    'chartered_accountant': 'calculator',
+    'property_dealer': 'landplot',
+    'buliders_developers': 'construction',
+    'insurance_agent': 'filetext',
+    'designer': 'pentool',
+    'web_mobile': 'code',
+    'kashmiri_art_artisans': 'handshake',
+    'copperware': 'anvil',
+    'steel_iron_works': 'anvil',
+    'Transport_cargo': 'truck',
+    'courier_cargo_services': 'package',
+    'wedding': 'heart',
+    'middleman_manzimyor': 'hearthandshake',
+    'photography': 'camera',
+    'tent': 'tent',
+    'catering': 'chefhat',
+    'bakery': 'cake',
+    'mehndi_artist': 'hand',
+    'makeup_artist': 'palette',
+    'custom_gifting': 'gift',
+    'tour_travels': 'globe',
+    'advertisement_hoardings': 'megaphone',
+    'hajj_umrah': 'plane',
+    'hijama': 'droplets',
+    'flooring_and_furnishing': 'morehorizontal',
+    'cctv_security': 'cctv',
+    'pet_care': 'pawprint',
+    'solar_installer': 'sun',
+    'scrap_dealer': 'recycle',
+    'sales_marketing': 'briefcasebusiness',
+    'musician': 'music',
+    'training_fitness': 'activity',
+    'agriculture_farming': 'treedeciduous',
+    'labs_diagnostics': 'stethoscope',
+    'building_material': 'brickwall',
+    'car_bike': 'car',
+    'mens-clothing': 'shirt',
+    'womens-clothing': 'flower2',
+    'shoes': 'footprints',
+    'kidswear': 'baby',
+    'jobseekers': 'briefcasebusiness',
+    'clinics': 'stethoscope',
+    'heating-hamams': 'flame',
+    'interior-designers': 'ruler',
+    'food-items': 'sandwich',
+    'beverages': 'cupsoda',
+    'grocery': 'shoppingcart',
+    'other': 'morehorizontal',
+  };
+
+  static String _iconKey(String name) => name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+  /// The website's icon for a category: by the `icon_name` the database gives
+  /// it, else by its slug. Null for a category the website has no icon for.
+  static IconData? websiteIcon(String? slug, [String? iconName]) {
+    if (iconName != null && iconName.trim().isNotEmpty) {
+      final byName = _websiteIcons[_iconKey(iconName)];
+      if (byName != null) return byName;
+    }
+    final viaSlug = slug == null ? null : _websiteIconOfSlug[slug];
+    return viaSlug == null ? null : _websiteIcons[viaSlug];
   }
 
   static const Map<String, IconData> _namedIcons = {
@@ -166,26 +341,34 @@ class CategoryMeta {
     'sales_marketing': CategoryMeta(Icons.work, Color(0xFF6C63D9)),
     'musician': CategoryMeta(Icons.music_note, Color(0xFF9B59D0)),
     'other': CategoryMeta(Icons.more_horiz, Color(0xFF8A9A98)),
+    'instagram-shops': CategoryMeta(_instagram, Color(0xFFE8508C)),
   };
 
   /// Resolves the icon and color for a category.
-  /// If the category is known, returns its dedicated icon and color.
-  /// If unknown or new, checks for an explicit iconName, keyword matches,
-  /// or falls back to a common clean category icon with a harmonious palette color.
+  /// The icon is the website's (see [websiteIcon]) whenever it has one. The color
+  /// is the category's own if it is a known one; otherwise the backend's color or
+  /// a harmonious palette color.
+  /// A category the website has no icon for checks the explicit iconName, keyword
+  /// matches, or falls back to a common clean category icon.
   static CategoryMeta of(
     String? slug, {
     String? name,
     String? iconName,
     String? colorHex,
   }) {
-    // 1. If slug exists in our predefined map, use it
+    final website = websiteIcon(slug, iconName);
+
+    // 1. If slug exists in our predefined map, use its color (and the website's icon)
     if (slug != null && _map.containsKey(slug)) {
-      return _map[slug]!;
+      final known = _map[slug]!;
+      return website == null ? known : CategoryMeta(website, known.color);
     }
 
     // 2. Resolve custom/parsed color if provided, or generate dynamically
     final parsedColor = tryParseHex(colorHex);
     final chosenColor = parsedColor ?? dynamicColor(slug ?? name ?? '');
+
+    if (website != null) return CategoryMeta(website, chosenColor);
 
     // 3. If explicit iconName was passed from backend
     if (iconName != null && iconName.isNotEmpty) {

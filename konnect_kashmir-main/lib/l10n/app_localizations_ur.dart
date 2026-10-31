@@ -1338,4 +1338,23 @@ class AppLocalizationsUr extends AppLocalizations {
   @override
   String get prayerAlarmNotifDialogBodyAndroid =>
       '“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز میں “Prayer alarms” آن کریں۔';
+
+  @override
+  String get blockedTitle => 'اکاؤنٹ بلاک ہے';
+
+  @override
+  String get blockedBody =>
+      'غلط استعمال یا پالیسی کی خلاف ورزی کی وجہ سے آپ کا اکاؤنٹ بلاک کر دیا گیا ہے۔';
+
+  @override
+  String blockedReason(String reason) {
+    return 'وجہ: $reason';
+  }
+
+  @override
+  String get blockedContactHelp =>
+      'اگر آپ کو لگتا ہے کہ یہ غلطی ہے تو براہ کرم سپورٹ سے رابطہ کریں۔';
+
+  @override
+  String get blockedContactButton => 'سپورٹ سے رابطہ کریں';
 }

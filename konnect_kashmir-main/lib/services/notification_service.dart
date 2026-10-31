@@ -62,6 +62,16 @@ Future<void> _initFirebase() async {
   }
 }
 
+Future<void>? _firebaseStart;
+
+/// Starts Firebase once, however many parts of the app ask (push messages and
+/// analytics both need it). A failed start is tried again on the next ask.
+Future<void> ensureFirebaseStarted() =>
+    _firebaseStart ??= _initFirebase().catchError((Object e) {
+      _firebaseStart = null;
+      throw e;
+    });
+
 /// Runs when a push arrives while the app is in the background or closed.
 @pragma('vm:entry-point')
 Future<void> firebaseBackgroundHandler(RemoteMessage m) async {
@@ -98,7 +108,7 @@ class NotificationService {
     _started = true;
     _auth = auth;
     try {
-      await _initFirebase();
+      await ensureFirebaseStarted();
       _available = true;
     } catch (e) {
       debugPrint('[Push] Firebase is not configured, push disabled: $e');

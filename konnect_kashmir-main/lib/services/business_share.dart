@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../l10n/app_localizations.dart';
 import '../widgets/app_snack.dart';
+import 'app_analytics.dart';
 
 /// The website page of one business. It is a real page: the website's
 /// `/business/:id` route loads the business whose `vendors_public.id` is in the
@@ -102,6 +103,7 @@ Future<bool> shareBusiness(
         sharePositionOrigin: origin,
       ),
     );
+    AppAnalytics.instance.shareBusiness(data.id);
     return true;
   } catch (e) {
     debugPrint('[Share] could not open the share sheet: $e');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../l10n/l10n.dart';
+import '../../services/app_analytics.dart';
 import '../../services/prayer_alarm/prayer_alarm_prefs.dart';
 import '../../services/prayer_alarm/prayer_alarm_service.dart';
 import '../../theme/app_theme.dart';
@@ -99,6 +100,7 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
         _confirmed = false;
       });
       await _run(() => _svc.setEnabled(false));
+      AppAnalytics.instance.prayerAlarm(enabled: false);
       return;
     }
     // The switch only turns on when the beep really can ring, so it is not shown
@@ -119,6 +121,7 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
       }
     });
     final p = await _svc.prefs();
+    if (p.enabled) AppAnalytics.instance.prayerAlarm(enabled: true);
     if (mounted) setState(() => _prefs = p);
   }
 

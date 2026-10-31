@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:konnect_kashmir/screens/profile_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
+import '../services/app_analytics.dart';
 import '../services/auth_service.dart';
 import 'language_screen.dart';
 import 'main_shell.dart';
@@ -127,6 +128,7 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
       final String name = result['name'] ?? '';
       final String userId = result['userId'] ?? '';
       final bool isNewUser = result['isNewUser'] == true;
+      AppAnalytics.instance.signedIn(newUser: isNewUser);
 
       final Widget destination = (isNewUser || name.trim().isEmpty)
           ? CompleteProfileScreen(

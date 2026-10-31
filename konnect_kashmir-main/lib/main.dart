@@ -7,11 +7,15 @@ import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/locale_provider.dart';
 import 'services/backend_config.dart';
+import 'services/api_service.dart';
+import 'services/app_analytics.dart';
+import 'services/deen_events.dart';
 import 'services/app_links.dart';
 import 'services/live_sync.dart';
 import 'services/notification_service.dart';
 import 'services/prayer_alarm/prayer_alarm_background.dart';
 import 'services/prayer_alarm/prayer_alarm_service.dart';
+import 'screens/blocked_account_screen.dart';
 import 'screens/leads_link_screen.dart';
 import 'l10n/app_localizations.dart';
 import 'screens/splash_screen.dart';
@@ -32,6 +36,9 @@ import 'widgets/force_ltr.dart';
 
 final facebookAppEvents = FacebookAppEvents();
 
+/// Logs every screen that comes into view (the user journey) to Firebase Analytics.
+final appRouteObserver = AppRouteObserver();
+
 // ── 1. Make main() async and restore session before runApp ──────────────────
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +55,8 @@ void main() async {
   final themeProvider = results[2] as ThemeProvider;
   final localeProvider = results[3] as LocaleProvider;
   final liveSync = LiveSync(authProvider);
+  // Before an important action the app asks whether the account has been blocked.
+  ApiService.mayAct = authProvider.ensureNotBlocked;
 
   runApp(KonnectKashmirApp(
       authProvider: authProvider,
@@ -57,6 +66,20 @@ void main() async {
 
   // Not needed to draw the first screen, so they start after it.
   facebookAppEvents.setAutoLogAppEventsEnabled(true);
+  // Firebase Analytics: opens (every start and one `daily_open` a day), who is
+  // signed in, and the app language. Screens and key actions report themselves.
+  AppAnalytics.instance.start();
+  // What people do in Deen (audio plays, Deen visits), recorded for the admin's
+  // Deen Analytics next to the website's.
+  DeenEvents.instance.start(
+    token: () => authProvider.accessToken,
+    userId: () => authProvider.userId,
+  );
+  void syncAnalyticsUser() => AppAnalytics.instance.setUser(
+      authProvider.userId, authProvider.user?.serverRole);
+  syncAnalyticsUser();
+  authProvider.addListener(syncAnalyticsUser);
+  AppAnalytics.instance.setLanguage(localeProvider.locale.languageCode);
   NotificationService.instance.start(authProvider);
   // Prayer-time beeps: put the next days' alarms on the phone (needs no sign-in),
   // plan again whenever the app comes back to the front, and when the language
@@ -68,6 +91,7 @@ void main() async {
     final code = localeProvider.locale.languageCode;
     if (code == alarmLanguage) return;
     alarmLanguage = code;
+    AppAnalytics.instance.setLanguage(code);
     PrayerAlarmService.instance.onLanguageChanged(code);
   });
   // Fetch the balance while the splash plays; Home then reuses it.
@@ -103,6 +127,7 @@ class KonnectKashmirApp extends StatelessWidget {
         builder: (context, themeState, localeState, _) => MaterialApp(
         title: 'KonnectKashmir',
         navigatorKey: appNavigatorKey,
+        navigatorObservers: [appRouteObserver],
         debugShowCheckedModeBanner: false,
 
         // Language (English / Hindi / Urdu). Urdu automatically flips the layout RTL.
@@ -123,7 +148,7 @@ class KonnectKashmirApp extends StatelessWidget {
         // Urdu words still run right-to-left inside their text, and the Arabic of
         // the Quran and duas sets its own direction.
         builder: (context, child) =>
-            ForceLtr(child: ThemeReveal(child: child!)),
+            ForceLtr(child: ThemeReveal(child: BlockedGate(child: child!))),
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
 

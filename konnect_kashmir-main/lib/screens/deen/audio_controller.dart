@@ -4,8 +4,10 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../../services/deen_events.dart';
 import 'deen_data.dart';
 import 'quran_service.dart';
+import 'reciters_source.dart';
 
 /// What the screens need to know about the audio player.
 class AudioPlayerState {
@@ -78,18 +80,48 @@ class JustAudioBackend implements AudioBackend {
   Future<void> dispose() => _p.dispose();
 }
 
+/// Reports what happens while a recitation plays: `play`, `pause`, `stop` or
+/// `complete`, the reciter's database id (null for the built-in list), the surah,
+/// and the seconds actually listened since the last report.
+typedef AudioEventSink = void Function(
+  String type, {
+  String? reciterId,
+  int? surah,
+  int seconds,
+});
+
+void _recordAudioEvent(
+  String type, {
+  String? reciterId,
+  int? surah,
+  int seconds = 0,
+}) =>
+    DeenEvents.instance
+        .audio(type, reciterId: reciterId, surah: surah, seconds: seconds);
+
 /// Quran recitation playback shared by the audio list and the full-screen player:
 /// the surah being played, the reciter, shuffle and repeat. When a surah ends the
 /// next one plays (a random one with shuffle, the same one with repeat); after the
 /// last surah playback stops.
+///
+/// The reciters come from the database ([recitersSource]; the same list as the
+/// website) and are the built-in [kReciters] until that answers or when it cannot.
 class QuranAudioController extends ChangeNotifier {
-  QuranAudioController(this._backend, {math.Random? random})
-      : _random = random ?? math.Random() {
+  QuranAudioController(
+    this._backend, {
+    math.Random? random,
+    RecitersSource? recitersSource,
+    AudioEventSink? onEvent,
+  })  : _random = random ?? math.Random(),
+        _recitersSource = recitersSource,
+        _onEvent = onEvent ?? _recordAudioEvent {
     _stateSub = _backend.stateStream.listen(_onState);
-    _positionSub = _backend.positionStream.listen((p) => _position = p);
+    _positionSub = _backend.positionStream.listen(_positionTick);
   }
 
   final AudioBackend _backend;
+  final RecitersSource? _recitersSource;
+  final AudioEventSink _onEvent;
   final math.Random _random;
   StreamSubscription<AudioPlayerState>? _stateSub;
   StreamSubscription<Duration>? _positionSub;
@@ -101,7 +133,10 @@ class QuranAudioController extends ChangeNotifier {
   bool loading = true;
   String? loadError;
 
-  /// Index into [kReciters].
+  /// The reciters to choose from, in order (the database list once it is known).
+  List<Reciter> reciters = kReciters;
+
+  /// Index into [reciters].
   int reciter = 0;
 
   /// The surah number being played, or null when nothing is.
@@ -116,7 +151,7 @@ class QuranAudioController extends ChangeNotifier {
   Duration get duration => _backend.duration ?? Duration.zero;
   bool get playing => _backend.playing;
 
-  Reciter get currentReciter => kReciters[reciter];
+  Reciter get currentReciter => reciters[reciter];
 
   Surah? get currentSurah {
     final n = current;
@@ -145,6 +180,76 @@ class QuranAudioController extends ChangeNotifier {
       loading = false;
     }
     _notify();
+    unawaited(_loadReciters());
+  }
+
+  /// The saved list first (so it is there at once), then the server's. Anything
+  /// that goes wrong leaves the list as it is.
+  Future<void> _loadReciters() async {
+    final source = _recitersSource;
+    if (source == null) return;
+    try {
+      final saved = await source.cached();
+      if (saved != null) _useReciters(saved);
+      final fresh = await source.fetch();
+      if (fresh != null) _useReciters(fresh);
+    } catch (_) {}
+  }
+
+  /// Switches to [list], keeping the chosen reciter (by name) when it is in it.
+  void _useReciters(List<Reciter> list) {
+    if (_disposed || list.isEmpty) return;
+    final name = currentReciter.name;
+    final same = list.length == reciters.length &&
+        [for (var i = 0; i < list.length; i++)
+          list[i].name == reciters[i].name &&
+              list[i].id == reciters[i].id &&
+              list[i].surahUrl(1) == reciters[i].surahUrl(1)].every((e) => e);
+    if (same) return;
+    reciters = list;
+    final i = list.indexWhere((r) => r.name == name);
+    reciter = i >= 0 ? i : 0;
+    _notify();
+  }
+
+  // ── What is reported to the database ──────────────────────────────────────
+  // One "stretch" of listening runs from a play (or resume) to the next pause,
+  // stop or the end. Its seconds are only the time that really played: a jump
+  // forward or back in the seek bar adds nothing.
+
+  bool _listening = false;
+  double _heard = 0;
+  Duration _lastPosition = Duration.zero;
+  String? _heardReciterId;
+  int? _heardSurah;
+
+  void _positionTick(Duration p) {
+    if (_listening && _backend.playing) {
+      final ms = (p - _lastPosition).inMilliseconds;
+      if (ms > 0 && ms < 2000) _heard += ms / 1000;
+    }
+    _lastPosition = p;
+    _position = p;
+  }
+
+  void _beginListening() {
+    final surah = current;
+    if (_listening || surah == null) return;
+    _listening = true;
+    _heard = 0;
+    _lastPosition = _position;
+    _heardReciterId = currentReciter.id;
+    _heardSurah = surah;
+    _onEvent('play', reciterId: _heardReciterId, surah: _heardSurah);
+  }
+
+  void _endListening(String type) {
+    if (!_listening) return;
+    _listening = false;
+    final seconds = _heard.round().clamp(0, 86400);
+    _heard = 0;
+    _onEvent(type,
+        reciterId: _heardReciterId, surah: _heardSurah, seconds: seconds);
   }
 
   void _notify() {
@@ -156,6 +261,12 @@ class QuranAudioController extends ChangeNotifier {
       _onCompleted();
       return;
     }
+    // Paused or resumed from outside the app (a call, headphones taken out).
+    if (_listening && !st.playing) {
+      _endListening('pause');
+    } else if (!_listening && st.playing && !st.buffering && current != null) {
+      _beginListening();
+    }
     buffering = st.buffering;
     _notify(); // play / pause icon
   }
@@ -163,9 +274,11 @@ class QuranAudioController extends ChangeNotifier {
   Future<void> _onCompleted() async {
     final cur = current;
     if (cur == null) return;
+    _endListening('complete');
     if (repeat) {
       await _backend.seek(Duration.zero);
       _backend.play();
+      _beginListening();
       return;
     }
     final next = _nextSurah(cur);
@@ -193,15 +306,17 @@ class QuranAudioController extends ChangeNotifier {
   }
 
   Future<void> play(int surah) async {
+    _endListening('stop'); // the one that was playing is left
     current = surah;
     buffering = true;
     _notify();
     try {
       await _backend
-          .setUrl(kReciters[reciter].surahUrl(surah))
+          .setUrl(currentReciter.surahUrl(surah))
           .timeout(const Duration(seconds: 25));
       if (_disposed || current != surah) return; // the user picked another one
       _backend.play();
+      _beginListening();
     } catch (_) {
       if (_disposed || current != surah) return;
       current = null;
@@ -222,7 +337,13 @@ class QuranAudioController extends ChangeNotifier {
 
   void togglePlayPause() {
     if (current == null) return;
-    playing ? _backend.pause() : _backend.play();
+    if (playing) {
+      _backend.pause();
+      _endListening('pause');
+    } else {
+      _backend.play();
+      _beginListening();
+    }
   }
 
   void next() {
@@ -267,6 +388,7 @@ class QuranAudioController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _endListening('stop'); // the screen is left while it is playing
     _disposed = true;
     _stateSub?.cancel();
     _positionSub?.cancel();

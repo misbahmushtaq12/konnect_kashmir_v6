@@ -14,6 +14,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:konnect_kashmir/services/api_service.dart';
 import '../services/live_sync.dart';
 import '../services/analytics_service.dart';
+import '../services/app_analytics.dart';
 import '../services/app_links.dart';
 import 'business_details/business_details_host.dart';
 import 'business_details/business_details_screen.dart';
@@ -772,6 +773,11 @@ class _HomeScreenState extends State<CustomerScreen>
         district: selectedDistrictName,
         location: selectedLocalityName,
         filters: filters,
+      );
+      AppAnalytics.instance.search(
+        category: category,
+        results: _vendorTotal ?? vendors.length,
+        hasText: query.trim().isNotEmpty,
       );
     });
   }
@@ -1626,6 +1632,7 @@ class _HomeScreenState extends State<CustomerScreen>
   /// background, so the call or chat opens without waiting for it.
   void _trackContact(String? vendorId, String action) {
     if (vendorId == null) return;
+    AppAnalytics.instance.contactBusiness(action, vendorId);
     _api.trackCallClick(vendorId, action);
   }
 
@@ -1955,14 +1962,18 @@ class _HomeScreenState extends State<CustomerScreen>
           'name': e['name']?.toString() ?? 'Service',
           'icon': e['icon']?.toString() ?? e['icon_name']?.toString(),
           'color': e['color']?.toString() ?? e['color_hex']?.toString(),
+          // Pinned by an admin (e.g. Instagram Shops): shown first, under Featured.
+          'pinned': e['is_pinned'] == true,
         }
     ];
 
-    // The services in the website's groups (Home & Repair, Health & Education...).
-    // Collapsed, only the first few are shown; "Show all" opens every group.
+    // The services in the website's groups (Featured, Home & Repair, Health &
+    // Education...). Collapsed, only the first few are shown; "Show all" opens
+    // every group. Featured is always shown, whatever is collapsed.
     final groups = CategoryGroups.group<Map<String, dynamic>>(
       cats,
       (c) => c['slug'].toString(),
+      pinned: (c) => c['pinned'] == true,
       limit: _showAllCategories ? null : _collapsedServiceTiles,
     );
 
@@ -3253,6 +3264,7 @@ class _HomeScreenState extends State<CustomerScreen>
         return;
       }
       if (result['success'] == true || result['phone'] != null) {
+        AppAnalytics.instance.unlockContact(vendorId);
         final phone = result['phone'] as String? ??
             vendor['phone']?.toString() ??
             '';

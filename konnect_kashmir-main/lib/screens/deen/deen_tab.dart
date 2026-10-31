@@ -18,6 +18,7 @@ import '../../widgets/app_header.dart';
 import '../../widgets/app_overlays.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/error_retry.dart';
+import '../../services/deen_events.dart';
 import 'audio_screen.dart';
 import 'duas_screen.dart';
 import 'prayer_alarm_sheet.dart';
@@ -83,13 +84,17 @@ class _DeenTabState extends State<DeenTab> {
     _alarmNeedsPermission = alarmStatus.needsPermission;
     PrayerAlarmService.instance.status.addListener(_alarmStatusChanged);
     context.read<LiveSync>().refreshCredits();
-    if (widget.isActive) _startCompass();
+    if (widget.isActive) {
+      DeenEvents.instance.deen('page_view');
+      _startCompass();
+    }
   }
 
   @override
   void didUpdateWidget(DeenTab old) {
     super.didUpdateWidget(old);
     if (widget.isActive && !old.isActive) {
+      DeenEvents.instance.deen('page_view');
       _now = DateTime.now();
       _startCompass();
       _loadLastRead();
@@ -218,6 +223,7 @@ class _DeenTabState extends State<DeenTab> {
       setState(() => _compassMissing = true);
       return;
     }
+    DeenEvents.instance.deen('compass_started');
     _compassSub = stream.listen((e) {
       final h = e.heading;
       if (h == null || !mounted) return;
@@ -423,7 +429,20 @@ class _DeenTabState extends State<DeenTab> {
 
   /// Saves the new choice and recalculates the times on screen right away.
   Future<void> _applySettings(PrayerSettings next) async {
+    final prev = _settings;
     setState(() => _settings = next);
+    if (next.madhhab != prev.madhhab) {
+      DeenEvents.instance.deen('madhhab_change', {'madhhab': next.madhhab.name});
+    }
+    if (next.method != prev.method) {
+      // The method's name, like the website sends it.
+      final label = kPrayerMethods
+          .where((m) => m.$1 == next.method)
+          .map((m) => m.$2)
+          .firstOrNull;
+      DeenEvents.instance
+          .deen('method_change', {'method': label ?? '${next.method}'});
+    }
     // Saved first: the alarms are planned again from what is saved.
     await next.save();
     PrayerAlarmService.instance.onPrayerSettingsChanged();

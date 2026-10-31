@@ -67,6 +67,7 @@ const Map<String, List<String>> _categoryNames = {
 
 /// Hindi / Urdu names of the category groups: [hindi, urdu].
 const Map<CategoryGroup, List<String>> _groupNames = {
+  CategoryGroup.featured: ['विशेष', 'نمایاں'],
   CategoryGroup.homeRepair: ['घर और मरम्मत', 'گھر اور مرمت'],
   CategoryGroup.healthEducation: ['स्वास्थ्य और शिक्षा', 'صحت اور تعلیم'],
   CategoryGroup.foodGrocery: ['खान-पान और किराना', 'کھانا اور گروسری'],

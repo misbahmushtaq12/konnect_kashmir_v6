@@ -58,6 +58,110 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _refreshTimer;
   Future<bool>? _refreshInFlight;
 
+  // ── Blocked accounts ──────────────────────────────────────────────────────
+  // An admin blocks an account on the website's admin panel, which sets
+  // profiles.is_blocked (and blocked_reason). The website reads that flag after
+  // sign-in and shows a "blocked" page; the app does the same: when someone signs
+  // in, when it starts with a saved session, whenever it comes back to the front
+  // and each time the session is refreshed (about hourly). A lookup that fails
+  // (offline, an error) never blocks anyone and never unblocks anyone.
+  bool _blocked = false;
+  String? _blockedReason;
+  DateTime? _lastBlockCheck;
+
+  /// True while an admin has blocked this account.
+  bool get isBlocked => _blocked;
+  String? get blockedReason => _blockedReason;
+
+  /// Reads the flag; null when it could not be read. (Replaced in tests.)
+  @visibleForTesting
+  Future<({bool blocked, String? reason})?> Function(String userId, String token)
+      blockLookup = _fetchBlockFlag;
+
+  static Future<({bool blocked, String? reason})?> _fetchBlockFlag(
+      String userId, String token) async {
+    try {
+      final res = await sharedHttp
+          .get(
+            Uri.parse('$_baseUrl/rest/v1/profiles').replace(queryParameters: {
+              'select': 'is_blocked,blocked_reason',
+              'id': 'eq.$userId',
+            }),
+            headers: {'apikey': _anonKey, 'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 8));
+      if (res.statusCode != 200) return null;
+      final rows = jsonDecode(res.body);
+      if (rows is! List || rows.isEmpty || rows.first is! Map) return null;
+      final row = rows.first as Map;
+      final reason = (row['blocked_reason'] as String?)?.trim();
+      return (
+        blocked: row['is_blocked'] == true,
+        reason: (reason == null || reason.isEmpty) ? null : reason,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Timer? _blockRetry;
+  int _blockRetries = 0;
+
+  /// A lookup that failed is tried again a little later (30 s, 60 s, 90 s), so a
+  /// moment without internet does not leave a block unnoticed until the next start.
+  void _retryBlockCheck() {
+    if (_blockRetries >= 3) return;
+    _blockRetries++;
+    _blockRetry?.cancel();
+    _blockRetry = Timer(Duration(seconds: 30 * _blockRetries), () {
+      checkBlocked(force: true);
+    });
+  }
+
+/// For important actions (unlocking a contact, a review, a report, listing a
+  /// business): asks again if the last answer is older than 10 seconds, and says
+  /// whether the account may go on. Never holds the action up for more than 3
+  /// seconds, and an unknown answer lets it through (the server decides then).
+  Future<bool> ensureNotBlocked() async {
+    if (_user == null) return true;
+    if (_blocked) return false;
+    try {
+      await checkBlocked(gap: const Duration(seconds: 10))
+          .timeout(const Duration(seconds: 3));
+    } catch (_) {}
+    return !_blocked;
+  }
+
+
+  /// Looks at the flag now. Not more than once in [gap] (a minute) unless [force].
+  Future<void> checkBlocked({
+    bool force = false,
+    Duration gap = const Duration(seconds: 60),
+  }) async {
+    final id = _user?.id;
+    final token = _user?.token;
+    if (id == null || token == null || token.isEmpty) return;
+    final last = _lastBlockCheck;
+    if (!force && last != null && DateTime.now().difference(last) < gap) {
+      return;
+    }
+    _lastBlockCheck = DateTime.now();
+    final r = await blockLookup(id, token);
+    if (r == null) {
+      _retryBlockCheck();
+      return;
+    }
+    if (_user?.id != id) return; // signed out or another account meanwhile
+    _blockRetries = 0;
+    _blockRetry?.cancel();
+    final text = r.reason?.trim();
+    final reason = (r.blocked && text != null && text.isNotEmpty) ? text : null;
+    if (r.blocked == _blocked && reason == _blockedReason) return;
+    _blocked = r.blocked;
+    _blockedReason = reason;
+    notifyListeners();
+  }
+
   int _expiresAtMs = 0;
 
   void _scheduleRefresh(int expiresAtMs) {
@@ -69,6 +173,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (delay < const Duration(seconds: 5)) delay = const Duration(seconds: 5);
     _refreshTimer = Timer(delay, () {
       refreshToken();
+      checkBlocked(force: true);
     });
   }
 
@@ -94,6 +199,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     final due = DateTime.fromMillisecondsSinceEpoch(_expiresAtMs)
         .subtract(const Duration(minutes: 5));
     if (DateTime.now().isAfter(due)) refreshToken();
+    checkBlocked();
   }
 
   /// A refresh that failed only because the network was down is retried soon;
@@ -109,6 +215,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
+    _blockRetry?.cancel();
     super.dispose();
   }
 
@@ -295,6 +402,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       _setLoading(false);
       notifyListeners();
+      unawaited(checkBlocked(force: true));
 
       return {'success': true, 'isNewUser': isNewUser, 'role': role,
         'userId': authUserId, 'name': displayName};
@@ -395,6 +503,11 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     _user = null;
     _sessionExpired = false;
+    _blocked = false;
+    _blockedReason = null;
+    _lastBlockCheck = null;
+    _blockRetries = 0;
+    _blockRetry?.cancel();
     notifyListeners();
   }
 
@@ -445,6 +558,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
           return;
         }
         notifyListeners();
+        unawaited(checkBlocked(force: true));
         debugPrint('[AuthProvider] restoreSession — restored userId=$userId role=$role (refreshed=$refreshed)');
         return;
       }
@@ -459,6 +573,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
       );
       notifyListeners();
       _scheduleRefresh(expiresAt);
+      unawaited(checkBlocked(force: true));
       debugPrint('[AuthProvider] restoreSession — restored userId=$userId role=$role');
     } catch (e) {
       debugPrint('[AuthProvider] restoreSession error: $e');

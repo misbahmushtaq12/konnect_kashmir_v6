@@ -2361,6 +2361,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap Open settings, then Notifications, and switch on “Prayer alarms”.'**
   String get prayerAlarmNotifDialogBodyAndroid;
+
+  /// No description provided for @blockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Blocked'**
+  String get blockedTitle;
+
+  /// No description provided for @blockedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account has been blocked for misuse or policy violation.'**
+  String get blockedBody;
+
+  /// No description provided for @blockedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason: {reason}'**
+  String blockedReason(String reason);
+
+  /// No description provided for @blockedContactHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'If you think this is a mistake, please contact support.'**
+  String get blockedContactHelp;
+
+  /// No description provided for @blockedContactButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get blockedContactButton;
 }
 
 class _AppLocalizationsDelegate

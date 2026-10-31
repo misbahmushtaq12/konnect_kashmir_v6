@@ -13,7 +13,11 @@ import 'quran_screens.dart';
 import 'quran_service.dart';
 
 /// The reciter list. Returns the index picked, or null.
-Future<int?> showReciterSheet(BuildContext context, int selected) {
+Future<int?> showReciterSheet(
+  BuildContext context,
+  int selected, {
+  List<Reciter> reciters = kReciters,
+}) {
   return showAppSheet<int>(
     context: context,
     builder: (ctx) => Padding(
@@ -28,14 +32,14 @@ Future<int?> showReciterSheet(BuildContext context, int selected) {
                     fontSize: AppText.title, fontWeight: FontWeight.w800)),
           ),
         ),
-        for (var i = 0; i < kReciters.length; i++)
+        for (var i = 0; i < reciters.length; i++)
           ListTile(
             leading: Icon(
                 i == selected
                     ? Icons.radio_button_checked_rounded
                     : Icons.radio_button_off_rounded,
                 color: AppColors.primary),
-            title: Text(kReciters[i].name),
+            title: Text(reciters[i].name),
             onTap: () => Navigator.pop(ctx, i),
           ),
       ]),
@@ -83,7 +87,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
   }
 
   Future<void> _pickReciter() async {
-    final picked = await showReciterSheet(context, _c.reciter);
+    final picked =
+        await showReciterSheet(context, _c.reciter, reciters: _c.reciters);
     if (picked != null && mounted) _c.setReciter(picked);
   }
 

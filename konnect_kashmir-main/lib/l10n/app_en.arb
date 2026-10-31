@@ -592,5 +592,15 @@
   "prayerAlarmNotifDialogBody": "Tap Open settings, then switch on Notifications (and Sounds).",
   "prayerAlarmNotSetTooltip": "Prayer alarms could not be set",
   "prayerAlarmNotifBlockedAndroid": "The “Prayer alarms” notifications are off or silent for Konnect Kashmir, so the beep cannot sound.",
-  "prayerAlarmNotifDialogBodyAndroid": "Tap Open settings, then Notifications, and switch on “Prayer alarms”."
+  "prayerAlarmNotifDialogBodyAndroid": "Tap Open settings, then Notifications, and switch on “Prayer alarms”.",
+  "blockedTitle": "Account Blocked",
+  "blockedBody": "Your account has been blocked for misuse or policy violation.",
+  "blockedReason": "Reason: {reason}",
+  "@blockedReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "blockedContactHelp": "If you think this is a mistake, please contact support.",
+  "blockedContactButton": "Contact support"
 }

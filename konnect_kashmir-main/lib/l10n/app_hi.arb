@@ -376,5 +376,15 @@
   "prayerAlarmNotifDialogBody": "“सेटिंग्स खोलें” दबाएँ, फिर नोटिफ़िकेशन (और आवाज़) चालू करें।",
   "prayerAlarmNotSetTooltip": "नमाज़ अलार्म सेट नहीं हो सके",
   "prayerAlarmNotifBlockedAndroid": "Konnect Kashmir के “Prayer alarms” नोटिफ़िकेशन बंद या मौन हैं, इसलिए बीप नहीं बज सकती।",
-  "prayerAlarmNotifDialogBodyAndroid": "“सेटिंग्स खोलें” दबाएँ, फिर नोटिफ़िकेशन में “Prayer alarms” चालू करें।"
+  "prayerAlarmNotifDialogBodyAndroid": "“सेटिंग्स खोलें” दबाएँ, फिर नोटिफ़िकेशन में “Prayer alarms” चालू करें।",
+  "blockedTitle": "खाता ब्लॉक है",
+  "blockedBody": "दुरुपयोग या नीति के उल्लंघन के कारण आपका खाता ब्लॉक कर दिया गया है।",
+  "blockedReason": "कारण: {reason}",
+  "@blockedReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "blockedContactHelp": "अगर आपको लगता है कि यह गलती है, तो कृपया सहायता से संपर्क करें।",
+  "blockedContactButton": "सहायता से संपर्क करें"
 }

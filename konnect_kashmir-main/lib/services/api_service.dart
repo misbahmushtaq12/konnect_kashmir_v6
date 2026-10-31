@@ -8,6 +8,22 @@ class ApiService {
   static const String _anonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtbXBzcW5wZXpqb2ZzbHVpcnJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2MzIyNTgsImV4cCI6MjA4NTIwODI1OH0.6FCU_FLaHsKsE7G50A7-_zYf46GZiKpecg4l_de3tn4';
 
+  /// Set by the app: asks whether the signed-in account may act (false while an
+  /// admin has blocked it). Checked before the actions that matter: unlocking a
+  /// contact, claiming credits, listing or changing a business, reviews, jobs,
+  /// applications and reports. The server should refuse them as well.
+  static Future<bool> Function()? mayAct;
+
+  Future<bool> _allowed() async {
+    try {
+      return await (mayAct?.call() ?? Future<bool>.value(true));
+    } catch (_) {
+      return true;
+    }
+  }
+
+  static const String _blockedMessage = 'Your account has been blocked.';
+
   final String? token;
   final String? userId;
 
@@ -146,6 +162,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> unlockVendorContact(String vendorId) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     try {
       final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/unlock-vendor-contact'),
@@ -162,6 +179,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> claimAdCredits(String adId) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     try {
       final res = await sharedHttp.post(
         Uri.parse('$_baseUrl/functions/v1/claim-ad-credits'),
@@ -569,6 +587,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> createVendor(Map<String, dynamic> data) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     try {
       final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/vendors'),
           headers: _headersWithPreference, body: jsonEncode(data));
@@ -585,6 +604,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> updateVendor(
       String vendorId, Map<String, dynamic> updates) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     try {
       final uri = Uri.parse('$_baseUrl/rest/v1/vendors')
           .replace(queryParameters: {'id': 'eq.$vendorId'});
@@ -879,6 +899,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> submitReview(
       String vendorId, int rating, String reviewText) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     try {
       final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/vendor_reviews'),
@@ -946,6 +967,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> createJob(Map<String, dynamic> data) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     try {
       final res = await sharedHttp.post(Uri.parse('$_baseUrl/rest/v1/jobs'),
           headers: _headersWithPreference, body: jsonEncode(data));
@@ -1001,6 +1023,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> applyToJob(String jobId, String applicantName,
       String applicantPhone, String applicantEmail, String coverLetter) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     try {
       final res = await sharedHttp.post(
           Uri.parse('$_baseUrl/rest/v1/job_applications'),
@@ -1150,6 +1173,7 @@ class ApiService {
       String reportType,
       String description,
       ) async {
+    if (!await _allowed()) return _err(_blockedMessage);
     if (userId == null) {
       return _err('Not authenticated. Please sign in and try again.');
     }

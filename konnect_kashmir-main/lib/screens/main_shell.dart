@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/app_analytics.dart';
 
 import '../theme/app_theme.dart';
 import '../l10n/l10n.dart';
@@ -31,13 +32,17 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _index = 0;
+  static const _tabNames = ['home', 'my_business', 'deen', 'profile'];
   // Tabs are built the first time they are opened (saves API calls at start).
   final Set<int> _opened = {0};
 
-  void _select(int i) => setState(() {
-        _index = i;
-        _opened.add(i);
-      });
+  void _select(int i) {
+    setState(() {
+      _index = i;
+      _opened.add(i);
+    });
+    AppAnalytics.instance.tab(_tabNames[i]);
+  }
 
   bool _expiredDialogOpen = false;
 
@@ -47,6 +52,7 @@ class _MainShellState extends State<MainShell> {
     MainShell._showing++;
     MainShell.tabRequest.addListener(_onTabRequest);
     _onTabRequest();
+    AppAnalytics.instance.tab(_tabNames[_index]);
   }
 
   void _onTabRequest() {
