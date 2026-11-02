@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'l10n/l10n.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:konnect_kashmir/screens/login_screen.dart';
 import 'package:provider/provider.dart';
@@ -188,7 +189,7 @@ class KonnectKashmirApp extends StatelessWidget {
         routes: {
           '/':                (_) => const SplashScreen(),
           '/home':            (_) => const MainShell(),
-          '/login':           (_) => const LoginScreen(redirectMessage: 'Please sign in to continue'),
+          '/login':           (context) => LoginScreen(redirectMessage: context.l10n.signInToContinue),
           '/customer':        (_) => const CustomerScreen(),
           '/vendors':         (_) => const CustomerScreen(),
           '/dashboard':       (_) => const DashboardScreen(),

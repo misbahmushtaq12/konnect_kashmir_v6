@@ -2338,12 +2338,6 @@ abstract class AppLocalizations {
   /// **'Exact alarm permission is still needed for prayer alarms to ring at the exact time.'**
   String get prayerAlarmExactStillNeeded;
 
-  /// No description provided for @prayerAlarmEnabledConfirm.
-  ///
-  /// In en, this message translates to:
-  /// **'Prayer alarms are on. They will ring at the exact time.'**
-  String get prayerAlarmEnabledConfirm;
-
   /// No description provided for @prayerAlarmWarningTooltip.
   ///
   /// In en, this message translates to:
@@ -2517,6 +2511,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stormy winds'**
   String get weatherStorm;
+
+  /// No description provided for @signInToContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in to continue'**
+  String get signInToContinue;
 }
 
 class _AppLocalizationsDelegate

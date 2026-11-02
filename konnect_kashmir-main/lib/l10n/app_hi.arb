@@ -373,7 +373,6 @@
   "prayerAlarmExactDialogBody": "ठीक नमाज़ के वक़्त पर बजने के लिए Android को सटीक अलार्म की आपकी अनुमति चाहिए। इसके बिना नमाज़ अलार्म देर से बज सकते हैं या बज ही नहीं सकते।\n\n“अनुमति दें” दबाएँ, फिर अगली स्क्रीन पर Konnect Kashmir को चालू करें।",
   "prayerAlarmGrantPermission": "अनुमति दें",
   "prayerAlarmExactStillNeeded": "नमाज़ अलार्म ठीक वक़्त पर बजें, इसके लिए सटीक अलार्म की अनुमति अभी भी चाहिए।",
-  "prayerAlarmEnabledConfirm": "नमाज़ अलार्म चालू हो गए हैं। ये ठीक वक़्त पर बजेंगे।",
   "prayerAlarmWarningTooltip": "नमाज़ अलार्म को अनुमति चाहिए",
   "prayerAlarmNotifDialogTitle": "नोटिफ़िकेशन की अनुमति दें",
   "prayerAlarmNotifDialogBody": "“सेटिंग्स खोलें” दबाएँ, फिर नोटिफ़िकेशन (और आवाज़) चालू करें।",
@@ -407,5 +406,6 @@
   "weatherFog": "कोहरा",
   "weatherHaze": "धुंध",
   "weatherDust": "धूल",
-  "weatherStorm": "तेज़ हवाएं"
+  "weatherStorm": "तेज़ हवाएं",
+  "signInToContinue": "जारी रखने के लिए कृपया साइन इन करें"
 }

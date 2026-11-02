@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/english_only.dart';
+import '../widgets/force_ltr.dart';
 import '../l10n/l10n.dart';
 import 'package:konnect_kashmir/static/privacy_screen.dart';
 import 'package:konnect_kashmir/static/terms_screen.dart';
@@ -8,7 +8,8 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'otp_ver.dart';
 
-/// Sign-in is always English (and left-to-right), whatever the app language is.
+/// Sign-in follows the app language (picked on first launch, before it) and is
+/// always left-to-right.
 class LoginScreen extends StatelessWidget {
   final String? redirectMessage;
 
@@ -16,7 +17,7 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      EnglishOnly(child: _LoginBody(redirectMessage: redirectMessage));
+      ForceLtr(child: _LoginBody(redirectMessage: redirectMessage));
 }
 
 class _LoginBody extends StatefulWidget {

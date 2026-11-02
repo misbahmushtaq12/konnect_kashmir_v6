@@ -71,8 +71,8 @@ This is deliberate: no backend scheduler is used to hide the limit.
   notification prompt can be shown only once or twice, and on iPhone only once; Android's exact-alarm
   screen for exact alarms) and *Cancel*. When the user comes back the permission is checked again (the
   call returns, and the app also checks on every resume): allowed → the next missing one is explained,
-  and when none is missing the beep is switched on, all five prayers are planned and the sheet says
-  "Prayer alarms are on…"; not allowed → it stays off, with a note and a button to try again. *Cancel*
+  and when none is missing the beep is switched on, all five prayers are planned and the switch
+  shows on (there is no confirmation text); not allowed → it stays off, with a note and a button to try again. *Cancel*
   leaves it off. The "waiting for a permission" state is saved on the phone, in case the app is closed
   while the user is in the settings; a permission given much later by itself does not switch the beep on
   behind the user's back. Nothing is ever set as an inexact alarm.

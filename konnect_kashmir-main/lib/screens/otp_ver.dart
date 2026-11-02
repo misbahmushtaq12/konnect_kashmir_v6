@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../widgets/english_only.dart';
+import '../widgets/force_ltr.dart';
 import '../l10n/l10n.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_snack.dart';
@@ -10,12 +10,12 @@ import 'package:provider/provider.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
 import '../services/app_analytics.dart';
 import '../services/auth_service.dart';
-import 'language_screen.dart';
 import 'main_shell.dart';
 
 const Color _kTeal = Color(0xFF6BC4B2);
 
-/// OTP entry is always English (and left-to-right), like the sign-in screen.
+/// OTP entry follows the app language (picked before sign-in) and is always
+/// left-to-right, like the sign-in screen.
 class OTPVerificationScreen extends StatelessWidget {
   final String phoneNumber;
 
@@ -23,7 +23,7 @@ class OTPVerificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      EnglishOnly(child: _OtpBody(phoneNumber: phoneNumber));
+      ForceLtr(child: _OtpBody(phoneNumber: phoneNumber));
 }
 
 class _OtpBody extends StatefulWidget {
@@ -135,17 +135,9 @@ class _OTPVerificationScreenState extends State<_OtpBody> {
               role: role, phone: widget.phoneNumber, userId: userId)
           : const MainShell();
 
-      final nav = Navigator.of(context);
-      void openDestination() => nav.pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => destination),
-            (route) => false,
-          );
-
-      // Sign-in is always English; after it the user picks the app language
-      // (their last choice is pre-selected) and the rest of the app follows it.
-      nav.pushAndRemoveUntil(
-        MaterialPageRoute(
-            builder: (_) => LanguageScreen(onContinue: openDestination)),
+      // The language was picked before sign-in, so the user goes straight in.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => destination),
         (route) => false,
       );
     } else {

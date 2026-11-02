@@ -8,8 +8,9 @@ import '../theme/app_theme.dart';
 
 /// Language picker (English / हिन्दी / اردو).
 ///
-/// Shown once after the first OTP login ([onContinue] opens the next screen),
-/// and reachable any time from Profile ([isSettings] = true, pops on Continue).
+/// Shown once, first thing, before the sign-in, when no language has been picked
+/// yet ([onContinue] opens the next screen), and reachable any time from Profile
+/// ([isSettings] = true, pops on Continue).
 /// Tapping a language switches the whole app immediately, so the user sees the
 /// result before confirming.
 class LanguageScreen extends StatelessWidget {
@@ -23,8 +24,9 @@ class LanguageScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final body = Builder(builder: _buildBody);
-    // The picker shown right after sign-in is always English; the one opened from
-    // Profile follows the current app language.
+    // The first-run picker is always English (with each language's own name beside
+    // it, so anyone can find theirs); the one opened from Profile follows the
+    // current app language.
     return isSettings ? body : EnglishOnly(child: body);
   }
 

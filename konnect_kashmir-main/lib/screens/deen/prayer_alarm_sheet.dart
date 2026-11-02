@@ -37,10 +37,6 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
   bool _loaded = false;
   bool _busy = false;
 
-  /// The beep was just turned on for real: shows the confirmation (until the sheet
-  /// is closed or the beep is turned off).
-  bool _confirmed = false;
-
   /// The permission the user was taken to the system screen for and came back
   /// without giving: only then does the note say it is still needed.
   PrayerAlarmPermission? _declinedOn;
@@ -60,9 +56,7 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
 
   void _changed() {
     if (!mounted) return;
-    setState(() {
-      if (_svc.status.value.justEnabled) _confirmed = true;
-    });
+    setState(() {});
     // The beep can be switched on while the sheet is open (the user came back
     // from the system settings with the permission): show the switch as it is.
     _svc.prefs().then((p) {
@@ -95,10 +89,7 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
 
   Future<void> _master(bool on) async {
     if (!on) {
-      setState(() {
-        _prefs = _prefs.copyWith(enabled: false);
-        _confirmed = false;
-      });
+      setState(() => _prefs = _prefs.copyWith(enabled: false));
       await _run(() => _svc.setEnabled(false));
       AppAnalytics.instance.prayerAlarm(enabled: false);
       return;
@@ -241,14 +232,6 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
           if (_permissionNote(st, on, l) case final note?) note,
           // And why the alarms could not be set (no place, no prayer times, ...).
           if (on) ..._issues(st, l),
-          // Only when the alarms really were set and nothing is wrong.
-          if (on && _confirmed && st.issues.isEmpty && st.scheduled > 0)
-            _Note(
-              text: l.prayerAlarmEnabledConfirm,
-              actions: const [],
-              color: AppColors.success,
-              icon: Icons.check_circle_rounded,
-            ),
           // (How long the alarms last is not written here: the last two days' alarms
           // themselves ask the user to open the app, see planReminders.)
           if (on) ...[
@@ -362,14 +345,9 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
 class _Note extends StatelessWidget {
   final String text;
   final List<Widget> actions;
-  final Color color;
-  final IconData? icon;
-  const _Note({
-    required this.text,
-    required this.actions,
-    this.color = const Color(0xFFF5A623),
-    this.icon,
-  });
+  const _Note({required this.text, required this.actions});
+
+  static const Color _color = Color(0xFFF5A623);
 
   @override
   Widget build(BuildContext context) {
@@ -379,9 +357,9 @@ class _Note extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: _color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: _color.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,13 +367,6 @@ class _Note extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (icon != null) ...[
-                Padding(
-                  padding: const EdgeInsets.only(top: 1),
-                  child: Icon(icon, size: 18, color: color),
-                ),
-                const SizedBox(width: 8),
-              ],
               Expanded(
                 child: Text(
                   text,

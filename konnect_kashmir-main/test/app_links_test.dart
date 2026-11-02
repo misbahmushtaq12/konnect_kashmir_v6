@@ -5,6 +5,7 @@ import 'package:konnect_kashmir/providers/auth_provider.dart';
 import 'package:konnect_kashmir/providers/locale_provider.dart';
 import 'package:konnect_kashmir/providers/theme_provider.dart';
 import 'package:konnect_kashmir/screens/leads_link_screen.dart';
+import 'package:konnect_kashmir/screens/language_screen.dart';
 import 'package:konnect_kashmir/screens/login_screen.dart';
 import 'package:konnect_kashmir/screens/main_shell.dart';
 import 'package:konnect_kashmir/screens/splash_screen.dart';
@@ -34,7 +35,10 @@ Future<Widget> _app({bool signedIn = false}) async {
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // A signed-out user who already picked a language (the usual one): the app goes
+    // from the splash straight to the sign-in. A new user meets the picker first, see
+    // the test for that below.
+    SharedPreferences.setMockInitialValues({'app_locale_chosen': true});
     MainShell.tabRequest.value = null;
     AppLinks.businessRequest.value = null;
   });
@@ -193,6 +197,30 @@ void main() {
   });
 
   group('app started by a shared business link', () {
+    testWidgets(
+        'a new user (no language picked yet): the language first, then sign-in; the business still waits',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({}); // nothing chosen yet
+      tester.platformDispatcher.defaultRouteNameTestValue = '/business/biz-123';
+      addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
+
+      await tester.pumpWidget(await _app());
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(LanguageScreen), findsOneWidget);
+      expect(find.byType(LoginScreen), findsNothing);
+      expect(AppLinks.businessRequest.value, 'biz-123');
+
+      await tester.tap(find.text('Continue'));
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 200));
+      }
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(find.byType(LanguageScreen), findsNothing);
+      expect(AppLinks.businessRequest.value, 'biz-123');
+    });
+
     testWidgets('signed out: splash, then sign-in; the business waits for Home',
         (tester) async {
       tester.platformDispatcher.defaultRouteNameTestValue = '/business/biz-123';

@@ -1323,10 +1323,6 @@ class AppLocalizationsHi extends AppLocalizations {
       'नमाज़ अलार्म ठीक वक़्त पर बजें, इसके लिए सटीक अलार्म की अनुमति अभी भी चाहिए।';
 
   @override
-  String get prayerAlarmEnabledConfirm =>
-      'नमाज़ अलार्म चालू हो गए हैं। ये ठीक वक़्त पर बजेंगे।';
-
-  @override
   String get prayerAlarmWarningTooltip => 'नमाज़ अलार्म को अनुमति चाहिए';
 
   @override
@@ -1423,4 +1419,7 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get weatherStorm => 'तेज़ हवाएं';
+
+  @override
+  String get signInToContinue => 'जारी रखने के लिए कृपया साइन इन करें';
 }

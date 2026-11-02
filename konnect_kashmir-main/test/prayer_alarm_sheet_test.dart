@@ -205,7 +205,7 @@ void main() {
   });
 
   testWidgets(
-    'notifications: Open settings, allowed there: switched on and confirmed',
+    'notifications: Open settings, allowed there: switched on',
     (tester) async {
       _phone(tester);
       final scheduler = FakeAlarmScheduler()
@@ -230,10 +230,7 @@ void main() {
 
       expect(scheduler.settingsOpened, 1);
       expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
-      expect(
-        find.text('Prayer alarms are on. They will ring at the exact time.'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Prayer alarms are on'), findsNothing); // no confirmation note
       expect(scheduler.alarms.length, 49);
       expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
     },
@@ -310,10 +307,7 @@ void main() {
     await _settle(tester);
 
     expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
-    expect(
-      find.text('Prayer alarms are on. They will ring at the exact time.'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Prayer alarms are on'), findsNothing); // no confirmation note
     expect(scheduler.alarms.length, 49);
   });
 
@@ -418,7 +412,7 @@ void main() {
   );
 
   testWidgets(
-    'Grant permission opens the system screen; once allowed, the alarms are set and confirmed',
+    'Grant permission opens the system screen; once allowed, the alarms are set',
     (tester) async {
       _phone(tester);
       final scheduler = FakeAlarmScheduler()
@@ -436,10 +430,7 @@ void main() {
 
       expect(scheduler.exactRequests, 1);
       expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
-      expect(
-        find.text('Prayer alarms are on. They will ring at the exact time.'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Prayer alarms are on'), findsNothing); // no confirmation note
       expect(scheduler.alarms.length, 49);
       expect(find.byType(Switch), findsOneWidget);
       expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
@@ -543,7 +534,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      // Nothing was set, so no "alarms are on" confirmation.
+      // Nothing was set.
       expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
     },
   );

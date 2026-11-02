@@ -599,7 +599,6 @@
   "prayerAlarmExactDialogBody": "To ring at the exact prayer time, Android needs your permission for exact alarms. Without it, prayer alarms can be late or may not ring.\n\nTap Grant permission, then switch on Konnect Kashmir on the next screen.",
   "prayerAlarmGrantPermission": "Grant permission",
   "prayerAlarmExactStillNeeded": "Exact alarm permission is still needed for prayer alarms to ring at the exact time.",
-  "prayerAlarmEnabledConfirm": "Prayer alarms are on. They will ring at the exact time.",
   "prayerAlarmWarningTooltip": "Prayer alarms need permission",
   "prayerAlarmNotifDialogTitle": "Allow notifications",
   "prayerAlarmNotifDialogBody": "Tap Open settings, then switch on Notifications (and Sounds).",
@@ -643,5 +642,6 @@
   "weatherFog": "Fog",
   "weatherHaze": "Haze",
   "weatherDust": "Dust",
-  "weatherStorm": "Stormy winds"
+  "weatherStorm": "Stormy winds",
+  "signInToContinue": "Please sign in to continue"
 }

@@ -1324,10 +1324,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Exact alarm permission is still needed for prayer alarms to ring at the exact time.';
 
   @override
-  String get prayerAlarmEnabledConfirm =>
-      'Prayer alarms are on. They will ring at the exact time.';
-
-  @override
   String get prayerAlarmWarningTooltip => 'Prayer alarms need permission';
 
   @override
@@ -1424,4 +1420,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weatherStorm => 'Stormy winds';
+
+  @override
+  String get signInToContinue => 'Please sign in to continue';
 }

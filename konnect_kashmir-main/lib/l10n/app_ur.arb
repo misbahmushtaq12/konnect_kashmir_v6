@@ -373,7 +373,6 @@
   "prayerAlarmExactDialogBody": "ٹھیک نماز کے وقت پر بجنے کے لیے Android کو درست الارم کی آپ کی اجازت چاہیے۔ اس کے بغیر نماز الارم دیر سے بج سکتے ہیں یا بج ہی نہیں سکتے۔\n\n“اجازت دیں” دبائیں، پھر اگلی اسکرین پر Konnect Kashmir کو آن کریں۔",
   "prayerAlarmGrantPermission": "اجازت دیں",
   "prayerAlarmExactStillNeeded": "نماز الارم ٹھیک وقت پر بجیں، اس کے لیے درست الارم کی اجازت ابھی بھی چاہیے۔",
-  "prayerAlarmEnabledConfirm": "نماز الارم آن ہو گئے ہیں۔ یہ ٹھیک وقت پر بجیں گے۔",
   "prayerAlarmWarningTooltip": "نماز الارم کو اجازت چاہیے",
   "prayerAlarmNotifDialogTitle": "نوٹیفکیشنز کی اجازت دیں",
   "prayerAlarmNotifDialogBody": "“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز (اور آواز) آن کریں۔",
@@ -407,5 +406,6 @@
   "weatherFog": "دھند",
   "weatherHaze": "ہلکی دھند",
   "weatherDust": "گرد و غبار",
-  "weatherStorm": "تیز ہوائیں"
+  "weatherStorm": "تیز ہوائیں",
+  "signInToContinue": "جاری رکھنے کے لیے براہ کرم سائن ان کریں"
 }

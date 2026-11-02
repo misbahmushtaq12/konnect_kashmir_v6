@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/locale_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_background.dart';
+import 'language_screen.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
 
 /// First screen. Plays a short intro animation (logo pop, light sweep, soft
 /// ripples, tagline), then opens the Dashboard (if a saved session exists) or
-/// the Login screen.
+/// the Login screen. A signed-out user who has never picked a language (first
+/// launch, or a new phone) picks it first, once, so the sign-in is already in it.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -45,13 +48,27 @@ class _SplashScreenState extends State<SplashScreen>
   void _next() {
     if (!mounted) return;
     final loggedIn = context.read<AuthProvider>().isAuthenticated;
-    Navigator.pushReplacement(
-      context,
+    final chosen = context.read<LocaleProvider>().hasChosen;
+    final nav = Navigator.of(context);
+
+    Widget app() => AppBackground(
+          child: loggedIn ? const MainShell() : const LoginScreen(),
+        );
+    // Signed out and no language picked yet: the picker comes first. Once it is
+    // confirmed the sign-in opens in that language (and the picker never comes
+    // back, except from Profile).
+    final Widget first = (loggedIn || chosen)
+        ? app()
+        : LanguageScreen(
+            onContinue: () => nav.pushReplacement(
+              MaterialPageRoute(builder: (_) => app()),
+            ),
+          );
+
+    nav.pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, __, ___) => AppBackground(
-          child: loggedIn ? const MainShell() : const LoginScreen(),
-        ),
+        pageBuilder: (_, __, ___) => first,
         transitionsBuilder: (_, a, __, child) =>
             FadeTransition(opacity: a, child: child),
       ),

@@ -1328,10 +1328,6 @@ class AppLocalizationsUr extends AppLocalizations {
       'نماز الارم ٹھیک وقت پر بجیں، اس کے لیے درست الارم کی اجازت ابھی بھی چاہیے۔';
 
   @override
-  String get prayerAlarmEnabledConfirm =>
-      'نماز الارم آن ہو گئے ہیں۔ یہ ٹھیک وقت پر بجیں گے۔';
-
-  @override
   String get prayerAlarmWarningTooltip => 'نماز الارم کو اجازت چاہیے';
 
   @override
@@ -1428,4 +1424,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get weatherStorm => 'تیز ہوائیں';
+
+  @override
+  String get signInToContinue => 'جاری رکھنے کے لیے براہ کرم سائن ان کریں';
 }

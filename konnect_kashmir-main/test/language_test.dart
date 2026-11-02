@@ -26,33 +26,54 @@ Widget _app(Locale locale, Widget home) => MaterialApp(
 void main() {
   layoutTests();
   expandableTests();
-  testWidgets('Sign-in screen stays English and left-to-right in Urdu',
+  testWidgets('Sign-in screen follows the chosen language but stays left-to-right (Urdu)',
       (tester) async {
     await tester.pumpWidget(_app(const Locale('ur'), const LoginScreen()));
     await tester.pump();
 
-    expect(find.text('Sign In / Register'), findsOneWidget);
-    final ctx = tester.element(find.text('Sign In / Register'));
+    final ur = lookupAppLocalizations(const Locale('ur'));
+    expect(find.text(ur.signInRegister), findsOneWidget);
+    expect(find.text('Sign In / Register'), findsNothing);
+    final ctx = tester.element(find.text(ur.signInRegister));
     expect(Directionality.of(ctx), TextDirection.ltr);
   });
 
-  testWidgets('Sign-in screen stays English in Hindi too', (tester) async {
+  testWidgets('Sign-in screen follows the chosen language (Hindi)', (tester) async {
     await tester.pumpWidget(_app(const Locale('hi'), const LoginScreen()));
     await tester.pump();
 
-    expect(find.text('Sign In / Register'), findsOneWidget);
-    expect(find.text('साइन इन / रजिस्टर'), findsNothing);
+    expect(find.text('साइन इन / रजिस्टर'), findsOneWidget);
+    expect(find.text('Sign In / Register'), findsNothing);
   });
 
-  testWidgets('OTP screen stays English and left-to-right in Urdu',
+  testWidgets('Sign-in screen is in English when English is chosen', (tester) async {
+    await tester.pumpWidget(_app(const Locale('en'), const LoginScreen()));
+    await tester.pump();
+
+    expect(find.text('Sign In / Register'), findsOneWidget);
+  });
+
+  testWidgets('OTP screen follows the chosen language but stays left-to-right (Urdu)',
       (tester) async {
     await tester.pumpWidget(
         _app(const Locale('ur'), const OTPVerificationScreen(phoneNumber: '9999999999')));
     await tester.pump();
 
-    expect(find.text('OTP Verification'), findsOneWidget);
-    final ctx = tester.element(find.text('OTP Verification'));
+    final ur = lookupAppLocalizations(const Locale('ur'));
+    expect(find.text(ur.otpVerification), findsOneWidget);
+    expect(find.text('OTP Verification'), findsNothing);
+    final ctx = tester.element(find.text(ur.otpVerification));
     expect(Directionality.of(ctx), TextDirection.ltr);
+  });
+
+  testWidgets('OTP screen follows the chosen language (Hindi)', (tester) async {
+    await tester.pumpWidget(
+        _app(const Locale('hi'), const OTPVerificationScreen(phoneNumber: '9999999999')));
+    await tester.pump();
+
+    expect(find.text(lookupAppLocalizations(const Locale('hi')).otpVerification),
+        findsOneWidget);
+    expect(find.text('OTP Verification'), findsNothing);
   });
 
   testWidgets('Other screens follow the chosen language (Urdu = RTL)',
@@ -73,7 +94,7 @@ void main() {
     expect(find.text('होम'), findsOneWidget);
   });
 
-  testWidgets('Language picker after sign-in is always English, even if Urdu was chosen',
+  testWidgets('The first-run language picker is always English, even if Urdu was chosen',
       (tester) async {
     SharedPreferences.setMockInitialValues({'app_locale': 'ur'});
     final locale = await LocaleProvider.load();
