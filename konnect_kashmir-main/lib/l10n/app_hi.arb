@@ -407,5 +407,6 @@
   "weatherHaze": "धुंध",
   "weatherDust": "धूल",
   "weatherStorm": "तेज़ हवाएं",
-  "signInToContinue": "जारी रखने के लिए कृपया साइन इन करें"
+  "signInToContinue": "जारी रखने के लिए कृपया साइन इन करें",
+  "weatherCreditMet": "डेटा: MET Norway"
 }

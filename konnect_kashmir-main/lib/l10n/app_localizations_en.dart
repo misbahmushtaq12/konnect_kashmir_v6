@@ -125,8 +125,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sessionExpiredTitle => 'Session expired';
 
   @override
-  String get sessionExpiredMsg =>
-      'For your security you need to sign in again to load your leads and credits.';
+  String get sessionExpiredMsg => 'For your security you need to sign in again to load your leads and credits.';
 
   @override
   String get noCreditsBanner => 'No credits left. Watch an ad to reveal leads.';
@@ -138,8 +137,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noBusinessYet => 'You haven\'t listed a business yet';
 
   @override
-  String get listBusinessIntro =>
-      'List your services and get discovered by customers across Kashmir.';
+  String get listBusinessIntro => 'List your services and get discovered by customers across Kashmir.';
 
   @override
   String get listMyBusiness => 'List my business';
@@ -208,12 +206,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get snackRevealedNoBalance =>
-      'Contact revealed, but your credit balance could not be updated.';
+  String get snackRevealedNoBalance => 'Contact revealed, but your credit balance could not be updated.';
 
   @override
-  String get snackNotEnoughCredits =>
-      'Not enough credits. Watch an ad to earn credits.';
+  String get snackNotEnoughCredits => 'Not enough credits. Watch an ad to earn credits.';
 
   @override
   String get snackCouldNotReveal => 'Could not reveal contact. Try again.';
@@ -222,8 +218,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get snackNetworkError => 'Network error. Please try again.';
 
   @override
-  String get snackSessionExpiredLeads =>
-      'Your session has expired, so leads cannot load. Please sign in again.';
+  String get snackSessionExpiredLeads => 'Your session has expired, so leads cannot load. Please sign in again.';
 
   @override
   String snackCouldntRefreshLeads(String detail) {
@@ -284,8 +279,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String providerCount(int count) {
-    final intl.NumberFormat countNumberFormat =
-        intl.NumberFormat.decimalPattern(localeName);
+    final intl.NumberFormat countNumberFormat = intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
     String _temp0 = intl.Intl.pluralLogic(
@@ -307,8 +301,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noSavedProviders => 'You haven\'t saved any providers here yet.';
 
   @override
-  String get tryDifferentSearch =>
-      'Try a different search or change your filters.';
+  String get tryDifferentSearch => 'Try a different search or change your filters.';
 
   @override
   String get clearAllFilters => 'Clear all filters';
@@ -391,16 +384,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get snackNoAds => 'No ads available right now.';
 
   @override
-  String get snackNoCreditsNoAds =>
-      'No credits & no ads available. Check back later.';
+  String get snackNoCreditsNoAds => 'No credits & no ads available. Check back later.';
 
   @override
-  String get snackNotEnoughAfterAd =>
-      'Not enough credits after ad. Please try again.';
+  String get snackNotEnoughAfterAd => 'Not enough credits after ad. Please try again.';
 
   @override
-  String get snackCouldNotUnlock =>
-      'Could not unlock contact. Please try again.';
+  String get snackCouldNotUnlock => 'Could not unlock contact. Please try again.';
 
   @override
   String get contactUnlocked => 'Contact Unlocked!';
@@ -568,8 +558,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get acceptOnlinePayment => 'Accept Online Payment';
 
   @override
-  String get listingReviewNote =>
-      'Your listing will be reviewed within 24-48 hours';
+  String get listingReviewNote => 'Your listing will be reviewed within 24-48 hours';
 
   @override
   String get submit => 'Submit';
@@ -587,8 +576,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fillRequiredFields => 'Please fill in all required fields';
 
   @override
-  String get networkCheckConnection =>
-      'Network error. Please check your connection.';
+  String get networkCheckConnection => 'Network error. Please check your connection.';
 
   @override
   String get successTitle => 'Success';
@@ -600,12 +588,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ok => 'OK';
 
   @override
-  String get businessUpdatedMsg =>
-      'Your business has been updated successfully!';
+  String get businessUpdatedMsg => 'Your business has been updated successfully!';
 
   @override
-  String get businessSubmittedMsg =>
-      'Your business listing has been submitted for review!';
+  String get businessSubmittedMsg => 'Your business listing has been submitted for review!';
 
   @override
   String get yourBalance => 'Your balance';
@@ -671,8 +657,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noTransactionsYet => 'No transactions yet';
 
   @override
-  String get noTransactionsHint =>
-      'Credits you earn or spend will show up here.';
+  String get noTransactionsHint => 'Credits you earn or spend will show up here.';
 
   @override
   String get errNameRequired => 'Please enter your full name';
@@ -687,8 +672,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get completeYourProfile => 'Complete Your Profile';
 
   @override
-  String get enterNameToContinue =>
-      'Please enter your name to continue using KonnectKashmir';
+  String get enterNameToContinue => 'Please enter your name to continue using KonnectKashmir';
 
   @override
   String get yourFullName => 'Your Full Name';
@@ -697,8 +681,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enterFullName => 'Enter your full name';
 
   @override
-  String get visibleToVendors =>
-      'This will be visible to vendors when you contact them';
+  String get visibleToVendors => 'This will be visible to vendors when you contact them';
 
   @override
   String get backToHome => 'Back to Home';
@@ -806,24 +789,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deenQiblaAligned => 'You are facing the Qibla';
 
   @override
-  String get deenQiblaHint =>
-      'Hold your phone flat and turn until the arrow points toward Qibla.';
+  String get deenQiblaHint => 'Hold your phone flat and turn until the arrow points toward Qibla.';
 
   @override
-  String get deenCompassMissing =>
-      'Compass is not available on this device. Use the angle above with a compass.';
+  String get deenCompassMissing => 'Compass is not available on this device. Use the angle above with a compass.';
 
   @override
-  String get deenLocationOff =>
-      'Turn on location to see prayer times and the Qibla direction';
+  String get deenLocationOff => 'Turn on location to see prayer times and the Qibla direction';
 
   @override
-  String get deenLocationDenied =>
-      'Location permission is needed for prayer times and the Qibla direction';
+  String get deenLocationDenied => 'Location permission is needed for prayer times and the Qibla direction';
 
   @override
-  String get deenLocationBlocked =>
-      'Location is blocked. Allow it from the app settings.';
+  String get deenLocationBlocked => 'Location is blocked. Allow it from the app settings.';
 
   @override
   String get deenAllowLocation => 'Allow location';
@@ -869,8 +847,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deenReciter => 'Reciter';
 
   @override
-  String get deenAudioError =>
-      'Couldn\'t play this recitation. Check your internet.';
+  String get deenAudioError => 'Couldn\'t play this recitation. Check your internet.';
 
   @override
   String deenDuaSource(String source) {
@@ -912,12 +889,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calcMethod => 'Calculation Method';
 
   @override
-  String get prayerSettingsInfo =>
-      'Madhhab affects Asr timing. Calculation method affects astronomical prayer calculations.';
+  String get prayerSettingsInfo => 'Madhhab affects Asr timing. Calculation method affects astronomical prayer calculations.';
 
   @override
-  String get prayerSettingsJafariNote =>
-      'Ja\'fari uses the Jafari calculation method.';
+  String get prayerSettingsJafariNote => 'Ja\'fari uses the Jafari calculation method.';
 
   @override
   String get doneLabel => 'Done';
@@ -943,12 +918,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteAccountTitle => 'Delete your account?';
 
   @override
-  String get deleteAccountMsg =>
-      'This permanently deletes your account, your business listings, leads and credits. This cannot be undone.';
+  String get deleteAccountMsg => 'This permanently deletes your account, your business listings, leads and credits. This cannot be undone.';
 
   @override
-  String get deleteAccountFailed =>
-      'We couldn\'t delete your account right now. Please email info@konnectkashmir.com and we\'ll do it for you.';
+  String get deleteAccountFailed => 'We couldn\'t delete your account right now. Please email info@konnectkashmir.com and we\'ll do it for you.';
 
   @override
   String get filterLabel => 'Filter';
@@ -957,16 +930,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get textSize => 'Text size';
 
   @override
-  String get deleteAccountEnterPhone =>
-      'Enter your registered phone number to confirm';
+  String get deleteAccountEnterPhone => 'Enter your registered phone number to confirm';
 
   @override
-  String get deleteAccountDone =>
-      'Account deleted successfully. You can sign up again anytime.';
+  String get deleteAccountDone => 'Account deleted successfully. You can sign up again anytime.';
 
   @override
-  String get deleteAccountBadPhone =>
-      'Enter the 10-digit phone number of this account.';
+  String get deleteAccountBadPhone => 'Enter the 10-digit phone number of this account.';
 
   @override
   String get watchAdsTitle => 'Watch Ads to Earn Credits';
@@ -1028,8 +998,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get replaceAddressTitle => 'Replace your address?';
 
   @override
-  String get replaceAddressBody =>
-      'This will replace the address and map location you entered.';
+  String get replaceAddressBody => 'This will replace the address and map location you entered.';
 
   @override
   String get replaceLabel => 'Replace';
@@ -1038,12 +1007,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addressLocationOff => 'Turn on location to fill in your address';
 
   @override
-  String get addressLocationDenied =>
-      'Location permission is needed to fill in your address. Allow it in your phone settings.';
+  String get addressLocationDenied => 'Location permission is needed to fill in your address. Allow it in your phone settings.';
 
   @override
-  String get addressNotFound =>
-      'Couldn\'t find an address for this spot. The map pin was saved; please type the address.';
+  String get addressNotFound => 'Couldn\'t find an address for this spot. The map pin was saved; please type the address.';
 
   @override
   String get couldntOpenMap => 'Couldn\'t open Google Maps';
@@ -1153,8 +1120,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get prayerAlarmNotifBlocked =>
-      'Notifications are off for Konnect Kashmir, so the alarms cannot sound.';
+  String get prayerAlarmNotifBlocked => 'Notifications are off for Konnect Kashmir, so the alarms cannot sound.';
 
   @override
   String get prayerAlarmAllowNotifications => 'Allow notifications';
@@ -1163,34 +1129,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prayerAlarmOpenSettings => 'Open settings';
 
   @override
-  String get prayerAlarmExactOff =>
-      'Exact alarm permission is off, so prayer alarms may not ring until you allow it.';
+  String get prayerAlarmExactOff => 'Exact alarm permission is off, so prayer alarms may not ring until you allow it.';
 
   @override
   String get prayerAlarmAllowExact => 'Allow exact alarms';
 
   @override
-  String get prayerAlarmNoLocation =>
-      'Allow location once so we can work out prayer times for where you are.';
+  String get prayerAlarmNoLocation => 'Allow location once so we can work out prayer times for where you are.';
 
   @override
-  String get prayerAlarmNoTimes =>
-      'Prayer times could not be loaded yet. Connect to the internet and try again.';
+  String get prayerAlarmNoTimes => 'Prayer times could not be loaded yet. Connect to the internet and try again.';
 
   @override
-  String get prayerAlarmNoRoom =>
-      'This phone has no room left for more alarms.';
+  String get prayerAlarmNoRoom => 'This phone has no room left for more alarms.';
 
   @override
-  String get prayerAlarmFooter =>
-      'The beep follows your phone\'s volume, silent mode and Do Not Disturb settings.';
+  String get prayerAlarmFooter => 'The beep follows your phone\'s volume, silent mode and Do Not Disturb settings.';
 
   @override
   String get prayerAlarmRefresh => 'Refresh alarms';
 
   @override
-  String get prayerAlarmFailed =>
-      'Some alarms could not be set. Try Refresh alarms.';
+  String get prayerAlarmFailed => 'Some alarms could not be set. Try Refresh alarms.';
 
   @override
   String get shareBusiness => 'Share';
@@ -1226,15 +1186,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get shareBusinessFailed =>
-      'Couldn\'t open the share sheet. Please try again.';
+  String get shareBusinessFailed => 'Couldn\'t open the share sheet. Please try again.';
 
   @override
   String get sharedBusinessTitle => 'Shared with you';
 
   @override
-  String get sharedBusinessMissing =>
-      'This business is not available any more.';
+  String get sharedBusinessMissing => 'This business is not available any more.';
 
   @override
   String get detailsAbout => 'About';
@@ -1267,8 +1225,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailsDirections => 'Directions';
 
   @override
-  String get detailsLocked =>
-      'Unlock this business to see its phone number and exact address.';
+  String get detailsLocked => 'Unlock this business to see its phone number and exact address.';
 
   @override
   String get detailsReviews => 'Reviews';
@@ -1313,15 +1270,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prayerAlarmExactDialogTitle => 'Allow exact alarms';
 
   @override
-  String get prayerAlarmExactDialogBody =>
-      'To ring at the exact prayer time, Android needs your permission for exact alarms. Without it, prayer alarms can be late or may not ring.\n\nTap Grant permission, then switch on Konnect Kashmir on the next screen.';
+  String get prayerAlarmExactDialogBody => 'To ring at the exact prayer time, Android needs your permission for exact alarms. Without it, prayer alarms can be late or may not ring.\n\nTap Grant permission, then switch on Konnect Kashmir on the next screen.';
 
   @override
   String get prayerAlarmGrantPermission => 'Grant permission';
 
   @override
-  String get prayerAlarmExactStillNeeded =>
-      'Exact alarm permission is still needed for prayer alarms to ring at the exact time.';
+  String get prayerAlarmExactStillNeeded => 'Exact alarm permission is still needed for prayer alarms to ring at the exact time.';
 
   @override
   String get prayerAlarmWarningTooltip => 'Prayer alarms need permission';
@@ -1330,26 +1285,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get prayerAlarmNotifDialogTitle => 'Allow notifications';
 
   @override
-  String get prayerAlarmNotifDialogBody =>
-      'Tap Open settings, then switch on Notifications (and Sounds).';
+  String get prayerAlarmNotifDialogBody => 'Tap Open settings, then switch on Notifications (and Sounds).';
 
   @override
   String get prayerAlarmNotSetTooltip => 'Prayer alarms could not be set';
 
   @override
-  String get prayerAlarmNotifBlockedAndroid =>
-      'The “Prayer alarms” notifications are off or silent for Konnect Kashmir, so the beep cannot sound.';
+  String get prayerAlarmNotifBlockedAndroid => 'The “Prayer alarms” notifications are off or silent for Konnect Kashmir, so the beep cannot sound.';
 
   @override
-  String get prayerAlarmNotifDialogBodyAndroid =>
-      'Tap Open settings, then Notifications, and switch on “Prayer alarms”.';
+  String get prayerAlarmNotifDialogBodyAndroid => 'Tap Open settings, then Notifications, and switch on “Prayer alarms”.';
 
   @override
   String get blockedTitle => 'Account Blocked';
 
   @override
-  String get blockedBody =>
-      'Your account has been blocked for misuse or policy violation.';
+  String get blockedBody => 'Your account has been blocked for misuse or policy violation.';
 
   @override
   String blockedReason(String reason) {
@@ -1357,8 +1308,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get blockedContactHelp =>
-      'If you think this is a mistake, please contact support.';
+  String get blockedContactHelp => 'If you think this is a mistake, please contact support.';
 
   @override
   String get blockedContactButton => 'Contact support';
@@ -1423,4 +1373,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInToContinue => 'Please sign in to continue';
+
+  @override
+  String get weatherCreditMet => 'Data from MET Norway';
 }

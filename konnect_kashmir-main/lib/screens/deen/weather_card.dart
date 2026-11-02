@@ -132,8 +132,9 @@ class WeatherCardBody extends StatelessWidget {
                     fontSize: AppText.body,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary)),
-            Text(l.weatherFeelsLike(_withDegree(context, w.feelsLikeC)),
-                style: TextStyle(fontSize: AppText.caption, color: muted)),
+            if (w.feelsLikeC != null)
+              Text(l.weatherFeelsLike(_withDegree(context, w.feelsLikeC!)),
+                  style: TextStyle(fontSize: AppText.caption, color: muted)),
           ]),
         ),
       ]),
@@ -152,6 +153,11 @@ class WeatherCardBody extends StatelessWidget {
           stat(Icons.nights_stay_rounded, l.weatherSunset, clock(w.sunsetMin!)),
         ]),
       ],
+      // The service's terms ask for its name next to its data.
+      const SizedBox(height: 10),
+      Text(l.weatherCreditMet,
+          style: TextStyle(
+              fontSize: AppText.caption, color: cs.onSurface.withValues(alpha: 0.5))),
     ]);
   }
 }

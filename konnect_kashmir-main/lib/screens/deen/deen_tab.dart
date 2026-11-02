@@ -133,7 +133,7 @@ class _DeenTabState extends State<DeenTab> {
 
   // ── Location, prayer times, Qibla ──────────────────────────────────────────
 
-  Future<void> _bootstrap({bool ask = true, bool refresh = false}) async {
+  Future<void> _bootstrap({bool ask = true}) async {
     setState(() {
       _loading = _day == null;
       _problem = null;
@@ -169,7 +169,7 @@ class _DeenTabState extends State<DeenTab> {
             _loading = false;
           }
         });
-        if (!refresh) _loadWeather(known.lat, known.lng);
+        _loadWeather(known.lat, known.lng);
         PrayerService.placeName(known.lat, known.lng).then((n) {
           if (mounted && n != null) setState(() => _place = n);
         });
@@ -184,7 +184,7 @@ class _DeenTabState extends State<DeenTab> {
       });
 
       // Neither do the weather, nor the place name, hold up the prayer times.
-      _loadWeather(pos.latitude, pos.longitude, force: refresh);
+      _loadWeather(pos.latitude, pos.longitude);
       PrayerService.placeName(pos.latitude, pos.longitude).then((n) {
         if (mounted && n != null) setState(() => _place = n);
       });
@@ -223,7 +223,7 @@ class _DeenTabState extends State<DeenTab> {
 
   /// The weather card: the saved reading at once, then a new one if it is due.
   /// A failed request leaves the card as it is.
-  Future<void> _loadWeather(double lat, double lng, {bool force = false}) async {
+  Future<void> _loadWeather(double lat, double lng) async {
     final req = ++_weatherReq;
     final cell = WeatherService.cell(lat, lng);
     final saved = await WeatherService.cached(lat, lng);
@@ -237,7 +237,7 @@ class _DeenTabState extends State<DeenTab> {
     } else if (saved != null && _weather == null) {
       setState(() => _weather = saved);
     }
-    final fresh = await WeatherService.fetch(lat, lng, force: force);
+    final fresh = await WeatherService.fetch(lat, lng);
     if (!mounted || req != _weatherReq) return;
     if (fresh != null) setState(() => _weather = fresh);
   }
@@ -344,7 +344,7 @@ class _DeenTabState extends State<DeenTab> {
           constraints: const BoxConstraints(maxWidth: 760),
           child: RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () => _bootstrap(refresh: true),
+            onRefresh: () => _bootstrap(),
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),

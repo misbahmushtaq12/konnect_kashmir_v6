@@ -643,5 +643,6 @@
   "weatherHaze": "Haze",
   "weatherDust": "Dust",
   "weatherStorm": "Stormy winds",
-  "signInToContinue": "Please sign in to continue"
+  "signInToContinue": "Please sign in to continue",
+  "weatherCreditMet": "Data from MET Norway"
 }
