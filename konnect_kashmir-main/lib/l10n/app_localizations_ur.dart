@@ -27,7 +27,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get chooseLanguage => 'اپنی زبان منتخب کریں';
 
   @override
-  String get chooseLanguageHint => 'آپ اسے کبھی بھی پروفائل سے تبدیل کر سکتے ہیں۔';
+  String get chooseLanguageHint =>
+      'آپ اسے کبھی بھی پروفائل سے تبدیل کر سکتے ہیں۔';
 
   @override
   String get retry => 'دوبارہ کوشش کریں';
@@ -125,10 +126,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get sessionExpiredTitle => 'سیشن ختم ہو گیا';
 
   @override
-  String get sessionExpiredMsg => 'آپ کی حفاظت کے لیے، اپنی لیڈز اور کریڈٹس دیکھنے کے لیے دوبارہ سائن اِن کریں۔';
+  String get sessionExpiredMsg =>
+      'آپ کی حفاظت کے لیے، اپنی لیڈز اور کریڈٹس دیکھنے کے لیے دوبارہ سائن اِن کریں۔';
 
   @override
-  String get noCreditsBanner => 'کوئی کریڈٹ باقی نہیں۔ لیڈز دیکھنے کے لیے اشتہار دیکھیں۔';
+  String get noCreditsBanner =>
+      'کوئی کریڈٹ باقی نہیں۔ لیڈز دیکھنے کے لیے اشتہار دیکھیں۔';
 
   @override
   String get watchAd => 'اشتہار دیکھیں';
@@ -137,7 +140,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get noBusinessYet => 'آپ نے ابھی تک کوئی کاروبار درج نہیں کیا';
 
   @override
-  String get listBusinessIntro => 'اپنی خدمات درج کریں اور پورے کشمیر کے گاہکوں تک پہنچیں۔';
+  String get listBusinessIntro =>
+      'اپنی خدمات درج کریں اور پورے کشمیر کے گاہکوں تک پہنچیں۔';
 
   @override
   String get listMyBusiness => 'میرا کاروبار درج کریں';
@@ -206,19 +210,24 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get snackRevealedNoBalance => 'رابطہ ظاہر ہو گیا، لیکن آپ کا کریڈٹ بیلنس اپ ڈیٹ نہیں ہو سکا۔';
+  String get snackRevealedNoBalance =>
+      'رابطہ ظاہر ہو گیا، لیکن آپ کا کریڈٹ بیلنس اپ ڈیٹ نہیں ہو سکا۔';
 
   @override
-  String get snackNotEnoughCredits => 'کریڈٹس کم ہیں۔ کریڈٹس کمانے کے لیے اشتہار دیکھیں۔';
+  String get snackNotEnoughCredits =>
+      'کریڈٹس کم ہیں۔ کریڈٹس کمانے کے لیے اشتہار دیکھیں۔';
 
   @override
-  String get snackCouldNotReveal => 'رابطہ ظاہر نہیں کیا جا سکا۔ دوبارہ کوشش کریں۔';
+  String get snackCouldNotReveal =>
+      'رابطہ ظاہر نہیں کیا جا سکا۔ دوبارہ کوشش کریں۔';
 
   @override
-  String get snackNetworkError => 'نیٹ ورک کی خرابی۔ براہِ کرم دوبارہ کوشش کریں۔';
+  String get snackNetworkError =>
+      'نیٹ ورک کی خرابی۔ براہِ کرم دوبارہ کوشش کریں۔';
 
   @override
-  String get snackSessionExpiredLeads => 'آپ کا سیشن ختم ہو گیا ہے، اس لیے لیڈز لوڈ نہیں ہو سکیں۔ براہِ کرم دوبارہ سائن اِن کریں۔';
+  String get snackSessionExpiredLeads =>
+      'آپ کا سیشن ختم ہو گیا ہے، اس لیے لیڈز لوڈ نہیں ہو سکیں۔ براہِ کرم دوبارہ سائن اِن کریں۔';
 
   @override
   String snackCouldntRefreshLeads(String detail) {
@@ -279,7 +288,8 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String providerCount(int count) {
-    final intl.NumberFormat countNumberFormat = intl.NumberFormat.decimalPattern(localeName);
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
     final String countString = countNumberFormat.format(count);
 
     String _temp0 = intl.Intl.pluralLogic(
@@ -298,7 +308,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get noProvidersFound => 'کوئی فراہم کنندہ نہیں ملا';
 
   @override
-  String get noSavedProviders => 'آپ نے یہاں ابھی تک کوئی فراہم کنندہ محفوظ نہیں کیا۔';
+  String get noSavedProviders =>
+      'آپ نے یہاں ابھی تک کوئی فراہم کنندہ محفوظ نہیں کیا۔';
 
   @override
   String get tryDifferentSearch => 'کوئی اور تلاش آزمائیں یا فلٹر تبدیل کریں۔';
@@ -387,10 +398,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get snackNoCreditsNoAds => 'نہ کریڈٹس ہیں نہ اشتہار۔ بعد میں دیکھیں۔';
 
   @override
-  String get snackNotEnoughAfterAd => 'اشتہار کے بعد بھی کریڈٹس کم ہیں۔ براہِ کرم دوبارہ کوشش کریں۔';
+  String get snackNotEnoughAfterAd =>
+      'اشتہار کے بعد بھی کریڈٹس کم ہیں۔ براہِ کرم دوبارہ کوشش کریں۔';
 
   @override
-  String get snackCouldNotUnlock => 'رابطہ ان لاک نہیں ہو سکا۔ براہِ کرم دوبارہ کوشش کریں۔';
+  String get snackCouldNotUnlock =>
+      'رابطہ ان لاک نہیں ہو سکا۔ براہِ کرم دوبارہ کوشش کریں۔';
 
   @override
   String get contactUnlocked => 'رابطہ ان لاک ہو گیا!';
@@ -490,7 +503,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get updateBusinessInfo => 'اپنے کاروبار کی معلومات اپ ڈیٹ کریں';
 
   @override
-  String get getBusinessListed => 'اپنے کاروبار کو KonnectKashmir پر درج کروائیں';
+  String get getBusinessListed =>
+      'اپنے کاروبار کو KonnectKashmir پر درج کروائیں';
 
   @override
   String get businessDetails => 'کاروبار کی تفصیلات';
@@ -502,7 +516,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get businessNameHint => 'مثلاً، احمد پلمبنگ سروس';
 
   @override
-  String get serviceCategoriesLabel => 'سروس کیٹیگریز * (زیادہ سے زیادہ 3 منتخب کریں)';
+  String get serviceCategoriesLabel =>
+      'سروس کیٹیگریز * (زیادہ سے زیادہ 3 منتخب کریں)';
 
   @override
   String get selectUpTo3 => 'زیادہ سے زیادہ 3 کیٹیگریز منتخب کریں';
@@ -558,7 +573,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get acceptOnlinePayment => 'آن لائن ادائیگی قبول کریں';
 
   @override
-  String get listingReviewNote => 'آپ کی لسٹنگ کا 24-48 گھنٹوں میں جائزہ لیا جائے گا';
+  String get listingReviewNote =>
+      'آپ کی لسٹنگ کا 24-48 گھنٹوں میں جائزہ لیا جائے گا';
 
   @override
   String get submit => 'جمع کریں';
@@ -570,13 +586,15 @@ class AppLocalizationsUr extends AppLocalizations {
   String get pleaseSelectOption => 'براہِ کرم ایک آپشن منتخب کریں';
 
   @override
-  String get selectAtLeastOneService => 'براہِ کرم کم از کم ایک سروس منتخب کریں';
+  String get selectAtLeastOneService =>
+      'براہِ کرم کم از کم ایک سروس منتخب کریں';
 
   @override
   String get fillRequiredFields => 'براہِ کرم تمام ضروری فیلڈز پُر کریں';
 
   @override
-  String get networkCheckConnection => 'نیٹ ورک کی خرابی۔ براہِ کرم اپنا کنکشن چیک کریں۔';
+  String get networkCheckConnection =>
+      'نیٹ ورک کی خرابی۔ براہِ کرم اپنا کنکشن چیک کریں۔';
 
   @override
   String get successTitle => 'کامیابی';
@@ -591,7 +609,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get businessUpdatedMsg => 'آپ کا کاروبار کامیابی سے اپ ڈیٹ ہو گیا ہے!';
 
   @override
-  String get businessSubmittedMsg => 'آپ کی کاروباری لسٹنگ جائزے کے لیے جمع ہو گئی ہے!';
+  String get businessSubmittedMsg =>
+      'آپ کی کاروباری لسٹنگ جائزے کے لیے جمع ہو گئی ہے!';
 
   @override
   String get yourBalance => 'آپ کا بیلنس';
@@ -657,7 +676,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get noTransactionsYet => 'ابھی کوئی لین دین نہیں';
 
   @override
-  String get noTransactionsHint => 'آپ کے کمائے یا خرچ کیے گئے کریڈٹس یہاں نظر آئیں گے۔';
+  String get noTransactionsHint =>
+      'آپ کے کمائے یا خرچ کیے گئے کریڈٹس یہاں نظر آئیں گے۔';
 
   @override
   String get errNameRequired => 'براہِ کرم اپنا پورا نام درج کریں';
@@ -666,13 +686,15 @@ class AppLocalizationsUr extends AppLocalizations {
   String get errNameShort => 'نام کم از کم 2 حروف کا ہونا چاہیے';
 
   @override
-  String get errRequestTimeout => 'درخواست کا وقت ختم ہو گیا۔ براہِ کرم دوبارہ کوشش کریں۔';
+  String get errRequestTimeout =>
+      'درخواست کا وقت ختم ہو گیا۔ براہِ کرم دوبارہ کوشش کریں۔';
 
   @override
   String get completeYourProfile => 'اپنی پروفائل مکمل کریں';
 
   @override
-  String get enterNameToContinue => 'KonnectKashmir کا استعمال جاری رکھنے کے لیے اپنا نام درج کریں';
+  String get enterNameToContinue =>
+      'KonnectKashmir کا استعمال جاری رکھنے کے لیے اپنا نام درج کریں';
 
   @override
   String get yourFullName => 'آپ کا پورا نام';
@@ -681,7 +703,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get enterFullName => 'اپنا پورا نام درج کریں';
 
   @override
-  String get visibleToVendors => 'جب آپ وینڈرز سے رابطہ کریں گے تو یہ انہیں نظر آئے گا';
+  String get visibleToVendors =>
+      'جب آپ وینڈرز سے رابطہ کریں گے تو یہ انہیں نظر آئے گا';
 
   @override
   String get backToHome => 'ہوم پر واپس';
@@ -789,19 +812,24 @@ class AppLocalizationsUr extends AppLocalizations {
   String get deenQiblaAligned => 'آپ کا رخ قبلے کی طرف ہے';
 
   @override
-  String get deenQiblaHint => 'فون کو سیدھا پکڑیں اور تیر کے قبلے کی طرف آنے تک گھمائیں۔';
+  String get deenQiblaHint =>
+      'فون کو سیدھا پکڑیں اور تیر کے قبلے کی طرف آنے تک گھمائیں۔';
 
   @override
-  String get deenCompassMissing => 'اس فون میں کمپاس دستیاب نہیں۔ اوپر دیا گیا زاویہ کمپاس کے ساتھ استعمال کریں۔';
+  String get deenCompassMissing =>
+      'اس فون میں کمپاس دستیاب نہیں۔ اوپر دیا گیا زاویہ کمپاس کے ساتھ استعمال کریں۔';
 
   @override
-  String get deenLocationOff => 'نماز کے اوقات اور قبلے کی سمت دیکھنے کے لیے لوکیشن آن کریں';
+  String get deenLocationOff =>
+      'نماز کے اوقات اور قبلے کی سمت دیکھنے کے لیے لوکیشن آن کریں';
 
   @override
-  String get deenLocationDenied => 'نماز کے اوقات اور قبلے کی سمت کے لیے لوکیشن کی اجازت درکار ہے';
+  String get deenLocationDenied =>
+      'نماز کے اوقات اور قبلے کی سمت کے لیے لوکیشن کی اجازت درکار ہے';
 
   @override
-  String get deenLocationBlocked => 'لوکیشن بند ہے۔ ایپ کی سیٹنگز سے اجازت دیں۔';
+  String get deenLocationBlocked =>
+      'لوکیشن بند ہے۔ ایپ کی سیٹنگز سے اجازت دیں۔';
 
   @override
   String get deenAllowLocation => 'لوکیشن کی اجازت دیں';
@@ -889,10 +917,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get calcMethod => 'حساب کا طریقہ';
 
   @override
-  String get prayerSettingsInfo => 'مسلک عصر کا وقت طے کرتا ہے۔ حساب کا طریقہ فلکیاتی حساب (فجر، عشاء وغیرہ) طے کرتا ہے۔';
+  String get prayerSettingsInfo =>
+      'مسلک عصر کا وقت طے کرتا ہے۔ حساب کا طریقہ فلکیاتی حساب (فجر، عشاء وغیرہ) طے کرتا ہے۔';
 
   @override
-  String get prayerSettingsJafariNote => 'جعفری کے لیے جعفری طریقۂ حساب استعمال ہوتا ہے۔';
+  String get prayerSettingsJafariNote =>
+      'جعفری کے لیے جعفری طریقۂ حساب استعمال ہوتا ہے۔';
 
   @override
   String get doneLabel => 'ہو گیا';
@@ -918,10 +948,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get deleteAccountTitle => 'اپنا اکاؤنٹ حذف کریں؟';
 
   @override
-  String get deleteAccountMsg => 'اس سے آپ کا اکاؤنٹ، آپ کے کاروبار، لیڈز اور کریڈٹس ہمیشہ کے لیے حذف ہو جائیں گے۔ اسے واپس نہیں کیا جا سکتا۔';
+  String get deleteAccountMsg =>
+      'اس سے آپ کا اکاؤنٹ، آپ کے کاروبار، لیڈز اور کریڈٹس ہمیشہ کے لیے حذف ہو جائیں گے۔ اسے واپس نہیں کیا جا سکتا۔';
 
   @override
-  String get deleteAccountFailed => 'ابھی آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہِ کرم info@konnectkashmir.com پر ای میل کریں، ہم اسے حذف کر دیں گے۔';
+  String get deleteAccountFailed =>
+      'ابھی آپ کا اکاؤنٹ حذف نہیں ہو سکا۔ براہِ کرم info@konnectkashmir.com پر ای میل کریں، ہم اسے حذف کر دیں گے۔';
 
   @override
   String get filterLabel => 'فلٹر';
@@ -930,19 +962,23 @@ class AppLocalizationsUr extends AppLocalizations {
   String get textSize => 'متن کا سائز';
 
   @override
-  String get deleteAccountEnterPhone => 'تصدیق کے لیے اپنا رجسٹرڈ فون نمبر درج کریں';
+  String get deleteAccountEnterPhone =>
+      'تصدیق کے لیے اپنا رجسٹرڈ فون نمبر درج کریں';
 
   @override
-  String get deleteAccountDone => 'اکاؤنٹ کامیابی سے حذف ہو گیا۔ آپ کسی بھی وقت دوبارہ سائن اپ کر سکتے ہیں۔';
+  String get deleteAccountDone =>
+      'اکاؤنٹ کامیابی سے حذف ہو گیا۔ آپ کسی بھی وقت دوبارہ سائن اپ کر سکتے ہیں۔';
 
   @override
-  String get deleteAccountBadPhone => 'اس اکاؤنٹ کا 10 ہندسوں کا فون نمبر درج کریں۔';
+  String get deleteAccountBadPhone =>
+      'اس اکاؤنٹ کا 10 ہندسوں کا فون نمبر درج کریں۔';
 
   @override
   String get watchAdsTitle => 'کریڈٹ کمانے کے لیے اشتہار دیکھیں';
 
   @override
-  String get watchAdsSubtitle => 'مفت کریڈٹ کمانے کے لیے ایک مختصر ویڈیو دیکھیں';
+  String get watchAdsSubtitle =>
+      'مفت کریڈٹ کمانے کے لیے ایک مختصر ویڈیو دیکھیں';
 
   @override
   String plusCredits(int count) {
@@ -998,7 +1034,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get replaceAddressTitle => 'پتہ تبدیل کریں؟';
 
   @override
-  String get replaceAddressBody => 'اس سے آپ کا لکھا ہوا پتہ اور میپ لوکیشن تبدیل ہو جائے گا۔';
+  String get replaceAddressBody =>
+      'اس سے آپ کا لکھا ہوا پتہ اور میپ لوکیشن تبدیل ہو جائے گا۔';
 
   @override
   String get replaceLabel => 'تبدیل کریں';
@@ -1007,10 +1044,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get addressLocationOff => 'اپنا پتہ بھرنے کے لیے لوکیشن آن کریں';
 
   @override
-  String get addressLocationDenied => 'اپنا پتہ بھرنے کے لیے لوکیشن کی اجازت درکار ہے۔ اسے فون کی سیٹنگز میں دیں۔';
+  String get addressLocationDenied =>
+      'اپنا پتہ بھرنے کے لیے لوکیشن کی اجازت درکار ہے۔ اسے فون کی سیٹنگز میں دیں۔';
 
   @override
-  String get addressNotFound => 'اس جگہ کا پتہ نہیں ملا۔ میپ پن محفوظ ہو گیا ہے، براہِ کرم پتہ خود لکھیں۔';
+  String get addressNotFound =>
+      'اس جگہ کا پتہ نہیں ملا۔ میپ پن محفوظ ہو گیا ہے، براہِ کرم پتہ خود لکھیں۔';
 
   @override
   String get couldntOpenMap => 'گوگل میپس نہیں کھل سکا';
@@ -1120,7 +1159,8 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get prayerAlarmNotifBlocked => 'Konnect Kashmir کے لیے نوٹیفکیشنز بند ہیں، اس لیے الارم نہیں بج سکتے۔';
+  String get prayerAlarmNotifBlocked =>
+      'Konnect Kashmir کے لیے نوٹیفکیشنز بند ہیں، اس لیے الارم نہیں بج سکتے۔';
 
   @override
   String get prayerAlarmAllowNotifications => 'نوٹیفکیشنز کی اجازت دیں';
@@ -1129,28 +1169,33 @@ class AppLocalizationsUr extends AppLocalizations {
   String get prayerAlarmOpenSettings => 'سیٹنگز کھولیں';
 
   @override
-  String get prayerAlarmExactOff => 'درست الارم کی اجازت بند ہے، اس لیے جب تک آپ اجازت نہیں دیتے، نماز الارم شاید نہ بجیں۔';
+  String get prayerAlarmExactOff =>
+      'درست الارم کی اجازت بند ہے، اس لیے جب تک آپ اجازت نہیں دیتے، نماز الارم شاید نہ بجیں۔';
 
   @override
   String get prayerAlarmAllowExact => 'درست الارم کی اجازت دیں';
 
   @override
-  String get prayerAlarmNoLocation => 'ایک بار لوکیشن کی اجازت دیں تاکہ آپ کی جگہ کے مطابق نماز کے اوقات نکالے جا سکیں۔';
+  String get prayerAlarmNoLocation =>
+      'ایک بار لوکیشن کی اجازت دیں تاکہ آپ کی جگہ کے مطابق نماز کے اوقات نکالے جا سکیں۔';
 
   @override
-  String get prayerAlarmNoTimes => 'نماز کے اوقات ابھی لوڈ نہیں ہو سکے۔ انٹرنیٹ سے جڑ کر دوبارہ کوشش کریں۔';
+  String get prayerAlarmNoTimes =>
+      'نماز کے اوقات ابھی لوڈ نہیں ہو سکے۔ انٹرنیٹ سے جڑ کر دوبارہ کوشش کریں۔';
 
   @override
   String get prayerAlarmNoRoom => 'اس فون میں مزید الارم کے لیے جگہ نہیں بچی۔';
 
   @override
-  String get prayerAlarmFooter => 'بیپ آپ کے فون کی آواز، سائلنٹ موڈ اور ڈو ناٹ ڈسٹرب کی سیٹنگز کے مطابق چلتی ہے۔';
+  String get prayerAlarmFooter =>
+      'بیپ آپ کے فون کی آواز، سائلنٹ موڈ اور ڈو ناٹ ڈسٹرب کی سیٹنگز کے مطابق چلتی ہے۔';
 
   @override
   String get prayerAlarmRefresh => 'الارم تازہ کریں';
 
   @override
-  String get prayerAlarmFailed => 'کچھ الارم سیٹ نہیں ہو سکے۔ “الارم تازہ کریں” دبا کر دیکھیں۔';
+  String get prayerAlarmFailed =>
+      'کچھ الارم سیٹ نہیں ہو سکے۔ “الارم تازہ کریں” دبا کر دیکھیں۔';
 
   @override
   String get shareBusiness => 'شیئر کریں';
@@ -1186,7 +1231,8 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get shareBusinessFailed => 'شیئر کی ونڈو نہیں کھل سکی۔ براہ کرم دوبارہ کوشش کریں۔';
+  String get shareBusinessFailed =>
+      'شیئر کی ونڈو نہیں کھل سکی۔ براہ کرم دوبارہ کوشش کریں۔';
 
   @override
   String get sharedBusinessTitle => 'آپ کے ساتھ شیئر کیا گیا';
@@ -1225,7 +1271,8 @@ class AppLocalizationsUr extends AppLocalizations {
   String get detailsDirections => 'راستہ';
 
   @override
-  String get detailsLocked => 'فون نمبر اور مکمل پتہ دیکھنے کے لیے اس کاروبار کا رابطہ انلاک کریں۔';
+  String get detailsLocked =>
+      'فون نمبر اور مکمل پتہ دیکھنے کے لیے اس کاروبار کا رابطہ انلاک کریں۔';
 
   @override
   String get detailsReviews => 'ریویوز';
@@ -1270,13 +1317,15 @@ class AppLocalizationsUr extends AppLocalizations {
   String get prayerAlarmExactDialogTitle => 'درست الارم کی اجازت دیں';
 
   @override
-  String get prayerAlarmExactDialogBody => 'ٹھیک نماز کے وقت پر بجنے کے لیے Android کو درست الارم کی آپ کی اجازت چاہیے۔ اس کے بغیر نماز الارم دیر سے بج سکتے ہیں یا بج ہی نہیں سکتے۔\n\n“اجازت دیں” دبائیں، پھر اگلی اسکرین پر Konnect Kashmir کو آن کریں۔';
+  String get prayerAlarmExactDialogBody =>
+      'ٹھیک نماز کے وقت پر بجنے کے لیے Android کو درست الارم کی آپ کی اجازت چاہیے۔ اس کے بغیر نماز الارم دیر سے بج سکتے ہیں یا بج ہی نہیں سکتے۔\n\n“اجازت دیں” دبائیں، پھر اگلی اسکرین پر Konnect Kashmir کو آن کریں۔';
 
   @override
   String get prayerAlarmGrantPermission => 'اجازت دیں';
 
   @override
-  String get prayerAlarmExactStillNeeded => 'نماز الارم ٹھیک وقت پر بجیں، اس کے لیے درست الارم کی اجازت ابھی بھی چاہیے۔';
+  String get prayerAlarmExactStillNeeded =>
+      'نماز الارم ٹھیک وقت پر بجیں، اس کے لیے درست الارم کی اجازت ابھی بھی چاہیے۔';
 
   @override
   String get prayerAlarmWarningTooltip => 'نماز الارم کو اجازت چاہیے';
@@ -1285,22 +1334,26 @@ class AppLocalizationsUr extends AppLocalizations {
   String get prayerAlarmNotifDialogTitle => 'نوٹیفکیشنز کی اجازت دیں';
 
   @override
-  String get prayerAlarmNotifDialogBody => '“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز (اور آواز) آن کریں۔';
+  String get prayerAlarmNotifDialogBody =>
+      '“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز (اور آواز) آن کریں۔';
 
   @override
   String get prayerAlarmNotSetTooltip => 'نماز الارم سیٹ نہیں ہو سکے';
 
   @override
-  String get prayerAlarmNotifBlockedAndroid => 'Konnect Kashmir کے “Prayer alarms” نوٹیفکیشنز بند یا خاموش ہیں، اس لیے بیپ نہیں بج سکتی۔';
+  String get prayerAlarmNotifBlockedAndroid =>
+      'Konnect Kashmir کے “Prayer alarms” نوٹیفکیشنز بند یا خاموش ہیں، اس لیے بیپ نہیں بج سکتی۔';
 
   @override
-  String get prayerAlarmNotifDialogBodyAndroid => '“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز میں “Prayer alarms” آن کریں۔';
+  String get prayerAlarmNotifDialogBodyAndroid =>
+      '“سیٹنگز کھولیں” دبائیں، پھر نوٹیفکیشنز میں “Prayer alarms” آن کریں۔';
 
   @override
   String get blockedTitle => 'اکاؤنٹ بلاک ہے';
 
   @override
-  String get blockedBody => 'غلط استعمال یا پالیسی کی خلاف ورزی کی وجہ سے آپ کا اکاؤنٹ بلاک کر دیا گیا ہے۔';
+  String get blockedBody =>
+      'غلط استعمال یا پالیسی کی خلاف ورزی کی وجہ سے آپ کا اکاؤنٹ بلاک کر دیا گیا ہے۔';
 
   @override
   String blockedReason(String reason) {
@@ -1308,7 +1361,8 @@ class AppLocalizationsUr extends AppLocalizations {
   }
 
   @override
-  String get blockedContactHelp => 'اگر آپ کو لگتا ہے کہ یہ غلطی ہے تو براہ کرم سپورٹ سے رابطہ کریں۔';
+  String get blockedContactHelp =>
+      'اگر آپ کو لگتا ہے کہ یہ غلطی ہے تو براہ کرم سپورٹ سے رابطہ کریں۔';
 
   @override
   String get blockedContactButton => 'سپورٹ سے رابطہ کریں';
