@@ -109,3 +109,65 @@ List<PlannedAlarm> planAlarms({
   final all = byId.values.toList()..sort((a, b) => a.at.compareTo(b.at));
   return all.length <= maxAlarms ? all : all.sublist(0, maxAlarms);
 }
+
+/// What a prayer alarm says besides the prayer time once the planned days are
+/// nearly used up. The alarms reach only as far as the plan does, and nothing can
+/// add more until the app is opened, so the last ones ask the user to open it.
+enum AlarmReminder {
+  /// The prayer's own notification and nothing more.
+  none,
+
+  /// The second-last day, one alarm (Dhuhr): the alarms end tomorrow.
+  endsTomorrow,
+
+  /// The last day, every alarm: the alarms end today.
+  endsToday,
+
+  /// The very last alarm: no more will sound until the app is opened.
+  last,
+}
+
+/// The day an alarm belongs to, as days since 1970 (the id holds it).
+int alarmDayOf(PlannedAlarm a) => (a.id - kPrayerIdBase) ~/ 8;
+
+/// The reminders for a plan (alarm id to reminder; alarms with none are left out).
+///
+/// They are counted back from the end of the plan, not from today: the plan is
+/// made again every time the app opens, so they only ever sound when the app has
+/// not been opened for the whole window.
+///
+/// * One alarm on the second-last day: Dhuhr, or the next prayer that day the
+///   user has on if Dhuhr is off.
+/// * Every alarm on the last day.
+/// * The last alarm of all, which replaces the one above for it.
+Map<int, AlarmReminder> planReminders(List<PlannedAlarm> plan) {
+  if (plan.isEmpty) return const {};
+  var lastDay = alarmDayOf(plan.first);
+  var finalAlarm = plan.first;
+  for (final a in plan) {
+    if (alarmDayOf(a) > lastDay) lastDay = alarmDayOf(a);
+    if (a.at.isAfter(finalAlarm.at)) finalAlarm = a;
+  }
+
+  final out = <int, AlarmReminder>{};
+  for (final a in plan) {
+    if (alarmDayOf(a) == lastDay) out[a.id] = AlarmReminder.endsToday;
+  }
+  out[finalAlarm.id] = AlarmReminder.last;
+
+  final dayBefore = plan.where((a) => alarmDayOf(a) == lastDay - 1);
+  for (final p in const [
+    Prayer.dhuhr,
+    Prayer.asr,
+    Prayer.maghrib,
+    Prayer.isha,
+    Prayer.fajr,
+  ]) {
+    final hit = dayBefore.where((a) => a.prayer == p);
+    if (hit.isNotEmpty) {
+      out[hit.first.id] = AlarmReminder.endsTomorrow;
+      break;
+    }
+  }
+  return out;
+}

@@ -25,6 +25,8 @@ import 'prayer_alarm_sheet.dart';
 import 'prayer_service.dart';
 import 'quran_screens.dart';
 import 'quran_service.dart';
+import 'weather_card.dart';
+import 'weather_service.dart';
 
 /// Deen: prayer times, Qibla, Quran, audio and duas.
 class DeenTab extends StatefulWidget {
@@ -54,6 +56,9 @@ class _DeenTabState extends State<DeenTab> {
   LocationProblem? _problem;
   String? _error;
   bool _loading = true;
+  WeatherNow? _weather; // the weather card; null until there is a reading
+  String? _weatherCell; // the area that reading is for
+  int _weatherReq = 0; // ignores answers to older requests
 
   StreamSubscription<CompassEvent>? _compassSub;
   // Updated many times a second; only the compass listens, not the whole page.
@@ -128,7 +133,7 @@ class _DeenTabState extends State<DeenTab> {
 
   // ── Location, prayer times, Qibla ──────────────────────────────────────────
 
-  Future<void> _bootstrap({bool ask = true}) async {
+  Future<void> _bootstrap({bool ask = true, bool refresh = false}) async {
     setState(() {
       _loading = _day == null;
       _problem = null;
@@ -164,6 +169,7 @@ class _DeenTabState extends State<DeenTab> {
             _loading = false;
           }
         });
+        if (!refresh) _loadWeather(known.lat, known.lng);
         PrayerService.placeName(known.lat, known.lng).then((n) {
           if (mounted && n != null) setState(() => _place = n);
         });
@@ -177,7 +183,8 @@ class _DeenTabState extends State<DeenTab> {
         _qibla = qiblaBearing(pos.latitude, pos.longitude);
       });
 
-      // Place name never holds up the prayer times.
+      // Neither do the weather, nor the place name, hold up the prayer times.
+      _loadWeather(pos.latitude, pos.longitude, force: refresh);
       PrayerService.placeName(pos.latitude, pos.longitude).then((n) {
         if (mounted && n != null) setState(() => _place = n);
       });
@@ -212,6 +219,27 @@ class _DeenTabState extends State<DeenTab> {
         _loading = false;
       });
     }
+  }
+
+  /// The weather card: the saved reading at once, then a new one if it is due.
+  /// A failed request leaves the card as it is.
+  Future<void> _loadWeather(double lat, double lng, {bool force = false}) async {
+    final req = ++_weatherReq;
+    final cell = WeatherService.cell(lat, lng);
+    final saved = await WeatherService.cached(lat, lng);
+    if (!mounted || req != _weatherReq) return;
+    if (cell != _weatherCell) {
+      // Another place: the old place's reading does not apply.
+      setState(() {
+        _weatherCell = cell;
+        _weather = saved;
+      });
+    } else if (saved != null && _weather == null) {
+      setState(() => _weather = saved);
+    }
+    final fresh = await WeatherService.fetch(lat, lng, force: force);
+    if (!mounted || req != _weatherReq) return;
+    if (fresh != null) setState(() => _weather = fresh);
   }
 
   // ── Compass ────────────────────────────────────────────────────────────────
@@ -316,7 +344,7 @@ class _DeenTabState extends State<DeenTab> {
           constraints: const BoxConstraints(maxWidth: 760),
           child: RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () => _bootstrap(),
+            onRefresh: () => _bootstrap(refresh: true),
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
@@ -330,6 +358,10 @@ class _DeenTabState extends State<DeenTab> {
                 ],
                 _prayerCard(),
                 const SizedBox(height: 14),
+                if (_weather != null && _problem == null) ...[
+                  _DeenCard(child: WeatherCardBody(weather: _weather!)),
+                  const SizedBox(height: 14),
+                ],
                 _tiles(),
                 const SizedBox(height: 14),
                 _continueCard(),

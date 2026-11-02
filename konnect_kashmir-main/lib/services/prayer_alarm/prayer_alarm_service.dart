@@ -106,6 +106,15 @@ typedef LocationLookup =
 typedef AlarmText =
     ({String title, String body}) Function(Prayer prayer, String lang);
 
+/// The title and text of a prayer alarm that also asks the user to open the app
+/// (see [AlarmReminder]), in the app language [lang].
+typedef AlarmReminderText =
+    ({String title, String body}) Function(
+      Prayer prayer,
+      AlarmReminder reminder,
+      String lang,
+    );
+
 /// Keeps the alarms topped up while the app is closed, where the system allows it.
 abstract class PrayerAlarmMaintenance {
   Future<void> sync({required bool enabled});
@@ -120,6 +129,9 @@ abstract class PrayerAlarmMaintenance {
 /// alone, wrong or out-of-date ones are cancelled, missing ones are added. Only
 /// notifications in the prayer-alarm id block are ever touched.
 ///
+/// The alarms of the last two planned days also ask the user to open the app (see
+/// [planReminders]), so they are told before the alarms run out and not after.
+///
 /// The limit that cannot be removed: once the planned days run out, nothing on
 /// the phone can add more until the app runs again (Android also tries once or
 /// twice a day in the background; iOS does not).
@@ -131,6 +143,7 @@ class PrayerAlarmService {
     DateTime Function()? clock,
     Future<String> Function()? language,
     AlarmText? text,
+    AlarmReminderText? reminderText,
     this.maintenance,
     this.windowDays = kDefaultWindowDays,
     this.iosReserve = 14,
@@ -141,7 +154,8 @@ class PrayerAlarmService {
        _location = location ?? _defaultLocation,
        _clock = clock ?? DateTime.now,
        _language = language ?? _defaultLanguage,
-       _text = text ?? _defaultText;
+       _text = text ?? _defaultText,
+       _reminderText = reminderText ?? _defaultReminderText;
 
   static final PrayerAlarmService instance = PrayerAlarmService();
 
@@ -151,6 +165,7 @@ class PrayerAlarmService {
   final DateTime Function() _clock;
   final Future<String> Function() _language;
   final AlarmText _text;
+  final AlarmReminderText _reminderText;
 
   /// Set by the app to keep the alarms topped up in the background (Android).
   PrayerAlarmMaintenance? maintenance;
@@ -580,28 +595,37 @@ class PrayerAlarmService {
 
     final lang = _languageNow ?? await _language();
     final texts = {for (final p in Prayer.values) p: _text(p, lang)};
+    // The last days' alarms also ask the user to open the app.
+    final reminders = planReminders(plan);
+    ({String title, String body}) textOf(PlannedAlarm a) {
+      final r = reminders[a.id];
+      return r == null ? texts[a.prayer]! : _reminderText(a.prayer, r, lang);
+    }
+
     String payloadOf(PlannedAlarm a) => jsonEncode({
       'type': 'prayer_alarm',
       'prayer': a.prayer.name,
       'at': a.at.millisecondsSinceEpoch,
       'lang': lang,
+      if (reminders[a.id] != null) 'reminder': reminders[a.id]!.name,
     });
 
     final byId = {for (final a in plan) a.id: a};
     final kept = <int>{};
     for (final o in owned) {
       final a = byId[o.id];
+      final text = a == null ? null : textOf(a);
       final same =
           a != null &&
           o.payload == payloadOf(a) &&
-          o.title == texts[a.prayer]!.title &&
-          o.body == texts[a.prayer]!.body;
+          o.title == text!.title &&
+          o.body == text.body;
       if (same) {
         kept.add(o.id);
       } else {
         await _cancel(
           o.id,
-        ); // switched off, moved, past, or in another language
+        ); // switched off, moved, past, in another language, or its reminder changed
       }
     }
 
@@ -613,8 +637,8 @@ class PrayerAlarmService {
         await scheduler.schedule(
           id: a.id,
           at: a.at,
-          title: texts[a.prayer]!.title,
-          body: texts[a.prayer]!.body,
+          title: textOf(a).title,
+          body: textOf(a).body,
           payload: payloadOf(a),
         );
         added++;
@@ -717,22 +741,45 @@ class PrayerAlarmService {
     return 'en';
   }
 
+  static String _prayerName(AppLocalizations l, Prayer prayer) =>
+      switch (prayer) {
+        Prayer.fajr => l.prayerFajr,
+        Prayer.dhuhr => l.prayerDhuhr,
+        Prayer.asr => l.prayerAsr,
+        Prayer.maghrib => l.prayerMaghrib,
+        Prayer.isha => l.prayerIsha,
+      };
+
   static ({String title, String body}) _defaultText(
     Prayer prayer,
     String lang,
+  ) => _defaultReminderText(prayer, AlarmReminder.none, lang);
+
+  static ({String title, String body}) _defaultReminderText(
+    Prayer prayer,
+    AlarmReminder reminder,
+    String lang,
   ) {
     final l = lookupAppLocalizations(Locale(lang));
-    final name = switch (prayer) {
-      Prayer.fajr => l.prayerFajr,
-      Prayer.dhuhr => l.prayerDhuhr,
-      Prayer.asr => l.prayerAsr,
-      Prayer.maghrib => l.prayerMaghrib,
-      Prayer.isha => l.prayerIsha,
+    final name = _prayerName(l, prayer);
+    return switch (reminder) {
+      AlarmReminder.none => (
+        title: l.prayerAlarmNotifTitle(name),
+        body: l.prayerAlarmNotifBody(name),
+      ),
+      AlarmReminder.endsTomorrow => (
+        title: l.prayerAlarmNotifTitle(name),
+        body: l.prayerAlarmNotifEndsTomorrow(name),
+      ),
+      AlarmReminder.endsToday => (
+        title: l.prayerAlarmNotifTitle(name),
+        body: l.prayerAlarmNotifEndsToday(name),
+      ),
+      AlarmReminder.last => (
+        title: l.prayerAlarmNotifLastTitle,
+        body: l.prayerAlarmNotifLastBody(name),
+      ),
     };
-    return (
-      title: l.prayerAlarmNotifTitle(name),
-      body: l.prayerAlarmNotifBody(name),
-    );
   }
 }
 

@@ -9,6 +9,7 @@ import 'package:konnect_kashmir/l10n/l10n.dart';
 import 'package:konnect_kashmir/providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/deen/deen_tab.dart';
 import 'package:konnect_kashmir/screens/deen/prayer_service.dart';
+import 'package:konnect_kashmir/screens/deen/weather_service.dart';
 import 'package:konnect_kashmir/screens/main_shell.dart';
 import 'package:konnect_kashmir/services/prayer_alarm/prayer_alarm_service.dart';
 import 'package:konnect_kashmir/services/live_sync.dart';
@@ -101,7 +102,12 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(_saved());
     MainShell.tabRequest.value = null;
+    // No weather reading is saved here and there is no network: the card stays away.
+    WeatherService.reset();
+    WeatherService.get = (_) async => throw Exception('offline');
   });
+
+  tearDown(WeatherService.reset);
 
   group('the Deen screen shows the real saved data in the new layout', () {
     testWidgets('light theme', (tester) async {

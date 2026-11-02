@@ -249,21 +249,10 @@ class _PrayerAlarmSheetState extends State<PrayerAlarmSheet> {
               color: AppColors.success,
               icon: Icons.check_circle_rounded,
             ),
-          // Under the switch, on or off: the alarms are planned for a limited
-          // number of days and need the app to be opened to carry on.
-          Padding(
-            padding: const EdgeInsetsDirectional.only(
-              start: 32,
-              top: 2,
-              bottom: 6,
-            ),
-            child: Text(
-              l.prayerAlarmValidDays(_svc.windowDays),
-              style: TextStyle(fontSize: AppText.caption, color: muted),
-            ),
-          ),
+          // (How long the alarms last is not written here: the last two days' alarms
+          // themselves ask the user to open the app, see planReminders.)
           if (on) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               l.prayerAlarmFooter,
               style: TextStyle(fontSize: AppText.caption, color: muted),

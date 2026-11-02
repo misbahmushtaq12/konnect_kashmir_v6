@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:konnect_kashmir/screens/deen/prayer_service.dart';
 import 'package:konnect_kashmir/services/prayer_alarm/prayer_alarm_planner.dart';
@@ -30,7 +32,7 @@ class _FakeMaintenance implements PrayerAlarmMaintenance {
 
 /// A phone, an Aladhan, a place and a clock, and a service wired to them.
 class _Rig {
-  _Rig({int? limit, FakeAladhan? api})
+  _Rig({int? limit, FakeAladhan? api, bool realTexts = false})
     : scheduler = FakeAlarmScheduler(limit: limit),
       api = api ?? FakeAladhan() {
     now = _start;
@@ -43,7 +45,11 @@ class _Rig {
       },
       clock: () => now,
       language: () async => lang,
-      text: (p, l) => (title: '$l:${p.name}', body: 'Time for ${p.name}'),
+      // realTexts: the app's own words (the tests above and below read stand-ins).
+      text: realTexts ? null : (p, l) => (title: '$l:${p.name}', body: 'Time for ${p.name}'),
+      reminderText: realTexts
+          ? null
+          : (p, r, l) => (title: '$l:${p.name}', body: 'Time for ${p.name} [${r.name}]'),
       maintenance: maintenance,
     );
   }
@@ -1130,4 +1136,180 @@ void main() {
       },
     );
   });
+
+  group('the last days ask the user to open the app', () {
+    Map<String, dynamic> payload(PendingAlarm a) => jsonDecode(a.payload!) as Map<String, dynamic>;
+
+    /// "11/2 isha": the day on the Indian clock and the prayer.
+    String label(PendingAlarm a) {
+      final t = FakeAlarmScheduler.atOf(a).add(const Duration(hours: 5, minutes: 30));
+      return '${t.month}/${t.day} ${FakeAlarmScheduler.prayerOf(a)}';
+    }
+
+    Map<String, String> marked(_Rig rig) => {
+      for (final a in rig.scheduler.alarms)
+        if (payload(a)['reminder'] != null) label(a): payload(a)['reminder'] as String,
+    };
+
+    test('Dhuhr on the second-last day, all five of the last day, and the last alarm', () async {
+      final rig = _Rig();
+      await rig.service.setEnabled(true);
+      expect(rig.scheduler.alarms.length, 49, reason: 'no extra notifications');
+      expect(marked(rig), {
+        '11/1 dhuhr': 'endsTomorrow',
+        '11/2 fajr': 'endsToday',
+        '11/2 dhuhr': 'endsToday',
+        '11/2 asr': 'endsToday',
+        '11/2 maghrib': 'endsToday',
+        '11/2 isha': 'last',
+      });
+      final byLabel = {for (final a in rig.scheduler.alarms) label(a): a};
+      expect(byLabel['11/1 dhuhr']!.body, 'Time for dhuhr [endsTomorrow]');
+      expect(byLabel['11/2 isha']!.body, 'Time for isha [last]');
+      // The other forty-three are the plain prayer alarms.
+      expect(byLabel['11/1 asr']!.body, 'Time for asr');
+      expect(byLabel['10/24 dhuhr']!.body, 'Time for dhuhr');
+    });
+
+    test('planning again with nothing changed sets and cancels nothing', () async {
+      final rig = _Rig();
+      await rig.running();
+      await rig.service.refresh(reason: 'test');
+      expect(rig.scheduler.scheduleCalls, isEmpty);
+      expect(rig.scheduler.cancelCalls, isEmpty);
+    });
+
+    test('a day later the window has moved, and so have the reminders', () async {
+      final rig = _Rig();
+      await rig.running();
+      rig.now = _start.add(const Duration(days: 1));
+      await rig.service.refresh(reason: 'test');
+      expect(rig.scheduler.alarms.length, 49);
+      expect(marked(rig), {
+        '11/2 dhuhr': 'endsTomorrow',
+        '11/3 fajr': 'endsToday',
+        '11/3 dhuhr': 'endsToday',
+        '11/3 asr': 'endsToday',
+        '11/3 maghrib': 'endsToday',
+        '11/3 isha': 'last',
+      });
+      // What was a reminder before is a plain prayer alarm again.
+      final byLabel = {for (final a in rig.scheduler.alarms) label(a): a};
+      expect(byLabel['11/1 dhuhr']!.body, 'Time for dhuhr');
+      expect(byLabel['11/2 isha']!.body, 'Time for isha');
+      expect(rig.alarmIds.length, 49, reason: 'never two alarms for one prayer');
+    });
+
+    test('opening the app on the last day plans ten more days with no reminder left over', () async {
+      final rig = _Rig();
+      await rig.running();
+      rig.now = _ist(2026, 11, 2, 6); // the morning of the last day
+      await rig.service.refresh(reason: 'opened');
+      final pending = rig.scheduler.alarms;
+      expect(pending.length, greaterThan(40));
+      // The old reminders (1 and 2 November) are gone; the new ones are at the new end.
+      expect(marked(rig).keys.any((k) => k.startsWith('11/1 ') || k.startsWith('11/2 ')), isFalse);
+      expect(marked(rig).values.where((r) => r == 'last'), hasLength(1));
+      expect(
+        label(pending.last),
+        marked(rig).entries.firstWhere((e) => e.value == 'last').key,
+      );
+    });
+
+    test('the last alarm is the last one even with the iPhone limit', () async {
+      final rig = _Rig(limit: 64);
+      await rig.service.setEnabled(true);
+      final alarms = rig.scheduler.alarms;
+      expect(alarms.length, 49); // today's four and nine days, inside the 50 left of 64
+      expect(payload(alarms.last)['reminder'], 'last');
+      expect(marked(rig).values.where((r) => r == 'last'), hasLength(1));
+    });
+
+    for (final lang in ['en', 'hi', 'ur']) {
+      test("the app's own words are there in $lang", () async {
+        final rig = _Rig(realTexts: true)..lang = lang;
+        await rig.service.setEnabled(true);
+        final alarms = rig.scheduler.alarms;
+        PendingAlarm one(String reminder) =>
+            alarms.firstWhere((a) => payload(a)['reminder'] == reminder);
+        final plain = alarms.firstWhere((a) => payload(a)['reminder'] == null);
+        final tomorrow = one('endsTomorrow');
+        final today = one('endsToday');
+        final last = one('last');
+
+        for (final a in [plain, tomorrow, today, last]) {
+          expect(a.title, isNotEmpty);
+          expect(a.body, isNotEmpty);
+        }
+        // The first two still announce the prayer; the last one says the alarms ended.
+        expect(tomorrow.title, isNot(last.title));
+        expect(last.title, isNot(plain.title));
+        expect({plain.body, tomorrow.body, today.body, last.body}, hasLength(4));
+        // Each says which prayer it is.
+        expect(alarms.where((a) => a.body!.contains('{')), isEmpty);
+        // The action comes first: a collapsed notification only shows the start.
+        final marks = {
+          'en': ['open', "it's time"],
+          'hi': ['खोलें', 'वक़्त'],
+          'ur': ['کھولیں', 'وقت'],
+        }[lang]!;
+        for (final a in [tomorrow, today, last]) {
+          final body = a.body!.toLowerCase();
+          expect(body.indexOf(marks[0]), isNonNegative, reason: a.body);
+          expect(body.indexOf(marks[0]), lessThan(body.indexOf(marks[1])), reason: a.body);
+        }
+      });
+    }
+
+    test('in English, word for word', () async {
+      final rig = _Rig(realTexts: true);
+      await rig.service.setEnabled(true);
+      final byLabel = {for (final a in rig.scheduler.alarms) label(a): a};
+
+      expect(byLabel['10/24 dhuhr']!.title, 'Dhuhr prayer time');
+      expect(byLabel['10/24 dhuhr']!.body, "It's time for Dhuhr prayer.");
+
+      final nineth = byLabel['11/1 dhuhr']!;
+      expect(nineth.title, 'Dhuhr prayer time');
+      expect(
+        nineth.body,
+        "Prayer alarms end tomorrow: open the app to keep them going. It's time for Dhuhr prayer.",
+      );
+
+      final tenth = byLabel['11/2 fajr']!;
+      expect(tenth.title, 'Fajr prayer time');
+      expect(
+        tenth.body,
+        "Prayer alarms end today: open the app to keep them going. It's time for Fajr prayer.",
+      );
+
+      final last = byLabel['11/2 isha']!;
+      expect(last.title, 'Prayer alarms have ended');
+      expect(
+        last.body,
+        "Open Konnect Kashmir to continue: you won't get prayer notifications now. It's time for Isha prayer.",
+      );
+    });
+
+    test('"open the app" is in the first 45 characters, where a collapsed notification still shows it', () async {
+      final rig = _Rig(realTexts: true);
+      await rig.service.setEnabled(true);
+      final reminders = rig.scheduler.alarms.where((a) => payload(a)['reminder'] != null).toList();
+      expect(reminders, hasLength(6));
+      for (final a in reminders) {
+        expect(a.body!.substring(0, 45).toLowerCase(), contains('open'), reason: a.body);
+        expect(a.body!.indexOf("It's time for"), greaterThan(a.body!.toLowerCase().indexOf('open')));
+      }
+    });
+
+    test('a tap on a reminder still opens the app the usual way (same type of payload)', () async {
+      final rig = _Rig();
+      await rig.service.setEnabled(true);
+      for (final a in rig.scheduler.alarms) {
+        expect(payload(a)['type'], 'prayer_alarm');
+        expect(payload(a)['prayer'], isNotNull);
+      }
+    });
+  });
+
 }

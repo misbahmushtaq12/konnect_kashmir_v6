@@ -1135,6 +1135,24 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
+  String prayerAlarmNotifEndsTomorrow(String prayer) {
+    return 'नमाज़ अलार्म कल खत्म हो जाएंगे: इन्हें चालू रखने के लिए ऐप खोलें। $prayer की नमाज़ का वक़्त हो गया है।';
+  }
+
+  @override
+  String prayerAlarmNotifEndsToday(String prayer) {
+    return 'नमाज़ अलार्म आज खत्म हो जाएंगे: इन्हें चालू रखने के लिए ऐप खोलें। $prayer की नमाज़ का वक़्त हो गया है।';
+  }
+
+  @override
+  String get prayerAlarmNotifLastTitle => 'नमाज़ अलार्म खत्म हो गए';
+
+  @override
+  String prayerAlarmNotifLastBody(String prayer) {
+    return 'जारी रखने के लिए Konnect Kashmir खोलें: अब आपको नमाज़ की सूचनाएं नहीं मिलेंगी। $prayer की नमाज़ का वक़्त हो गया है।';
+  }
+
+  @override
   String get prayerAlarmNotifBlocked =>
       'Konnect Kashmir के लिए नोटिफ़िकेशन बंद हैं, इसलिए अलार्म नहीं बज सकते।';
 
@@ -1173,11 +1191,6 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get prayerAlarmFailed =>
       'कुछ अलार्म सेट नहीं हो सके। “अलार्म ताज़ा करें” दबाकर देखें।';
-
-  @override
-  String prayerAlarmValidDays(int days) {
-    return 'अलार्म एक बार में $days दिन के लिए सेट होते हैं। उसके बाद उन्हें चालू रखने के लिए ऐप खोलें।';
-  }
 
   @override
   String get shareBusiness => 'शेयर करें';
@@ -1352,4 +1365,62 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get blockedContactButton => 'सहायता से संपर्क करें';
+
+  @override
+  String get deenWeather => 'मौसम';
+
+  @override
+  String weatherFeelsLike(String temp) {
+    return 'महसूस होता है $temp';
+  }
+
+  @override
+  String get weatherHumidity => 'नमी';
+
+  @override
+  String get weatherWind => 'हवा';
+
+  @override
+  String weatherWindValue(String speed) {
+    return '$speed किमी/घंटा';
+  }
+
+  @override
+  String get weatherSunrise => 'सूर्योदय';
+
+  @override
+  String get weatherSunset => 'सूर्यास्त';
+
+  @override
+  String get weatherClear => 'साफ़ आसमान';
+
+  @override
+  String get weatherPartlyCloudy => 'आंशिक बादल';
+
+  @override
+  String get weatherCloudy => 'बादल छाए';
+
+  @override
+  String get weatherDrizzle => 'बूंदाबांदी';
+
+  @override
+  String get weatherRain => 'बारिश';
+
+  @override
+  String get weatherThunderstorm => 'गरज के साथ बारिश';
+
+  @override
+  String get weatherSnow => 'बर्फ़बारी';
+
+  @override
+  String get weatherFog => 'कोहरा';
+
+  @override
+  String get weatherHaze => 'धुंध';
+
+  @override
+  String get weatherDust => 'धूल';
+
+  @override
+  String get weatherStorm => 'तेज़ हवाएं';
 }

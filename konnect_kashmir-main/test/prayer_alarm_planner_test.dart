@@ -312,4 +312,117 @@ void main() {
       expect(prayerZoneFor('Asia/Kolkata', Duration.zero), isA<TzPrayerZone>());
     });
   });
+
+  group('planReminders (the last days ask the user to open the app)', () {
+    // 07:30 on 24 October on the Indian clock: the plan runs to 2 November.
+    final start = DateTime.utc(2026, 10, 24, 2);
+    final cal = _calendar(DateTime.utc(2026, 10, 24), 20);
+
+    /// "11/2 isha": the day on the Indian clock and the prayer.
+    String label(PlannedAlarm a) {
+      final d = _ist.dateOf(a.at);
+      return '${d.m}/${d.d} ${a.prayer.name}';
+    }
+
+    Map<String, AlarmReminder> marked(List<PlannedAlarm> plan) {
+      final r = planReminders(plan);
+      return {
+        for (final a in plan)
+          if (r[a.id] != null) label(a): r[a.id]!,
+      };
+    }
+
+    test('an empty plan has none', () {
+      expect(planReminders(const []), isEmpty);
+    });
+
+    test('a full ten-day plan: Dhuhr the day before, all of the last day, the last alarm', () {
+      final plan = _plan(start, cal);
+      expect(plan.length, 49);
+      expect(marked(plan), {
+        '11/1 dhuhr': AlarmReminder.endsTomorrow,
+        '11/2 fajr': AlarmReminder.endsToday,
+        '11/2 dhuhr': AlarmReminder.endsToday,
+        '11/2 asr': AlarmReminder.endsToday,
+        '11/2 maghrib': AlarmReminder.endsToday,
+        '11/2 isha': AlarmReminder.last,
+      });
+    });
+
+    test('with Dhuhr off, the next prayer of that day carries the heads-up', () {
+      final plan = _plan(start, cal,
+          enabled: {Prayer.fajr, Prayer.asr, Prayer.maghrib, Prayer.isha});
+      expect(marked(plan)['11/1 asr'], AlarmReminder.endsTomorrow);
+      expect(marked(plan).values.where((r) => r == AlarmReminder.endsTomorrow), hasLength(1));
+    });
+
+    test('with one prayer on, it is the heads-up the day before and the last alarm', () {
+      final plan = _plan(start, cal, enabled: {Prayer.isha});
+      expect(marked(plan), {
+        '11/1 isha': AlarmReminder.endsTomorrow,
+        '11/2 isha': AlarmReminder.last,
+      });
+    });
+
+    test('when the plan is cut short, the reminders count back from where it ends', () {
+      final plan = _plan(start, cal, max: 12); // today's 4, then 5, then 3
+      expect(plan.last.prayer, Prayer.asr);
+      expect(marked(plan), {
+        '10/25 dhuhr': AlarmReminder.endsTomorrow,
+        '10/26 fajr': AlarmReminder.endsToday,
+        '10/26 dhuhr': AlarmReminder.endsToday,
+        '10/26 asr': AlarmReminder.last,
+      });
+    });
+
+    test('a plan of one day has no heads-up, and ends with the last alarm', () {
+      final plan = _plan(start, cal, window: 1); // dhuhr, asr, maghrib, isha
+      expect(plan.length, 4);
+      expect(marked(plan), {
+        '10/24 dhuhr': AlarmReminder.endsToday,
+        '10/24 asr': AlarmReminder.endsToday,
+        '10/24 maghrib': AlarmReminder.endsToday,
+        '10/24 isha': AlarmReminder.last,
+      });
+    });
+
+    test('a day the calendar has no times for gives no heads-up', () {
+      final days = Map<String, List<String>>.of(cal.days)..remove(dayKey(2026, 11, 1));
+      final plan = _plan(start, PrayerCalendar(days: days));
+      final r = marked(plan);
+      expect(r.values.where((x) => x == AlarmReminder.endsTomorrow), isEmpty);
+      expect(r['11/2 isha'], AlarmReminder.last);
+      expect(r['11/2 fajr'], AlarmReminder.endsToday);
+    });
+
+    test('a calendar that ends early moves the reminders earlier', () {
+      // Only to 28 October: that is where the alarms end, so that is where they ask.
+      final plan = _plan(start, _calendar(DateTime.utc(2026, 10, 24), 5));
+      final r = marked(plan);
+      expect(r['10/27 dhuhr'], AlarmReminder.endsTomorrow);
+      expect(r['10/28 isha'], AlarmReminder.last);
+    });
+
+    test('an Isha that falls after midnight stays with its day and is the last alarm', () {
+      final plan = _plan(
+        start,
+        _calendar(DateTime.utc(2026, 10, 24), 20,
+            times: const ['05:10', '12:15', '15:30', '17:45', '00:20']),
+        window: 3,
+      );
+      final last = plan.last;
+      expect(last.prayer, Prayer.isha);
+      final r = planReminders(plan);
+      expect(r[last.id], AlarmReminder.last);
+      // Same row (26 October) as the rest of the last day.
+      expect(r.values.where((x) => x == AlarmReminder.endsToday), hasLength(4));
+      expect(r.values.where((x) => x == AlarmReminder.endsTomorrow), hasLength(1));
+    });
+
+    test('the same plan always gives the same reminders', () {
+      final plan = _plan(start, cal);
+      expect(planReminders(plan), planReminders(List.of(plan)));
+    });
+  });
+
 }

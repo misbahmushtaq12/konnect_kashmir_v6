@@ -121,13 +121,9 @@ void main() {
 
     expect(find.text('Prayer alarms'), findsOneWidget);
     expect(find.text('Beep at prayer times'), findsOneWidget);
-    // The 10-day note is there before the alarms are switched on.
-    expect(
-      find.text(
-        'Alarms are set for 10 days at a time. After that, open the app to keep them going.',
-      ),
-      findsOneWidget,
-    );
+    // The "set for 10 days" note is gone: the last days' alarms say it themselves.
+    expect(find.textContaining('10 days'), findsNothing);
+    expect(find.textContaining('keep them going'), findsNothing);
     expect(find.byType(Switch), findsOneWidget);
     expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
     expect(find.text('Fajr'), findsNothing);
@@ -584,18 +580,16 @@ void main() {
   );
 
   testWidgets(
-    'the footer is honest about silent mode and the app being opened',
+    'the footer is honest about silent mode, and there is no "10 days" note',
     (tester) async {
       _phone(tester);
       await _open(tester, _service(FakeAlarmScheduler()));
       await tester.tap(find.byType(Switch));
       await _settle(tester);
       expect(find.textContaining('Do Not Disturb'), findsOneWidget);
-      // Still one note about the 10 days once the alarms are on.
-      expect(
-        find.textContaining('open the app to keep them going'),
-        findsOneWidget,
-      );
+      // Nor once the alarms are on.
+      expect(find.textContaining('10 days'), findsNothing);
+      expect(find.textContaining('keep them going'), findsNothing);
     },
   );
 

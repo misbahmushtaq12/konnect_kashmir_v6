@@ -2044,6 +2044,30 @@ abstract class AppLocalizations {
   /// **'It\'s time for {prayer} prayer.'**
   String prayerAlarmNotifBody(String prayer);
 
+  /// No description provided for @prayerAlarmNotifEndsTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer alarms end tomorrow: open the app to keep them going. It\'s time for {prayer} prayer.'**
+  String prayerAlarmNotifEndsTomorrow(String prayer);
+
+  /// No description provided for @prayerAlarmNotifEndsToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer alarms end today: open the app to keep them going. It\'s time for {prayer} prayer.'**
+  String prayerAlarmNotifEndsToday(String prayer);
+
+  /// No description provided for @prayerAlarmNotifLastTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Prayer alarms have ended'**
+  String get prayerAlarmNotifLastTitle;
+
+  /// No description provided for @prayerAlarmNotifLastBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Konnect Kashmir to continue: you won\'t get prayer notifications now. It\'s time for {prayer} prayer.'**
+  String prayerAlarmNotifLastBody(String prayer);
+
   /// No description provided for @prayerAlarmNotifBlocked.
   ///
   /// In en, this message translates to:
@@ -2109,12 +2133,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Some alarms could not be set. Try Refresh alarms.'**
   String get prayerAlarmFailed;
-
-  /// No description provided for @prayerAlarmValidDays.
-  ///
-  /// In en, this message translates to:
-  /// **'Alarms are set for {days} days at a time. After that, open the app to keep them going.'**
-  String prayerAlarmValidDays(int days);
 
   /// No description provided for @shareBusiness.
   ///
@@ -2391,6 +2409,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact support'**
   String get blockedContactButton;
+
+  /// No description provided for @deenWeather.
+  ///
+  /// In en, this message translates to:
+  /// **'Weather'**
+  String get deenWeather;
+
+  /// No description provided for @weatherFeelsLike.
+  ///
+  /// In en, this message translates to:
+  /// **'Feels like {temp}'**
+  String weatherFeelsLike(String temp);
+
+  /// No description provided for @weatherHumidity.
+  ///
+  /// In en, this message translates to:
+  /// **'Humidity'**
+  String get weatherHumidity;
+
+  /// No description provided for @weatherWind.
+  ///
+  /// In en, this message translates to:
+  /// **'Wind'**
+  String get weatherWind;
+
+  /// No description provided for @weatherWindValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed} km/h'**
+  String weatherWindValue(String speed);
+
+  /// No description provided for @weatherSunrise.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunrise'**
+  String get weatherSunrise;
+
+  /// No description provided for @weatherSunset.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunset'**
+  String get weatherSunset;
+
+  /// No description provided for @weatherClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear sky'**
+  String get weatherClear;
+
+  /// No description provided for @weatherPartlyCloudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Partly cloudy'**
+  String get weatherPartlyCloudy;
+
+  /// No description provided for @weatherCloudy.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloudy'**
+  String get weatherCloudy;
+
+  /// No description provided for @weatherDrizzle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drizzle'**
+  String get weatherDrizzle;
+
+  /// No description provided for @weatherRain.
+  ///
+  /// In en, this message translates to:
+  /// **'Rain'**
+  String get weatherRain;
+
+  /// No description provided for @weatherThunderstorm.
+  ///
+  /// In en, this message translates to:
+  /// **'Thunderstorm'**
+  String get weatherThunderstorm;
+
+  /// No description provided for @weatherSnow.
+  ///
+  /// In en, this message translates to:
+  /// **'Snow'**
+  String get weatherSnow;
+
+  /// No description provided for @weatherFog.
+  ///
+  /// In en, this message translates to:
+  /// **'Fog'**
+  String get weatherFog;
+
+  /// No description provided for @weatherHaze.
+  ///
+  /// In en, this message translates to:
+  /// **'Haze'**
+  String get weatherHaze;
+
+  /// No description provided for @weatherDust.
+  ///
+  /// In en, this message translates to:
+  /// **'Dust'**
+  String get weatherDust;
+
+  /// No description provided for @weatherStorm.
+  ///
+  /// In en, this message translates to:
+  /// **'Stormy winds'**
+  String get weatherStorm;
 }
 
 class _AppLocalizationsDelegate

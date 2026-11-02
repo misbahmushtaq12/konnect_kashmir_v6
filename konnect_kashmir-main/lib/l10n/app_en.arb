@@ -489,6 +489,25 @@
       "prayer": {"type": "String"}
     }
   },
+  "prayerAlarmNotifEndsTomorrow": "Prayer alarms end tomorrow: open the app to keep them going. It's time for {prayer} prayer.",
+  "@prayerAlarmNotifEndsTomorrow": {
+    "placeholders": {
+      "prayer": {"type": "String"}
+    }
+  },
+  "prayerAlarmNotifEndsToday": "Prayer alarms end today: open the app to keep them going. It's time for {prayer} prayer.",
+  "@prayerAlarmNotifEndsToday": {
+    "placeholders": {
+      "prayer": {"type": "String"}
+    }
+  },
+  "prayerAlarmNotifLastTitle": "Prayer alarms have ended",
+  "prayerAlarmNotifLastBody": "Open Konnect Kashmir to continue: you won't get prayer notifications now. It's time for {prayer} prayer.",
+  "@prayerAlarmNotifLastBody": {
+    "placeholders": {
+      "prayer": {"type": "String"}
+    }
+  },
   "prayerAlarmNotifBlocked": "Notifications are off for Konnect Kashmir, so the alarms cannot sound.",
   "prayerAlarmAllowNotifications": "Allow notifications",
   "prayerAlarmOpenSettings": "Open settings",
@@ -500,12 +519,6 @@
   "prayerAlarmFooter": "The beep follows your phone's volume, silent mode and Do Not Disturb settings.",
   "prayerAlarmRefresh": "Refresh alarms",
   "prayerAlarmFailed": "Some alarms could not be set. Try Refresh alarms.",
-  "prayerAlarmValidDays": "Alarms are set for {days} days at a time. After that, open the app to keep them going.",
-  "@prayerAlarmValidDays": {
-    "placeholders": {
-      "days": {"type": "int"}
-    }
-  },
   "shareBusiness": "Share",
   "shareBusinessIntro": "Check out {name} on Konnect Kashmir",
   "@shareBusinessIntro": {
@@ -602,5 +615,33 @@
     }
   },
   "blockedContactHelp": "If you think this is a mistake, please contact support.",
-  "blockedContactButton": "Contact support"
+  "blockedContactButton": "Contact support",
+  "deenWeather": "Weather",
+  "weatherFeelsLike": "Feels like {temp}",
+  "@weatherFeelsLike": {
+    "placeholders": {
+      "temp": {"type": "String"}
+    }
+  },
+  "weatherHumidity": "Humidity",
+  "weatherWind": "Wind",
+  "weatherWindValue": "{speed} km/h",
+  "@weatherWindValue": {
+    "placeholders": {
+      "speed": {"type": "String"}
+    }
+  },
+  "weatherSunrise": "Sunrise",
+  "weatherSunset": "Sunset",
+  "weatherClear": "Clear sky",
+  "weatherPartlyCloudy": "Partly cloudy",
+  "weatherCloudy": "Cloudy",
+  "weatherDrizzle": "Drizzle",
+  "weatherRain": "Rain",
+  "weatherThunderstorm": "Thunderstorm",
+  "weatherSnow": "Snow",
+  "weatherFog": "Fog",
+  "weatherHaze": "Haze",
+  "weatherDust": "Dust",
+  "weatherStorm": "Stormy winds"
 }

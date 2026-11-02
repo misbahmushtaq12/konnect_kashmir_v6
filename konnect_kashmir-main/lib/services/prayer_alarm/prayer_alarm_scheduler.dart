@@ -129,7 +129,10 @@ class LocalAlarmScheduler implements AlarmScheduler {
       PendingAlarm(r.id, r.title, r.body, r.payload),
   ];
 
-  NotificationDetails get _details => const NotificationDetails(
+  /// [body] is also the big text, so a longer message (the last days ask the user
+  /// to open the app) is shown whole when the notification is opened out, not cut
+  /// to one line.
+  NotificationDetails _details(String body) => NotificationDetails(
     android: AndroidNotificationDetails(
       kPrayerChannelId,
       'Prayer alarms',
@@ -137,12 +140,13 @@ class LocalAlarmScheduler implements AlarmScheduler {
       importance: Importance.high,
       priority: Priority.high,
       playSound: true,
-      sound: RawResourceAndroidNotificationSound(kPrayerSoundAndroid),
+      sound: const RawResourceAndroidNotificationSound(kPrayerSoundAndroid),
       category: AndroidNotificationCategory.reminder,
       icon: '@drawable/ic_notification',
-      color: Color(0xFF339985),
+      color: const Color(0xFF339985),
+      styleInformation: BigTextStyleInformation(body),
     ),
-    iOS: DarwinNotificationDetails(
+    iOS: const DarwinNotificationDetails(
       presentAlert: true,
       presentSound: true,
       presentBadge: false,
@@ -168,7 +172,7 @@ class LocalAlarmScheduler implements AlarmScheduler {
       body: body,
       payload: payload,
       scheduledDate: when,
-      notificationDetails: _details,
+      notificationDetails: _details(body),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
     );
   }

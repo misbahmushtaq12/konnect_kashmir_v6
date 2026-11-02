@@ -1135,6 +1135,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String prayerAlarmNotifEndsTomorrow(String prayer) {
+    return 'Prayer alarms end tomorrow: open the app to keep them going. It\'s time for $prayer prayer.';
+  }
+
+  @override
+  String prayerAlarmNotifEndsToday(String prayer) {
+    return 'Prayer alarms end today: open the app to keep them going. It\'s time for $prayer prayer.';
+  }
+
+  @override
+  String get prayerAlarmNotifLastTitle => 'Prayer alarms have ended';
+
+  @override
+  String prayerAlarmNotifLastBody(String prayer) {
+    return 'Open Konnect Kashmir to continue: you won\'t get prayer notifications now. It\'s time for $prayer prayer.';
+  }
+
+  @override
   String get prayerAlarmNotifBlocked =>
       'Notifications are off for Konnect Kashmir, so the alarms cannot sound.';
 
@@ -1173,11 +1191,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get prayerAlarmFailed =>
       'Some alarms could not be set. Try Refresh alarms.';
-
-  @override
-  String prayerAlarmValidDays(int days) {
-    return 'Alarms are set for $days days at a time. After that, open the app to keep them going.';
-  }
 
   @override
   String get shareBusiness => 'Share';
@@ -1353,4 +1366,62 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blockedContactButton => 'Contact support';
+
+  @override
+  String get deenWeather => 'Weather';
+
+  @override
+  String weatherFeelsLike(String temp) {
+    return 'Feels like $temp';
+  }
+
+  @override
+  String get weatherHumidity => 'Humidity';
+
+  @override
+  String get weatherWind => 'Wind';
+
+  @override
+  String weatherWindValue(String speed) {
+    return '$speed km/h';
+  }
+
+  @override
+  String get weatherSunrise => 'Sunrise';
+
+  @override
+  String get weatherSunset => 'Sunset';
+
+  @override
+  String get weatherClear => 'Clear sky';
+
+  @override
+  String get weatherPartlyCloudy => 'Partly cloudy';
+
+  @override
+  String get weatherCloudy => 'Cloudy';
+
+  @override
+  String get weatherDrizzle => 'Drizzle';
+
+  @override
+  String get weatherRain => 'Rain';
+
+  @override
+  String get weatherThunderstorm => 'Thunderstorm';
+
+  @override
+  String get weatherSnow => 'Snow';
+
+  @override
+  String get weatherFog => 'Fog';
+
+  @override
+  String get weatherHaze => 'Haze';
+
+  @override
+  String get weatherDust => 'Dust';
+
+  @override
+  String get weatherStorm => 'Stormy winds';
 }
