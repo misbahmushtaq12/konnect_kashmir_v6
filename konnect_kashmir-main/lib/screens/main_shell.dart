@@ -149,11 +149,9 @@ class _MainShellState extends State<MainShell> {
                 : const SizedBox.shrink(),
           ],
         ),
-        // The Deen tab has its own full-screen layout and no bottom bar; its
-        // header has a back arrow to Home (and Android's back button does the same).
-        bottomNavigationBar: _index == MainShell.tabDeen
-            ? null
-            : Container(
+        // The bottom bar is on every tab, Deen included. (Deen's header keeps its
+        // back arrow to Home, and Android's back button does the same.)
+        bottomNavigationBar: Container(
           decoration: BoxDecoration(
             border: Border(
                 top: BorderSide(color: cs.onSurface.withValues(alpha: 0.08))),

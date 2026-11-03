@@ -310,8 +310,14 @@ void main() {
   });
 
   group('the bottom bar', () {
-    testWidgets('is hidden on Deen only, and the arrow goes back to Home',
-        (tester) async {
+    // The bar's own item (the Deen screen has a "Home" arrow and a "Deen" title too).
+    Finder item(String label) =>
+        find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
+
+    int selected(WidgetTester tester) =>
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
+
+    testWidgets('is on every tab, Deen included', (tester) async {
       _phone(tester);
       await tester.pumpWidget(_app(const MainShell(), theme: AppTheme.light));
       await _settle(tester);
@@ -319,21 +325,98 @@ void main() {
       // Home: the bar is there, with its four items.
       expect(find.byType(NavigationBar), findsOneWidget);
       expect(find.byType(NavigationDestination), findsNWidgets(4));
+      expect(selected(tester), MainShell.tabHome);
 
-      // Open Deen as a tapped notification or link would.
+      // Open Deen as a tapped notification or link would: the bar stays.
       MainShell.tabRequest.value = MainShell.tabDeen;
       await _settle(tester);
       expect(find.byType(DeenTab), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
-      expect(find.text('Deen'), findsWidgets);
-
-      // The header arrow returns to Home, and the bar comes back.
-      await tester.tap(find.byTooltip('Home'));
-      await _settle(tester);
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-          MainShell.tabHome);
+      expect(find.byType(NavigationDestination), findsNWidgets(4));
+      expect(selected(tester), MainShell.tabDeen, reason: 'Deen is the selected item');
+      for (final label in ['Home', 'My Business', 'Deen', 'Profile']) {
+        expect(item(label), findsOneWidget, reason: label);
+      }
+      expect(find.text('Prayer Times'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('on Deen: the bar sits below the page, nothing is hidden behind it',
+        (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_app(const MainShell(), theme: AppTheme.light));
+      MainShell.tabRequest.value = MainShell.tabDeen;
+      await _settle(tester);
+
+      final bar = tester.getRect(find.byType(NavigationBar));
+      final deen = tester.getRect(find.byType(DeenTab));
+      expect(deen.bottom, lessThanOrEqualTo(bar.top + 0.5), reason: 'the page ends where the bar starts');
+      expect(bar.bottom, closeTo(tester.view.physicalSize.height / tester.view.devicePixelRatio, 0.5));
+    });
+
+    testWidgets('the header arrow still goes back to Home', (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_app(const MainShell(), theme: AppTheme.light));
+      MainShell.tabRequest.value = MainShell.tabDeen;
+      await _settle(tester);
+
+      await tester.tap(find.descendant(of: find.byType(DeenTab), matching: find.byTooltip('Home')));
+      await _settle(tester);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(selected(tester), MainShell.tabHome);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets("the bar's Home takes you home from Deen, and its Deen item comes back",
+        (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_app(const MainShell(), theme: AppTheme.light));
+      MainShell.tabRequest.value = MainShell.tabDeen;
+      await _settle(tester);
+
+      await tester.tap(item('Home'));
+      await _settle(tester);
+      expect(selected(tester), MainShell.tabHome);
+
+      await tester.tap(item('Deen'));
+      await _settle(tester);
+      expect(selected(tester), MainShell.tabDeen);
+      expect(find.text('Prayer Times'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets("Android's back button on Deen goes to Home", (tester) async {
+      _phone(tester);
+      await tester.pumpWidget(_app(const MainShell(), theme: AppTheme.light));
+      MainShell.tabRequest.value = MainShell.tabDeen;
+      await _settle(tester);
+
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+      expect(selected(tester), MainShell.tabHome);
+    });
+
+    for (final (name, w, h, scale, dark) in [
+      ('a small phone with large text', 320.0, 568.0, 1.6, false),
+      ('the dark theme', 360.0, 800.0, 1.0, true),
+      ('very large text', 360.0, 800.0, 2.0, true),
+    ]) {
+      testWidgets('Deen with the bar fits: $name', (tester) async {
+        _phone(tester, w: w, h: h);
+        await tester.pumpWidget(_app(const MainShell(),
+            theme: dark ? AppTheme.dark : AppTheme.light, textScale: scale));
+        MainShell.tabRequest.value = MainShell.tabDeen;
+        await _settle(tester);
+        expect(find.byType(NavigationBar), findsOneWidget);
+        expect(find.byType(DeenTab), findsOneWidget);
+        // The page scrolls to its end above the bar.
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+        await _settle(tester);
+        expect(find.text('Continue Reading'), findsOneWidget);
+        expect(tester.getBottomLeft(find.text('Continue Reading')).dy,
+            lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top));
+        expect(tester.takeException(), isNull, reason: 'no overflow');
+      });
+    }
   });
 }

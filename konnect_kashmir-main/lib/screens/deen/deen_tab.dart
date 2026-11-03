@@ -34,8 +34,8 @@ class DeenTab extends StatefulWidget {
   /// then to save battery).
   final bool isActive;
 
-  /// Back to Home. The bottom bar is hidden on this tab, so the header has a
-  /// back arrow that calls this.
+  /// Back to Home: the header's back arrow calls this (the bottom bar's Home does
+  /// the same).
   final VoidCallback? onBack;
   const DeenTab({super.key, this.isActive = true, this.onBack});
 
@@ -391,8 +391,7 @@ class _DeenTabState extends State<DeenTab> {
   }
 
   /// A compact top line (back arrow, logo, place, credits), then the title and
-  /// the greeting. The bottom bar is hidden on this tab, so the arrow is the way
-  /// back to Home.
+  /// the greeting.
   Widget _header() {
     final cs = Theme.of(context).colorScheme;
     final l = context.l10n;
