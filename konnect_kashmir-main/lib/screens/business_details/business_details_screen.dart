@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
 import '../../l10n/l10n.dart';
 import '../../services/app_analytics.dart';
+import '../../services/business_photos/photo_images.dart';
 import '../../services/business_share.dart';
 import '../../services/map_link.dart';
 import '../../theme/app_theme.dart';
@@ -15,6 +17,7 @@ import '../../widgets/category_meta.dart';
 import '../../widgets/error_retry.dart';
 import '../../widgets/share_business_button.dart';
 import 'business_details_host.dart';
+import 'business_photo_gallery.dart';
 
 /// The route to a business's details. It is the app's normal page route, so it
 /// has the app's background and the same page transition as every other screen.
@@ -94,6 +97,10 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
   List<Map<String, dynamic>> _reviews = const [];
   bool _allReviews = false;
 
+  /// The business's photos (signed links to the watermarked copies).
+  List<GalleryPhoto> _photos = const [];
+  bool _photosLoading = true;
+
   /// The card's data with the full record laid over it.
   Map<String, dynamic>? get _v {
     final a = widget.vendor;
@@ -110,7 +117,13 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(() {
-      final show = _scroll.hasClients && _scroll.offset > 220;
+      final show =
+          _scroll.hasClients &&
+          _scroll.offset >
+              _galleryHeight(context) -
+                  kToolbarHeight -
+                  MediaQuery.paddingOf(context).top -
+                  8;
       if (show != _titleShown) setState(() => _titleShown = show);
     });
     // Known already (the list asked for them): shown in the very first frame.
@@ -182,6 +195,24 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
       _host.source.reviews(_id).then<void>((r) {
         if (mounted) setState(() => _reviews = r);
       }, onError: (Object _) {}),
+      _host.source
+          .photos(_id, refresh: force)
+          .then<void>(
+            (list) {
+              if (!mounted) return;
+              setState(() {
+                _photos = [
+                  for (final p in list)
+                    if (p.forGallery != null) p.forGallery!,
+                ];
+                _photosLoading = false;
+              });
+            },
+            // Could not ask: the placeholder (or the older photos) stay.
+            onError: (Object _) {
+              if (mounted) setState(() => _photosLoading = false);
+            },
+          ),
     ]);
   }
 
@@ -208,6 +239,21 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
     return out;
   }
 
+  /// What the carousel shows: the business's photos; for a record that has none,
+  /// the older `logo_url` / `gallery_urls` when it has them.
+  List<GalleryPhoto> _galleryPhotos(Map<String, dynamic> v) =>
+      _photos.isNotEmpty
+      ? _photos
+      : [for (final u in _urls(v)) GalleryPhoto(cacheKey: u, url: u)];
+
+  /// The carousel is as tall as the screen is wide (a bit less), behind the status
+  /// bar and the app bar, which sit on top of it.
+  double _galleryHeight(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final shown = (size.width * 0.9).clamp(260.0, size.height * 0.5).toDouble();
+    return shown + MediaQuery.paddingOf(context).top;
+  }
+
   double? get _average {
     final r = [
       for (final x in _reviews)
@@ -226,8 +272,17 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
       builder: (context, _) {
         final v = _v;
         final name = v == null ? '' : _text(v['business_name']);
+        final overPhotos = v != null && !_titleShown;
         return Scaffold(
+          // With the details loaded the photos reach the top of the screen and
+          // the app bar is drawn over them; once scrolled it gets its own colour.
+          extendBodyBehindAppBar: v != null,
           appBar: AppBar(
+            backgroundColor: _titleShown
+                ? AppColors.baseBg(Theme.of(context))
+                : null,
+            systemOverlayStyle: overPhotos ? SystemUiOverlayStyle.light : null,
+            leading: overPhotos ? const _OverlayBackButton() : null,
             title: AnimatedOpacity(
               opacity: _titleShown ? 1 : 0,
               duration: const Duration(milliseconds: 150),
@@ -235,7 +290,11 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
             ),
             actions: [
               if (v != null)
-                ShareBusinessButton(data: _shareData(context, v), size: 22),
+                ShareBusinessButton(
+                  data: _shareData(context, v),
+                  size: 22,
+                  overImage: overPhotos,
+                ),
               const SizedBox(width: 4),
             ],
           ),
@@ -332,131 +391,152 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
 
     return RefreshIndicator(
       onRefresh: () => _load(force: true),
+      // Below the app bar, which is drawn over the photos.
+      edgeOffset: kToolbarHeight + MediaQuery.paddingOf(context).top,
       child: ListView(
         controller: _scroll,
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          _Gallery(urls: _urls(v), meta: meta, name: _text(v['business_name'])),
-          const SizedBox(height: 16),
-          // Name and the quick facts.
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  _text(v['business_name']),
-                  style: const TextStyle(
-                    fontSize: AppText.titleLg - 2,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
-                ),
-              ),
-              if (v['is_verified'] == true) ...[
-                const SizedBox(width: 8),
-                Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: AppChip(
-                    context.l10n.detailsVerified,
-                    icon: Icons.verified,
-                    tone: ChipTone.success,
-                    compact: true,
-                  ),
-                ),
-              ],
-            ],
+          BusinessPhotoGallery(
+            photos: _galleryPhotos(v),
+            loading: _photosLoading,
+            tint: meta.color,
+            height: _galleryHeight(context),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (category.isNotEmpty)
-                AppChip(category, icon: meta.icon, tone: ChipTone.primary),
-              if (locality.isNotEmpty)
-                AppChip(locality, icon: Icons.location_on_outlined),
-              if (avg != null)
-                AppChip(
-                  '$avg  ·  ${context.l10n.detailsReviewCount(_reviews.length)}',
-                  icon: Icons.star_rounded,
-                  tone: ChipTone.warning,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Name and the quick facts.
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _text(v['business_name']),
+                        style: const TextStyle(
+                          fontSize: AppText.titleLg - 2,
+                          fontWeight: FontWeight.w800,
+                          height: 1.15,
+                        ),
+                      ),
+                    ),
+                    if (v['is_verified'] == true) ...[
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: AppChip(
+                          context.l10n.detailsVerified,
+                          icon: Icons.verified,
+                          tone: ChipTone.success,
+                          compact: true,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-            ],
-          ),
-          if (facts.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(spacing: 6, runSpacing: 6, children: facts),
-          ],
-          if (desc.isNotEmpty)
-            _Section(
-              title: context.l10n.detailsAbout,
-              child: Text(
-                desc,
-                style: TextStyle(
-                  fontSize: AppText.body,
-                  height: 1.5,
-                  color: cs.onSurface.withValues(alpha: 0.85),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    if (category.isNotEmpty)
+                      AppChip(
+                        category,
+                        icon: meta.icon,
+                        tone: ChipTone.primary,
+                      ),
+                    if (locality.isNotEmpty)
+                      AppChip(locality, icon: Icons.location_on_outlined),
+                    if (avg != null)
+                      AppChip(
+                        '$avg  ·  ${context.l10n.detailsReviewCount(_reviews.length)}',
+                        icon: Icons.star_rounded,
+                        tone: ChipTone.warning,
+                      ),
+                  ],
                 ),
-              ),
-            ),
-          if (services.isNotEmpty)
-            _Section(
-              title: context.l10n.detailsServices,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [for (final s in services) AppChip(s)],
-              ),
-            ),
-          if (hours.isNotEmpty)
-            _Section(
-              title: context.l10n.detailsWorkingHours,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.schedule_rounded, size: 18, color: muted),
-                  const SizedBox(width: 8),
-                  Expanded(
+                if (facts.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(spacing: 6, runSpacing: 6, children: facts),
+                ],
+                if (desc.isNotEmpty)
+                  _Section(
+                    title: context.l10n.detailsAbout,
                     child: Text(
-                      hours,
-                      style: const TextStyle(
+                      desc,
+                      style: TextStyle(
                         fontSize: AppText.body,
-                        height: 1.4,
+                        height: 1.5,
+                        color: cs.onSurface.withValues(alpha: 0.85),
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          _Section(
-            title: context.l10n.detailsContactLocation,
-            child: _contactCard(
-              context,
-              unlocked,
-              phone,
-              address,
-              locality,
-              mapUri,
-            ),
-          ),
-          _Section(
-            title: context.l10n.detailsReviews,
-            child: _reviewsBlock(context, unlocked),
-          ),
-          if (unlocked && _host.isSignedIn)
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: TextButton.icon(
-                onPressed: () => _host.report(v),
-                icon: Icon(Icons.flag_outlined, size: 18, color: muted),
-                label: Text(
-                  context.l10n.detailsReport,
-                  style: TextStyle(color: muted, fontSize: AppText.secondary),
+                if (services.isNotEmpty)
+                  _Section(
+                    title: context.l10n.detailsServices,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [for (final s in services) AppChip(s)],
+                    ),
+                  ),
+                if (hours.isNotEmpty)
+                  _Section(
+                    title: context.l10n.detailsWorkingHours,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.schedule_rounded, size: 18, color: muted),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            hours,
+                            style: const TextStyle(
+                              fontSize: AppText.body,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                _Section(
+                  title: context.l10n.detailsContactLocation,
+                  child: _contactCard(
+                    context,
+                    unlocked,
+                    phone,
+                    address,
+                    locality,
+                    mapUri,
+                  ),
                 ),
-              ),
+                _Section(
+                  title: context.l10n.detailsReviews,
+                  child: _reviewsBlock(context, unlocked),
+                ),
+                if (unlocked && _host.isSignedIn)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      onPressed: () => _host.report(v),
+                      icon: Icon(Icons.flag_outlined, size: 18, color: muted),
+                      label: Text(
+                        context.l10n.detailsReport,
+                        style: TextStyle(
+                          color: muted,
+                          fontSize: AppText.secondary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -984,237 +1064,18 @@ class _DetailsSkeleton extends StatelessWidget {
   );
 }
 
-/// The business's photos, swipeable; a category picture when it has none.
-class _Gallery extends StatefulWidget {
-  final List<String> urls;
-  final CategoryMeta meta;
-  final String name;
-  const _Gallery({required this.urls, required this.meta, required this.name});
+/// The app's back button over the photos: white on a dark disc, so it shows on any
+/// photo.
+class _OverlayBackButton extends StatelessWidget {
+  const _OverlayBackButton();
 
   @override
-  State<_Gallery> createState() => _GalleryState();
-}
-
-class _GalleryState extends State<_Gallery> {
-  final PageController _page = PageController();
-  int _index = 0;
-
-  @override
-  void dispose() {
-    _page.dispose();
-    super.dispose();
-  }
-
-  /// The first letters of the first two words of the name ("Ajaz Koul" -> "AK"),
-  /// the same as on the business card.
-  String get _initials => widget.name
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((w) => w.isNotEmpty)
-      .take(2)
-      .map((w) => String.fromCharCode(w.runes.first).toUpperCase())
-      .join();
-
-  Widget _placeholder() {
-    final c = widget.meta.color;
-    final initials = _initials;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [c.withValues(alpha: 0.28), c.withValues(alpha: 0.08)],
-        ),
-      ),
-      child: Center(
-        child: Container(
-          width: 84,
-          height: 84,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: c.withValues(alpha: 0.16),
-          ),
-          alignment: Alignment.center,
-          child: initials.isEmpty
-              ? Icon(widget.meta.icon, size: 42, color: c)
-              : Text(
-                  initials,
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.w800,
-                    color: c,
-                    height: 1,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-
-  void _open(int i) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      fullscreenDialog: true,
-      builder: (_) =>
-          _PhotoViewer(urls: widget.urls, start: i, name: widget.name),
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final urls = widget.urls;
-    final cs = Theme.of(context).colorScheme;
-    return AspectRatio(
-      aspectRatio: 16 / 10,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.lg + 4),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (urls.isEmpty)
-              _placeholder()
-            else
-              PageView.builder(
-                controller: _page,
-                itemCount: urls.length,
-                onPageChanged: (i) => setState(() => _index = i),
-                itemBuilder: (_, i) => Semantics(
-                  image: true,
-                  button: true,
-                  label: context.l10n.detailsPhotoLabel(i + 1, urls.length),
-                  child: GestureDetector(
-                    onTap: () => _open(i),
-                    child: Image.network(
-                      urls[i],
-                      fit: BoxFit.cover,
-                      cacheWidth: 1000,
-                      loadingBuilder: (_, child, progress) => progress == null
-                          ? child
-                          : ColoredBox(
-                              color: widget.meta.color.withValues(alpha: 0.08),
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.4,
-                                  ),
-                                ),
-                              ),
-                            ),
-                      errorBuilder: (_, __, ___) => _placeholder(),
-                    ),
-                  ),
-                ),
-              ),
-            if (urls.length > 1) ...[
-              Positioned(
-                top: 10,
-                right: 10,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      '${_index + 1}/${urls.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: AppText.caption,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 10,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (var i = 0; i < urls.length; i++)
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: i == _index ? 18 : 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: i == _index
-                              ? Colors.white
-                              : cs.surface.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PhotoViewer extends StatefulWidget {
-  final List<String> urls;
-  final int start;
-  final String name;
-  const _PhotoViewer({
-    required this.urls,
-    required this.start,
-    required this.name,
-  });
-
-  @override
-  State<_PhotoViewer> createState() => _PhotoViewerState();
-}
-
-class _PhotoViewerState extends State<_PhotoViewer> {
-  late final PageController _page = PageController(initialPage: widget.start);
-  late int _index = widget.start;
-
-  @override
-  void dispose() {
-    _page.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    appBar: AppBar(
-      backgroundColor: Colors.black,
-      foregroundColor: Colors.white,
-      title: Text(
-        '${_index + 1}/${widget.urls.length}',
-        style: const TextStyle(fontSize: AppText.body),
-      ),
-    ),
-    body: PageView.builder(
-      controller: _page,
-      itemCount: widget.urls.length,
-      onPageChanged: (i) => setState(() => _index = i),
-      itemBuilder: (_, i) => InteractiveViewer(
-        minScale: 1,
-        maxScale: 4,
-        child: Center(
-          child: Image.network(
-            widget.urls[i],
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Icon(
-              Icons.broken_image_outlined,
-              color: Colors.white54,
-              size: 48,
-            ),
-          ),
-        ),
+  Widget build(BuildContext context) => Center(
+    child: BackButton(
+      color: Colors.white,
+      style: IconButton.styleFrom(
+        backgroundColor: Colors.black.withValues(alpha: 0.45),
+        visualDensity: VisualDensity.compact,
       ),
     ),
   );

@@ -1425,4 +1425,102 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get weatherCreditMet => 'डेटा: MET Norway';
+
+  @override
+  String get businessPhotos => 'व्यवसाय की फ़ोटो';
+
+  @override
+  String get optionalTag => 'वैकल्पिक';
+
+  @override
+  String photosSubtitle(int max) {
+    return 'अपने व्यवसाय को दिखाने के लिए $max तक फ़ोटो जोड़ें';
+  }
+
+  @override
+  String photosCount(int count, int max) {
+    return 'फ़ोटो ($count/$max)';
+  }
+
+  @override
+  String get addPhotos => 'फ़ोटो जोड़ें';
+
+  @override
+  String photosLimitReached(int max) {
+    return 'आप $max फ़ोटो की सीमा तक पहुँच गए हैं। नई फ़ोटो जोड़ने के लिए पहले एक हटाएँ।';
+  }
+
+  @override
+  String get photosUploadedOnSubmit => 'आपकी फ़ोटो सबमिट करते समय अपलोड होंगी।';
+
+  @override
+  String get movePhotoEarlier => 'पहले करें';
+
+  @override
+  String get movePhotoLater => 'बाद में करें';
+
+  @override
+  String get deletePhoto => 'फ़ोटो हटाएँ';
+
+  @override
+  String get deletePhotoTitle => 'यह फ़ोटो हटाएँ?';
+
+  @override
+  String get deletePhotoBody => 'यह सभी के लिए आपके व्यवसाय से हटा दी जाएगी।';
+
+  @override
+  String photoCompressed(String name, int before, int after) {
+    return 'कंप्रेस हुई: $name: $before KB -> $after KB';
+  }
+
+  @override
+  String photoCompressedMore(int count) {
+    return '+$count और';
+  }
+
+  @override
+  String photosNotAddedLimit(int count, int max) {
+    return '$count फ़ोटो नहीं जोड़ी गईं। एक व्यवसाय में अधिकतम $max फ़ोटो हो सकती हैं।';
+  }
+
+  @override
+  String photoTooLarge(String name, int mb) {
+    return '$name $mb MB से बड़ी है, इसलिए नहीं जोड़ी गई।';
+  }
+
+  @override
+  String photoUnsupported(String name) {
+    return '$name JPG, PNG या WEBP फ़ोटो नहीं है, इसलिए नहीं जोड़ी गई।';
+  }
+
+  @override
+  String photoUnreadable(String name) {
+    return '$name पढ़ी नहीं जा सकी, इसलिए नहीं जोड़ी गई।';
+  }
+
+  @override
+  String photosSkipped(int count, int mb) {
+    return '$count फ़ोटो नहीं जोड़ी गईं। केवल $mb MB तक की JPG, PNG या WEBP फ़ाइलें जोड़ी जा सकती हैं।';
+  }
+
+  @override
+  String photosUploadFailed(int count) {
+    return '$count फ़ोटो अपलोड नहीं हो सकीं। इंटरनेट जाँचकर फिर कोशिश करें।';
+  }
+
+  @override
+  String get photoDeleteFailed =>
+      'फ़ोटो हटाई नहीं जा सकी। इंटरनेट जाँचकर फिर कोशिश करें।';
+
+  @override
+  String get photoMoveFailed =>
+      'नया क्रम सहेजा नहीं जा सका। इंटरनेट जाँचकर फिर कोशिश करें।';
+
+  @override
+  String get photosLoadFailed => 'आपकी फ़ोटो लोड नहीं हो सकीं। इंटरनेट जाँचें।';
+
+  @override
+  String businessSubmittedPhotosFailed(int count) {
+    return '$count फ़ोटो अपलोड नहीं हो सकीं। उन्हें दोबारा जोड़ने के लिए व्यवसाय संपादित करें खोलें।';
+  }
 }

@@ -12,7 +12,15 @@ import '../services/business_share.dart';
 class ShareBusinessButton extends StatelessWidget {
   final BusinessShareData data;
   final double size;
-  const ShareBusinessButton({super.key, required this.data, this.size = 20});
+
+  /// Drawn over a photo: a white icon on a dark disc, so it shows on any picture.
+  final bool overImage;
+  const ShareBusinessButton({
+    super.key,
+    required this.data,
+    this.size = 20,
+    this.overImage = false,
+  });
 
   static bool get _apple =>
       defaultTargetPlatform == TargetPlatform.iOS ||
@@ -26,11 +34,16 @@ class ShareBusinessButton extends StatelessWidget {
       tooltip: context.l10n.shareBusiness,
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
+      style: overImage
+          ? IconButton.styleFrom(
+              backgroundColor: Colors.black.withValues(alpha: 0.45),
+            )
+          : null,
       constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
       icon: Icon(
         _apple ? Icons.ios_share_rounded : Icons.share_rounded,
         size: size,
-        color: cs.onSurface.withValues(alpha: 0.62),
+        color: overImage ? Colors.white : cs.onSurface.withValues(alpha: 0.62),
       ),
     );
   }

@@ -10,6 +10,8 @@
 	<string>Your location is used to show prayer times and the Qibla direction, to show service providers in your area, and to fill in your business address.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Your location is used to show prayer times and the Qibla direction, to show service providers in your area, and to fill in your business address. KonnectKashmir uses it only while the app is open.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Photos you choose are added to your business listing so customers can see your work. Nothing else in your photo library is read.</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

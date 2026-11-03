@@ -644,5 +644,95 @@
   "weatherDust": "Dust",
   "weatherStorm": "Stormy winds",
   "signInToContinue": "Please sign in to continue",
-  "weatherCreditMet": "Data from MET Norway"
+  "weatherCreditMet": "Data from MET Norway",
+  "businessPhotos": "Business Photos",
+  "optionalTag": "Optional",
+  "photosSubtitle": "Add up to {max} photos to showcase your business",
+  "@photosSubtitle": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "photosCount": "Photos ({count}/{max})",
+  "@photosCount": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "addPhotos": "Add photos",
+  "photosLimitReached": "You have reached the limit of {max} photos. Delete one to add another.",
+  "@photosLimitReached": {
+    "placeholders": {
+      "max": {"type": "int"}
+    }
+  },
+  "photosUploadedOnSubmit": "Your photos are uploaded when you submit.",
+  "movePhotoEarlier": "Move earlier",
+  "movePhotoLater": "Move later",
+  "deletePhoto": "Delete photo",
+  "deletePhotoTitle": "Delete this photo?",
+  "deletePhotoBody": "It will be removed from your business for everyone.",
+  "photoCompressed": "Compressed: {name}: {before} KB -> {after} KB",
+  "@photoCompressed": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "before": {"type": "int"},
+      "after": {"type": "int"}
+    }
+  },
+  "photoCompressedMore": "+{count} more",
+  "@photoCompressedMore": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "photosNotAddedLimit": "{count} photos were not added. A business can have up to {max} photos.",
+  "@photosNotAddedLimit": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "photoTooLarge": "{name} is larger than {mb} MB, so it was not added.",
+  "@photoTooLarge": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "mb": {"type": "int"}
+    }
+  },
+  "photoUnsupported": "{name} is not a JPG, PNG or WEBP photo, so it was not added.",
+  "@photoUnsupported": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "photoUnreadable": "{name} could not be read, so it was not added.",
+  "@photoUnreadable": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "photosSkipped": "{count} photos were not added. Only JPG, PNG or WEBP files up to {mb} MB can be used.",
+  "@photosSkipped": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "mb": {"type": "int"}
+    }
+  },
+  "photosUploadFailed": "{count} photos could not be uploaded. Check your connection and try again.",
+  "@photosUploadFailed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "photoDeleteFailed": "The photo could not be deleted. Check your connection and try again.",
+  "photoMoveFailed": "The new order could not be saved. Check your connection and try again.",
+  "photosLoadFailed": "Your photos could not be loaded. Check your connection.",
+  "businessSubmittedPhotosFailed": "{count} photos could not be uploaded. Open Edit Business to add them again.",
+  "@businessSubmittedPhotosFailed": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  }
 }

@@ -1430,4 +1430,104 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get weatherCreditMet => 'ڈیٹا: MET Norway';
+
+  @override
+  String get businessPhotos => 'کاروبار کی تصاویر';
+
+  @override
+  String get optionalTag => 'اختیاری';
+
+  @override
+  String photosSubtitle(int max) {
+    return 'اپنے کاروبار کو دکھانے کے لیے $max تک تصاویر شامل کریں';
+  }
+
+  @override
+  String photosCount(int count, int max) {
+    return 'تصاویر ($count/$max)';
+  }
+
+  @override
+  String get addPhotos => 'تصاویر شامل کریں';
+
+  @override
+  String photosLimitReached(int max) {
+    return 'آپ $max تصاویر کی حد تک پہنچ گئے ہیں۔ نئی تصویر شامل کرنے کے لیے پہلے ایک حذف کریں۔';
+  }
+
+  @override
+  String get photosUploadedOnSubmit =>
+      'آپ کی تصاویر جمع کراتے وقت اپ لوڈ ہوں گی۔';
+
+  @override
+  String get movePhotoEarlier => 'پہلے کریں';
+
+  @override
+  String get movePhotoLater => 'بعد میں کریں';
+
+  @override
+  String get deletePhoto => 'تصویر حذف کریں';
+
+  @override
+  String get deletePhotoTitle => 'یہ تصویر حذف کریں؟';
+
+  @override
+  String get deletePhotoBody => 'یہ سب کے لیے آپ کے کاروبار سے ہٹا دی جائے گی۔';
+
+  @override
+  String photoCompressed(String name, int before, int after) {
+    return 'کمپریس ہوئی: $name: $before KB -> $after KB';
+  }
+
+  @override
+  String photoCompressedMore(int count) {
+    return '+$count مزید';
+  }
+
+  @override
+  String photosNotAddedLimit(int count, int max) {
+    return '$count تصاویر شامل نہیں ہوئیں۔ ایک کاروبار میں زیادہ سے زیادہ $max تصاویر ہو سکتی ہیں۔';
+  }
+
+  @override
+  String photoTooLarge(String name, int mb) {
+    return '$name $mb MB سے بڑی ہے، اس لیے شامل نہیں ہوئی۔';
+  }
+
+  @override
+  String photoUnsupported(String name) {
+    return '$name JPG، PNG یا WEBP تصویر نہیں ہے، اس لیے شامل نہیں ہوئی۔';
+  }
+
+  @override
+  String photoUnreadable(String name) {
+    return '$name پڑھی نہیں جا سکی، اس لیے شامل نہیں ہوئی۔';
+  }
+
+  @override
+  String photosSkipped(int count, int mb) {
+    return '$count تصاویر شامل نہیں ہوئیں۔ صرف $mb MB تک کی JPG، PNG یا WEBP فائلیں شامل ہو سکتی ہیں۔';
+  }
+
+  @override
+  String photosUploadFailed(int count) {
+    return '$count تصاویر اپ لوڈ نہیں ہو سکیں۔ انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔';
+  }
+
+  @override
+  String get photoDeleteFailed =>
+      'تصویر حذف نہیں ہو سکی۔ انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔';
+
+  @override
+  String get photoMoveFailed =>
+      'نئی ترتیب محفوظ نہیں ہو سکی۔ انٹرنیٹ چیک کر کے دوبارہ کوشش کریں۔';
+
+  @override
+  String get photosLoadFailed =>
+      'آپ کی تصاویر لوڈ نہیں ہو سکیں۔ انٹرنیٹ چیک کریں۔';
+
+  @override
+  String businessSubmittedPhotosFailed(int count) {
+    return '$count تصاویر اپ لوڈ نہیں ہو سکیں۔ انہیں دوبارہ شامل کرنے کے لیے کاروبار میں ترمیم کھولیں۔';
+  }
 }

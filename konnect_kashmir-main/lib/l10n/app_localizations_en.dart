@@ -1426,4 +1426,105 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weatherCreditMet => 'Data from MET Norway';
+
+  @override
+  String get businessPhotos => 'Business Photos';
+
+  @override
+  String get optionalTag => 'Optional';
+
+  @override
+  String photosSubtitle(int max) {
+    return 'Add up to $max photos to showcase your business';
+  }
+
+  @override
+  String photosCount(int count, int max) {
+    return 'Photos ($count/$max)';
+  }
+
+  @override
+  String get addPhotos => 'Add photos';
+
+  @override
+  String photosLimitReached(int max) {
+    return 'You have reached the limit of $max photos. Delete one to add another.';
+  }
+
+  @override
+  String get photosUploadedOnSubmit =>
+      'Your photos are uploaded when you submit.';
+
+  @override
+  String get movePhotoEarlier => 'Move earlier';
+
+  @override
+  String get movePhotoLater => 'Move later';
+
+  @override
+  String get deletePhoto => 'Delete photo';
+
+  @override
+  String get deletePhotoTitle => 'Delete this photo?';
+
+  @override
+  String get deletePhotoBody =>
+      'It will be removed from your business for everyone.';
+
+  @override
+  String photoCompressed(String name, int before, int after) {
+    return 'Compressed: $name: $before KB -> $after KB';
+  }
+
+  @override
+  String photoCompressedMore(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String photosNotAddedLimit(int count, int max) {
+    return '$count photos were not added. A business can have up to $max photos.';
+  }
+
+  @override
+  String photoTooLarge(String name, int mb) {
+    return '$name is larger than $mb MB, so it was not added.';
+  }
+
+  @override
+  String photoUnsupported(String name) {
+    return '$name is not a JPG, PNG or WEBP photo, so it was not added.';
+  }
+
+  @override
+  String photoUnreadable(String name) {
+    return '$name could not be read, so it was not added.';
+  }
+
+  @override
+  String photosSkipped(int count, int mb) {
+    return '$count photos were not added. Only JPG, PNG or WEBP files up to $mb MB can be used.';
+  }
+
+  @override
+  String photosUploadFailed(int count) {
+    return '$count photos could not be uploaded. Check your connection and try again.';
+  }
+
+  @override
+  String get photoDeleteFailed =>
+      'The photo could not be deleted. Check your connection and try again.';
+
+  @override
+  String get photoMoveFailed =>
+      'The new order could not be saved. Check your connection and try again.';
+
+  @override
+  String get photosLoadFailed =>
+      'Your photos could not be loaded. Check your connection.';
+
+  @override
+  String businessSubmittedPhotosFailed(int count) {
+    return '$count photos could not be uploaded. Open Edit Business to add them again.';
+  }
 }

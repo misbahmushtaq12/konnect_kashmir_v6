@@ -14,6 +14,10 @@ import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/category_meta.dart';
+import '../services/business_photos/business_photo_service.dart';
+import '../services/business_photos/business_photos_controller.dart';
+import '../services/business_photos/supabase_photo_backend.dart';
+import '../widgets/business_photos_section.dart';
 
 // ── Brand accent — consistent across light & dark ──────────────────────────
 const Color _kTeal   = Color(0xFF6BC4B2);
@@ -36,7 +40,15 @@ class _ServiceOption {
 class ListBusinessScreen extends StatefulWidget {
   final Map<String, dynamic>? existingVendor;
 
-  const ListBusinessScreen({super.key, this.existingVendor});
+  /// The state of the photos section. The screen makes its own; tests give one
+  /// that does not use the network.
+  final BusinessPhotosController? photosController;
+
+  const ListBusinessScreen({
+    super.key,
+    this.existingVendor,
+    this.photosController,
+  });
 
   @override
   State<ListBusinessScreen> createState() => _ListBusinessScreenState();
@@ -73,6 +85,10 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   bool _homeServiceAvailable = false;
   bool _acceptOnlinePayment  = false;
   bool _isSubmitting         = false;
+
+  // The photos of the business: saved at once when editing, kept until Submit
+  // for a new listing (the business has no id before that).
+  late final BusinessPhotosController _photos;
 
   bool get _isEditing => widget.existingVendor != null;
   bool _whatsappSame = false; // WhatsApp uses the business number
@@ -201,6 +217,16 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
   void initState() {
     super.initState();
     _loadServiceOptions();
+    final auth = context.read<AuthProvider>();
+    _photos = widget.photosController ??
+        BusinessPhotosController(
+          vendorId: widget.existingVendor?['id']?.toString(),
+          service: BusinessPhotoService(
+            backend: SupabasePhotoBackend(token: () => auth.accessToken),
+          ),
+        );
+    _photos.addListener(_onPhotosChanged);
+    if (_isEditing && widget.photosController == null) _photos.load();
     if (!_isEditing) _phoneController.text = _verifiedPhone ?? '';
     if (_isEditing) {
       final v = widget.existingVendor!;
@@ -249,7 +275,14 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     _addressController.dispose();
     _mapLinkController.dispose();
     _searchController.dispose();
+    _photos.removeListener(_onPhotosChanged);
+    if (widget.photosController == null) _photos.dispose();
     super.dispose();
+  }
+
+  // Submit waits while photos are being prepared or uploaded.
+  void _onPhotosChanged() {
+    if (mounted) setState(() {});
   }
 
   List<_ServiceOption> get _filteredOptions {
@@ -409,6 +442,8 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                 hintText: context.l10n.descriptionHint,
                                 maxLines: 3,
                               ),
+                              Divider(color: _subtleBorder, height: 28),
+                              BusinessPhotosSection(controller: _photos),
                             ],
                           ),
                         ),
@@ -591,7 +626,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
                                           fontSize: _rs(0.04, min: 13, max: 17))),
                                 );
                                 final submitBtn = ElevatedButton(
-                                  onPressed: _isSubmitting
+                                  onPressed: _isSubmitting || _photos.busy
                                       ? null
                                       : () {
                                     if (_formKey.currentState!.validate()) {
@@ -1302,9 +1337,12 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
               .toList()),
         );
 
+        // The business has an id now: its photos can be uploaded.
+        final photosFailed = await _photos.uploadPending(vendorId);
+        if (!mounted) return;
         setState(() => _isSubmitting = false);
         debugPrint('Vendor created: $vendorId');
-        _showSuccessDialog(isEdit: false);
+        _showSuccessDialog(isEdit: false, photosFailed: photosFailed.length);
       }
     } catch (e) {
       setState(() => _isSubmitting = false);
@@ -1313,7 +1351,7 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
     }
   }
 
-  void _showSuccessDialog({bool isEdit = false}) {
+  void _showSuccessDialog({bool isEdit = false, int photosFailed = 0}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1325,7 +1363,10 @@ class _ListBusinessScreenState extends State<ListBusinessScreen> {
         content: Text(
           isEdit
               ? context.l10n.businessUpdatedMsg
-              : context.l10n.businessSubmittedMsg,
+              : photosFailed > 0
+                  ? '${context.l10n.businessSubmittedMsg}\n\n'
+                      '${context.l10n.businessSubmittedPhotosFailed(photosFailed)}'
+                  : context.l10n.businessSubmittedMsg,
           style: TextStyle(
               color: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.7)),
         ),

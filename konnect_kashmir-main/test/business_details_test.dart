@@ -8,7 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:konnect_kashmir/l10n/l10n.dart';
 import 'package:konnect_kashmir/screens/business_details/business_details_host.dart';
 import 'package:konnect_kashmir/screens/business_details/business_details_screen.dart';
+import 'package:konnect_kashmir/screens/business_details/business_photo_gallery.dart';
+import 'package:konnect_kashmir/services/business_photos/business_photo_service.dart';
 import 'package:konnect_kashmir/theme/app_theme.dart';
+
+import 'support/fake_photo_images.dart';
 
 // Roboto from the Flutter SDK, so text is as wide as on a phone.
 Future<void> _loadRoboto() async {
@@ -34,8 +38,13 @@ class _FakeSource implements BusinessDetailsSource {
     this.categories = const [],
     this.reviewList = const [],
     this.failDetails = false,
+    this.photoList = const [],
+    this.failPhotos = false,
   });
   Map<String, dynamic>? detail;
+  List<BusinessPhoto> photoList;
+  bool failPhotos;
+  final List<bool> photoRefreshes = [];
   List<String> categories;
   List<Map<String, dynamic>> reviewList;
   bool failDetails;
@@ -72,6 +81,13 @@ class _FakeSource implements BusinessDetailsSource {
   Future<List<Map<String, dynamic>>> reviews(String id) async {
     await reviewsGate?.future;
     return reviewList;
+  }
+
+  @override
+  Future<List<BusinessPhoto>> photos(String id, {bool refresh = false}) async {
+    photoRefreshes.add(refresh);
+    if (failPhotos) throw Exception('Network error');
+    return photoList;
   }
 }
 
@@ -368,7 +384,10 @@ void main() {
   });
 
   group('photos', () {
-    testWidgets('several photos swipe, with a count', (tester) async {
+    testWidgets('old gallery_urls of a record still swipe, with a count', (
+      tester,
+    ) async {
+      await FakePhotoImages.install(tester);
       final v = _full()
         ..['logo_url'] = 'https://example.com/logo.png'
         ..['gallery_urls'] = [
@@ -384,63 +403,89 @@ void main() {
       expect(find.text('2/3'), findsOneWidget);
     });
 
-    testWidgets('no photo: the name\'s initials, not a category icon', (
+    testWidgets('no photo: a shop icon placeholder, no picture to break', (
       tester,
     ) async {
+      final fake = await FakePhotoImages.install(tester);
       await _show(tester, _FakeHost(_FakeSource(detail: _full())), id: 'b1');
+      expect(find.byType(BusinessPhotoGallery), findsOneWidget);
       expect(find.byType(PageView), findsNothing);
-      // (The faint leaf watermark behind every screen is an Image too, so look
-      // only inside the photo area.)
       expect(
         find.descendant(
-          of: find.byType(AspectRatio),
-          matching: find.byType(Image),
-        ),
-        findsNothing,
-      );
-      expect(
-        find.descendant(
-          of: find.byType(AspectRatio),
-          matching: find.text('OC'),
+          of: find.byType(BusinessPhotoGallery),
+          matching: find.byIcon(Icons.storefront_rounded),
         ),
         findsOneWidget,
       );
       expect(
         find.descendant(
-          of: find.byType(AspectRatio),
-          matching: find.byIcon(Icons.vpn_key_rounded),
+          of: find.byType(BusinessPhotoGallery),
+          matching: find.byType(Image),
         ),
         findsNothing,
-        reason: 'no category icon in the photo area',
       );
+      expect(fake.requested, isEmpty, reason: 'nothing to download');
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('initials of one word, of a non-Latin name, and of no name', (
+    testWidgets('the stored photos are asked for with the details', (
       tester,
     ) async {
-      Future<void> check(String name, String initials) async {
-        final v = _full()..['business_name'] = name;
-        await _show(tester, _FakeHost(_FakeSource(detail: v)), id: 'b1');
-        expect(
-          find.descendant(
-            of: find.byType(AspectRatio),
-            matching: find.text(initials),
-          ),
-          findsOneWidget,
-          reason: name,
-        );
-        await tester.pumpWidget(const SizedBox());
-      }
+      final fake = await FakePhotoImages.install(tester);
+      final src = _FakeSource(
+        detail: _full(),
+        photoList: [
+          for (var i = 0; i < 3; i++)
+            BusinessPhoto(
+              id: 'p$i',
+              vendorId: 'b1',
+              storagePath: 'b1/public/p$i.webp',
+              sortOrder: i,
+              url: 'https://signed.example/p$i',
+            ),
+        ],
+      );
+      await _show(tester, _FakeHost(src), id: 'b1');
+      await tester.pump(const Duration(milliseconds: 100));
 
-      await check('Bakery', 'B');
-      await check('  ajaz   koul  carpenter ', 'AK');
-      await check('कश्मीर टूर', 'कट');
+      expect(src.photoRefreshes, [false]);
+      expect(find.text('1/3'), findsOneWidget);
+      expect(find.byIcon(Icons.storefront_rounded), findsNothing);
+      // Cached under the stored path, which does not change with the link.
+      expect(fake.requested, contains('b1/public/p0.webp'));
     });
 
-    testWidgets('a photo that cannot load falls back to the picture', (
+    testWidgets('pull to refresh asks for the photos again', (tester) async {
+      await FakePhotoImages.install(tester);
+      final src = _FakeSource(detail: _full());
+      // A phone-sized screen: the pull distance depends on the screen height.
+      await _show(tester, _FakeHost(src), id: 'b1', size: const Size(390, 844));
+      await tester.drag(find.byType(ListView), const Offset(0, 400));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      expect(src.photoRefreshes, [false, true]);
+    });
+
+    testWidgets('photos that cannot be asked for: the placeholder, no error', (
       tester,
     ) async {
+      await FakePhotoImages.install(tester);
+      final src = _FakeSource(detail: _full(), failPhotos: true);
+      await _show(tester, _FakeHost(src), id: 'b1');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
+      expect(find.text('Orchid Cab Services'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a photo that cannot load shows a tile, not a broken image', (
+      tester,
+    ) async {
+      await FakePhotoImages.install(
+        tester,
+        broken: {'https://example.com/missing.png'},
+      );
       final v = _full()..['logo_url'] = 'https://example.com/missing.png';
       await _show(tester, _FakeHost(_FakeSource(detail: v)), id: 'b1');
       await tester.pump(const Duration(milliseconds: 100));
@@ -448,11 +493,10 @@ void main() {
       expect(find.text('Orchid Cab Services'), findsWidgets);
       expect(
         find.descendant(
-          of: find.byType(AspectRatio),
-          matching: find.text('OC'),
+          of: find.byType(BusinessPhotoGallery),
+          matching: find.byIcon(Icons.image_not_supported_outlined),
         ),
         findsOneWidget,
-        reason: 'the initials stand in for the photo',
       );
     });
   });

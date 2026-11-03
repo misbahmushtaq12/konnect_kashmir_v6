@@ -1,6 +1,8 @@
 import 'package:flutter/widgets.dart';
 
 import '../../services/api_service.dart';
+import '../../services/business_photos/business_photo_service.dart';
+import '../../services/business_photos/supabase_photo_backend.dart';
 
 /// Where a business's details come from. The app uses [ApiBusinessDetailsSource];
 /// the tests give their own.
@@ -17,6 +19,11 @@ abstract class BusinessDetailsSource {
 
   /// The approved reviews of the business.
   Future<List<Map<String, dynamic>>> reviews(String id);
+
+  /// The business's photos, in order, each with a signed link to its public
+  /// (watermarked) copy. [refresh] asks the server again instead of using the
+  /// list that was fetched a moment ago. Throws when it could not be asked.
+  Future<List<BusinessPhoto>> photos(String id, {bool refresh = false});
 }
 
 class ApiBusinessDetailsSource implements BusinessDetailsSource {
@@ -36,6 +43,12 @@ class ApiBusinessDetailsSource implements BusinessDetailsSource {
   @override
   Future<List<Map<String, dynamic>>> reviews(String id) =>
       api.getVendorReviews(id);
+
+  @override
+  Future<List<BusinessPhoto>> photos(String id, {bool refresh = false}) =>
+      BusinessPhotoService(
+        backend: SupabasePhotoBackend(token: () => api.token),
+      ).photos(id, refresh: refresh);
 }
 
 /// What the details screen needs from the screen that opened it.
@@ -100,4 +113,8 @@ class CachedCategoriesSource implements BusinessDetailsSource {
 
   @override
   Future<List<Map<String, dynamic>>> reviews(String id) => inner.reviews(id);
+
+  @override
+  Future<List<BusinessPhoto>> photos(String id, {bool refresh = false}) =>
+      inner.photos(id, refresh: refresh);
 }

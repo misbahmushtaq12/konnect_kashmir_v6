@@ -2523,6 +2523,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Data from MET Norway'**
   String get weatherCreditMet;
+
+  /// No description provided for @businessPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Business Photos'**
+  String get businessPhotos;
+
+  /// No description provided for @optionalTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional'**
+  String get optionalTag;
+
+  /// No description provided for @photosSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add up to {max} photos to showcase your business'**
+  String photosSubtitle(int max);
+
+  /// No description provided for @photosCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos ({count}/{max})'**
+  String photosCount(int count, int max);
+
+  /// No description provided for @addPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photos'**
+  String get addPhotos;
+
+  /// No description provided for @photosLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You have reached the limit of {max} photos. Delete one to add another.'**
+  String photosLimitReached(int max);
+
+  /// No description provided for @photosUploadedOnSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Your photos are uploaded when you submit.'**
+  String get photosUploadedOnSubmit;
+
+  /// No description provided for @movePhotoEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Move earlier'**
+  String get movePhotoEarlier;
+
+  /// No description provided for @movePhotoLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Move later'**
+  String get movePhotoLater;
+
+  /// No description provided for @deletePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete photo'**
+  String get deletePhoto;
+
+  /// No description provided for @deletePhotoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this photo?'**
+  String get deletePhotoTitle;
+
+  /// No description provided for @deletePhotoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be removed from your business for everyone.'**
+  String get deletePhotoBody;
+
+  /// No description provided for @photoCompressed.
+  ///
+  /// In en, this message translates to:
+  /// **'Compressed: {name}: {before} KB -> {after} KB'**
+  String photoCompressed(String name, int before, int after);
+
+  /// No description provided for @photoCompressedMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String photoCompressedMore(int count);
+
+  /// No description provided for @photosNotAddedLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos were not added. A business can have up to {max} photos.'**
+  String photosNotAddedLimit(int count, int max);
+
+  /// No description provided for @photoTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is larger than {mb} MB, so it was not added.'**
+  String photoTooLarge(String name, int mb);
+
+  /// No description provided for @photoUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is not a JPG, PNG or WEBP photo, so it was not added.'**
+  String photoUnsupported(String name);
+
+  /// No description provided for @photoUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} could not be read, so it was not added.'**
+  String photoUnreadable(String name);
+
+  /// No description provided for @photosSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos were not added. Only JPG, PNG or WEBP files up to {mb} MB can be used.'**
+  String photosSkipped(int count, int mb);
+
+  /// No description provided for @photosUploadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos could not be uploaded. Check your connection and try again.'**
+  String photosUploadFailed(int count);
+
+  /// No description provided for @photoDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo could not be deleted. Check your connection and try again.'**
+  String get photoDeleteFailed;
+
+  /// No description provided for @photoMoveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The new order could not be saved. Check your connection and try again.'**
+  String get photoMoveFailed;
+
+  /// No description provided for @photosLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Your photos could not be loaded. Check your connection.'**
+  String get photosLoadFailed;
+
+  /// No description provided for @businessSubmittedPhotosFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos could not be uploaded. Open Edit Business to add them again.'**
+  String businessSubmittedPhotosFailed(int count);
 }
 
 class _AppLocalizationsDelegate
