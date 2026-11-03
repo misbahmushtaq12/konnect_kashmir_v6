@@ -140,17 +140,15 @@ class _MainShellState extends State<MainShell> {
                 ? MyBusinessTab(isActive: _index == 1)
                 : const SizedBox.shrink(),
             _opened.contains(2)
-                ? DeenTab(
-                    isActive: _index == 2,
-                    onBack: () => _select(MainShell.tabHome))
+                ? DeenTab(isActive: _index == 2)
                 : const SizedBox.shrink(),
             _opened.contains(3)
                 ? ProfileTab(isActive: _index == 3)
                 : const SizedBox.shrink(),
           ],
         ),
-        // The bottom bar is on every tab, Deen included. (Deen's header keeps its
-        // back arrow to Home, and Android's back button does the same.)
+        // The bottom bar is on every tab, Deen included. (Android's back button on
+        // another tab goes to Home.)
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
             border: Border(

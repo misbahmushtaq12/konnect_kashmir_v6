@@ -34,10 +34,7 @@ class DeenTab extends StatefulWidget {
   /// then to save battery).
   final bool isActive;
 
-  /// Back to Home: the header's back arrow calls this (the bottom bar's Home does
-  /// the same).
-  final VoidCallback? onBack;
-  const DeenTab({super.key, this.isActive = true, this.onBack});
+  const DeenTab({super.key, this.isActive = true});
 
   @override
   State<DeenTab> createState() => _DeenTabState();
@@ -390,8 +387,7 @@ class _DeenTabState extends State<DeenTab> {
     );
   }
 
-  /// A compact top line (back arrow, logo, place, credits), then the title and
-  /// the greeting.
+  /// A compact top line (logo, place, credits), then the title and the greeting.
   Widget _header() {
     final cs = Theme.of(context).colorScheme;
     final l = context.l10n;
@@ -406,14 +402,6 @@ class _DeenTabState extends State<DeenTab> {
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
-        if (widget.onBack != null)
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: widget.onBack,
-            tooltip: l.navHome,
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
-                size: 20, color: cs.onSurface),
-          ),
         _logo(),
         const SizedBox(width: 8),
         Expanded(

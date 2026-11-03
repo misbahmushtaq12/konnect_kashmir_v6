@@ -185,6 +185,12 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   @override
   void didUpdateWidget(MyBusinessTab oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Leaving this tab: close the open leads panel, so it is closed again when the
+    // user comes back. This tab stays alive in the bottom bar's IndexedStack, so
+    // nothing else would clear it. Only the open/closed mark is reset: the leads, the
+    // revealed numbers and the scroll position stay, and nothing is fetched here.
+    // (No setState: a rebuild follows, and the tab is going out of sight anyway.)
+    if (oldWidget.isActive && !widget.isActive) _expandedBizId = null;
     // Back on this tab: pick up new leads without showing the skeleton again.
     if (!oldWidget.isActive && widget.isActive) _load(silent: true);
   }

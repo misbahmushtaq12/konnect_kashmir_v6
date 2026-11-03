@@ -290,27 +290,23 @@ void main() {
     });
   });
 
-  group('leaving the screen', () {
-    testWidgets('the back arrow calls onBack', (tester) async {
-      _phone(tester);
-      var taps = 0;
-      await tester.pumpWidget(_app(DeenTab(onBack: () => taps++), theme: AppTheme.light));
-      await _settle(tester);
-
-      await tester.tap(find.byTooltip('Home'));
-      expect(taps, 1);
-    });
-
-    testWidgets('no back arrow when nothing can be gone back to', (tester) async {
+  group('no back arrow', () {
+    testWidgets('the header has none; the logo starts at the page margin', (tester) async {
       _phone(tester);
       await tester.pumpWidget(_app(const DeenTab(), theme: AppTheme.light));
       await _settle(tester);
+      expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsNothing);
       expect(find.byTooltip('Home'), findsNothing);
+      // Place and credits are still on the top line, the logo leads it.
+      expect(find.text('Srinagar'), findsOneWidget);
+      final logo = find.descendant(of: find.byType(DeenTab), matching: find.byType(Image)).first;
+      expect(tester.getTopLeft(logo).dx, closeTo(16, 1));
+      expect(tester.takeException(), isNull);
     });
   });
 
   group('the bottom bar', () {
-    // The bar's own item (the Deen screen has a "Home" arrow and a "Deen" title too).
+    // The bar's own item (the Deen screen has a "Deen" title too).
     Finder item(String label) =>
         find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
 
@@ -338,6 +334,7 @@ void main() {
         expect(item(label), findsOneWidget, reason: label);
       }
       expect(find.text('Prayer Times'), findsOneWidget);
+      expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsNothing, reason: 'no back arrow on Deen');
       expect(tester.takeException(), isNull);
     });
 
@@ -352,19 +349,6 @@ void main() {
       final deen = tester.getRect(find.byType(DeenTab));
       expect(deen.bottom, lessThanOrEqualTo(bar.top + 0.5), reason: 'the page ends where the bar starts');
       expect(bar.bottom, closeTo(tester.view.physicalSize.height / tester.view.devicePixelRatio, 0.5));
-    });
-
-    testWidgets('the header arrow still goes back to Home', (tester) async {
-      _phone(tester);
-      await tester.pumpWidget(_app(const MainShell(), theme: AppTheme.light));
-      MainShell.tabRequest.value = MainShell.tabDeen;
-      await _settle(tester);
-
-      await tester.tap(find.descendant(of: find.byType(DeenTab), matching: find.byTooltip('Home')));
-      await _settle(tester);
-      expect(find.byType(NavigationBar), findsOneWidget);
-      expect(selected(tester), MainShell.tabHome);
-      expect(tester.takeException(), isNull);
     });
 
     testWidgets("the bar's Home takes you home from Deen, and its Deen item comes back",
