@@ -11,6 +11,7 @@ import 'package:konnect_kashmir/screens/deen/deen_tab.dart';
 import 'package:konnect_kashmir/screens/deen/prayer_service.dart';
 import 'package:konnect_kashmir/screens/deen/weather_service.dart';
 import 'package:konnect_kashmir/screens/main_shell.dart';
+import 'package:konnect_kashmir/widgets/floating_nav_bar.dart';
 import 'package:konnect_kashmir/services/prayer_alarm/prayer_alarm_service.dart';
 import 'package:konnect_kashmir/services/live_sync.dart';
 import 'package:konnect_kashmir/theme/app_theme.dart';
@@ -307,11 +308,15 @@ void main() {
 
   group('the bottom bar', () {
     // The bar's own item (the Deen screen has a "Deen" title too).
+    // (Every item carries its name as a tooltip; the selected one shows it too.)
     Finder item(String label) =>
-        find.descendant(of: find.byType(NavigationBar), matching: find.text(label));
+        find.descendant(of: find.byType(FloatingNavBar), matching: find.byTooltip(label));
 
     int selected(WidgetTester tester) =>
-        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex;
+        tester.widget<FloatingNavBar>(find.byType(FloatingNavBar)).selectedIndex;
+
+    Finder items() =>
+        find.descendant(of: find.byType(FloatingNavBar), matching: find.byType(Tooltip));
 
     testWidgets('is on every tab, Deen included', (tester) async {
       _phone(tester);
@@ -319,16 +324,16 @@ void main() {
       await _settle(tester);
 
       // Home: the bar is there, with its four items.
-      expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byType(NavigationDestination), findsNWidgets(4));
+      expect(find.byType(FloatingNavBar), findsOneWidget);
+      expect(items(), findsNWidgets(4));
       expect(selected(tester), MainShell.tabHome);
 
       // Open Deen as a tapped notification or link would: the bar stays.
       MainShell.tabRequest.value = MainShell.tabDeen;
       await _settle(tester);
       expect(find.byType(DeenTab), findsOneWidget);
-      expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byType(NavigationDestination), findsNWidgets(4));
+      expect(find.byType(FloatingNavBar), findsOneWidget);
+      expect(items(), findsNWidgets(4));
       expect(selected(tester), MainShell.tabDeen, reason: 'Deen is the selected item');
       for (final label in ['Home', 'My Business', 'Deen', 'Profile']) {
         expect(item(label), findsOneWidget, reason: label);
@@ -345,7 +350,7 @@ void main() {
       MainShell.tabRequest.value = MainShell.tabDeen;
       await _settle(tester);
 
-      final bar = tester.getRect(find.byType(NavigationBar));
+      final bar = tester.getRect(find.byType(FloatingNavBar));
       final deen = tester.getRect(find.byType(DeenTab));
       expect(deen.bottom, lessThanOrEqualTo(bar.top + 0.5), reason: 'the page ends where the bar starts');
       expect(bar.bottom, closeTo(tester.view.physicalSize.height / tester.view.devicePixelRatio, 0.5));
@@ -391,14 +396,14 @@ void main() {
             theme: dark ? AppTheme.dark : AppTheme.light, textScale: scale));
         MainShell.tabRequest.value = MainShell.tabDeen;
         await _settle(tester);
-        expect(find.byType(NavigationBar), findsOneWidget);
+        expect(find.byType(FloatingNavBar), findsOneWidget);
         expect(find.byType(DeenTab), findsOneWidget);
         // The page scrolls to its end above the bar.
         await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
         await _settle(tester);
         expect(find.text('Continue Reading'), findsOneWidget);
         expect(tester.getBottomLeft(find.text('Continue Reading')).dy,
-            lessThanOrEqualTo(tester.getRect(find.byType(NavigationBar)).top));
+            lessThanOrEqualTo(tester.getRect(find.byType(FloatingNavBar)).top));
         expect(tester.takeException(), isNull, reason: 'no overflow');
       });
     }

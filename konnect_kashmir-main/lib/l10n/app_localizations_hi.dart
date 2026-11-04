@@ -1523,4 +1523,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String businessSubmittedPhotosFailed(int count) {
     return '$count फ़ोटो अपलोड नहीं हो सकीं। उन्हें दोबारा जोड़ने के लिए व्यवसाय संपादित करें खोलें।';
   }
+
+  @override
+  String get noPhotosTitle => 'कोई फ़ोटो उपलब्ध नहीं';
+
+  @override
+  String get noPhotosSubtitle => 'व्यवसाय की फ़ोटो यहाँ दिखाई देंगी';
 }

@@ -734,5 +734,7 @@
     "placeholders": {
       "count": {"type": "int"}
     }
-  }
+  },
+  "noPhotosTitle": "No photos available",
+  "noPhotosSubtitle": "Business photos will appear here"
 }

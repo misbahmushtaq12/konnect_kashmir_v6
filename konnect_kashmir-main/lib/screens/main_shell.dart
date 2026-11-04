@@ -6,6 +6,7 @@ import '../services/app_analytics.dart';
 import '../theme/app_theme.dart';
 import '../l10n/l10n.dart';
 import '../widgets/app_overlays.dart';
+import '../widgets/floating_nav_bar.dart';
 import 'customer_screen.dart';
 import 'deen/deen_tab.dart';
 import 'login_screen.dart';
@@ -98,16 +99,19 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  /// The Profile tab's icon: the round initial the Home screen used to show.
-  Widget _profileIcon(String name, bool selected) {
+  /// The Profile tab's icon: the round initial the Home screen used to show. It
+  /// is quiet like the other icons until the tab is selected.
+  Widget _profileIcon(String name, bool selected, ColorScheme cs) {
     final n = name.trim();
     return CircleAvatar(
       radius: 13,
       backgroundColor:
-          AppColors.primary.withValues(alpha: selected ? 1.0 : 0.6),
+          selected ? AppColors.primary : cs.onSurface.withValues(alpha: 0.16),
       child: Text(n.isNotEmpty ? n[0].toUpperCase() : '?',
-          style: const TextStyle(
-              color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+          style: TextStyle(
+              color: selected ? Colors.white : cs.onSurface.withValues(alpha: 0.7),
+              fontSize: 13,
+              fontWeight: FontWeight.w700)),
     );
   }
 
@@ -148,44 +152,33 @@ class _MainShellState extends State<MainShell> {
           ],
         ),
         // The bottom bar is on every tab, Deen included. (Android's back button on
-        // another tab goes to Home.)
-        bottomNavigationBar: Container(
-          decoration: BoxDecoration(
-            border: Border(
-                top: BorderSide(color: cs.onSurface.withValues(alpha: 0.08))),
-          ),
-          child: NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: _select,
-            backgroundColor: AppColors.baseBg(Theme.of(context)),
-            indicatorColor: AppColors.primary.withValues(alpha: 0.16),
-            elevation: 0,
-            height: 68,
-            destinations: [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
-                label: context.l10n.navHome,
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.storefront_outlined),
-                selectedIcon:
-                    Icon(Icons.storefront_rounded, color: AppColors.primary),
-                label: context.l10n.navMyBusiness,
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.mosque_outlined),
-                selectedIcon:
-                    const Icon(Icons.mosque_rounded, color: AppColors.primary),
-                label: context.l10n.navDeen,
-              ),
-              NavigationDestination(
-                icon: _profileIcon(name, false),
-                selectedIcon: _profileIcon(name, true),
-                label: context.l10n.navProfile,
-              ),
-            ],
-          ),
+        // another tab goes to Home.) It floats a little above the bottom edge; the
+        // pages end above it, so nothing is hidden behind it.
+        bottomNavigationBar: FloatingNavBar(
+          selectedIndex: _index,
+          onSelected: _select,
+          items: [
+            FloatingNavItem(
+              label: context.l10n.navHome,
+              icon: const Icon(Icons.home_outlined),
+              selectedIcon: const Icon(Icons.home_rounded),
+            ),
+            FloatingNavItem(
+              label: context.l10n.navMyBusiness,
+              icon: const Icon(Icons.storefront_outlined),
+              selectedIcon: const Icon(Icons.storefront_rounded),
+            ),
+            FloatingNavItem(
+              label: context.l10n.navDeen,
+              icon: const Icon(Icons.mosque_outlined),
+              selectedIcon: const Icon(Icons.mosque_rounded),
+            ),
+            FloatingNavItem(
+              label: context.l10n.navProfile,
+              icon: _profileIcon(name, false, cs),
+              selectedIcon: _profileIcon(name, true, cs),
+            ),
+          ],
         ),
       ),
     );

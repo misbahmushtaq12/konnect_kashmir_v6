@@ -1527,4 +1527,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String businessSubmittedPhotosFailed(int count) {
     return '$count photos could not be uploaded. Open Edit Business to add them again.';
   }
+
+  @override
+  String get noPhotosTitle => 'No photos available';
+
+  @override
+  String get noPhotosSubtitle => 'Business photos will appear here';
 }

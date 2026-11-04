@@ -9,6 +9,7 @@ import 'package:konnect_kashmir/l10n/l10n.dart';
 import 'package:konnect_kashmir/screens/business_details/business_details_host.dart';
 import 'package:konnect_kashmir/screens/business_details/business_details_screen.dart';
 import 'package:konnect_kashmir/screens/business_details/business_photo_gallery.dart';
+import 'package:konnect_kashmir/screens/business_details/gallery_empty_state.dart';
 import 'package:konnect_kashmir/services/business_photos/business_photo_service.dart';
 import 'package:konnect_kashmir/theme/app_theme.dart';
 
@@ -413,7 +414,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(BusinessPhotoGallery),
-          matching: find.byIcon(Icons.storefront_rounded),
+          matching: find.byType(GalleryEmptyState),
         ),
         findsOneWidget,
       );
@@ -450,7 +451,7 @@ void main() {
 
       expect(src.photoRefreshes, [false]);
       expect(find.text('1/3'), findsOneWidget);
-      expect(find.byIcon(Icons.storefront_rounded), findsNothing);
+      expect(find.byType(GalleryEmptyState), findsNothing);
       // Cached under the stored path, which does not change with the link.
       expect(fake.requested, contains('b1/public/p0.webp'));
     });
@@ -474,7 +475,7 @@ void main() {
       final src = _FakeSource(detail: _full(), failPhotos: true);
       await _show(tester, _FakeHost(src), id: 'b1');
       await tester.pump(const Duration(milliseconds: 100));
-      expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
+      expect(find.byType(GalleryEmptyState), findsOneWidget);
       expect(find.text('Orchid Cab Services'), findsWidgets);
       expect(tester.takeException(), isNull);
     });

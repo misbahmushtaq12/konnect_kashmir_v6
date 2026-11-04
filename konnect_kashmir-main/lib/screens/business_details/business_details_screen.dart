@@ -403,6 +403,7 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
             loading: _photosLoading,
             tint: meta.color,
             height: _galleryHeight(context),
+            overlayTop: kToolbarHeight + MediaQuery.paddingOf(context).top,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),

@@ -1530,4 +1530,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String businessSubmittedPhotosFailed(int count) {
     return '$count تصاویر اپ لوڈ نہیں ہو سکیں۔ انہیں دوبارہ شامل کرنے کے لیے کاروبار میں ترمیم کھولیں۔';
   }
+
+  @override
+  String get noPhotosTitle => 'کوئی تصویر دستیاب نہیں';
+
+  @override
+  String get noPhotosSubtitle => 'کاروبار کی تصاویر یہاں دکھائی دیں گی';
 }

@@ -2667,6 +2667,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} photos could not be uploaded. Open Edit Business to add them again.'**
   String businessSubmittedPhotosFailed(int count);
+
+  /// No description provided for @noPhotosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No photos available'**
+  String get noPhotosTitle;
+
+  /// No description provided for @noPhotosSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Business photos will appear here'**
+  String get noPhotosSubtitle;
 }
 
 class _AppLocalizationsDelegate

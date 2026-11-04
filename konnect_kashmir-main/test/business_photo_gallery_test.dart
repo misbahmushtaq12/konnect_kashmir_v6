@@ -1,9 +1,13 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:konnect_kashmir/l10n/l10n.dart';
 import 'package:konnect_kashmir/screens/business_details/business_photo_gallery.dart';
+import 'package:konnect_kashmir/screens/business_details/gallery_empty_state.dart';
 import 'package:konnect_kashmir/services/business_photos/photo_images.dart';
 import 'package:konnect_kashmir/theme/app_theme.dart';
 
@@ -24,36 +28,38 @@ Future<void> _show(
   Locale locale = const Locale('en'),
   Size size = const Size(390, 844),
   ThemeData? theme,
+  GlobalKey? boundary,
 }) async {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: theme ?? AppTheme.light,
-      locale: locale,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      home: Scaffold(
-        body: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            BusinessPhotoGallery(
-              photos: photos,
-              loading: loading,
-              tint: const Color(0xFF339985),
-              height: 360,
-            ),
-            const SizedBox(height: 800),
-          ],
-        ),
+  final app = MaterialApp(
+    theme: theme ?? AppTheme.light,
+    locale: locale,
+    supportedLocales: AppLocalizations.supportedLocales,
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: Scaffold(
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          BusinessPhotoGallery(
+            photos: photos,
+            loading: loading,
+            tint: const Color(0xFF339985),
+            height: 360,
+          ),
+          const SizedBox(height: 800),
+        ],
       ),
     ),
+  );
+  await tester.pumpWidget(
+    boundary == null ? app : RepaintBoundary(key: boundary, child: app),
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 300));
@@ -64,6 +70,37 @@ Finder get _dots =>
     find.descendant(of: _gallery, matching: find.byType(AnimatedContainer));
 Finder _inViewer(Finder f) =>
     find.descendant(of: find.byType(BusinessPhotoViewer), matching: f);
+
+/// The colour of one pixel of what is on screen (in logical pixels).
+Future<ui.Color> _pixel(
+  WidgetTester tester,
+  GlobalKey boundary,
+  double x,
+  double y,
+) async {
+  final object =
+      boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+  return (await tester.runAsync(() async {
+    final image = await object.toImage(pixelRatio: 1);
+    final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    final i = (y.round() * image.width + x.round()) * 4;
+    final color = ui.Color.fromARGB(
+      255,
+      data.getUint8(i),
+      data.getUint8(i + 1),
+      data.getUint8(i + 2),
+    );
+    image.dispose();
+    return color;
+  }))!;
+}
+
+int _red(ui.Color c) => (c.r * 255).round();
+int _green(ui.Color c) => (c.g * 255).round();
+
+/// How far the carousel is scrolled, in pixels.
+double _scrolled(WidgetTester tester) =>
+    tester.widget<PageView>(find.byType(PageView)).controller!.offset;
 
 /// The scale of the zoomable photo that is shown in the viewer.
 double _zoom(WidgetTester tester) {
@@ -141,10 +178,23 @@ void main() {
       expect(blur, isNotEmpty);
     });
 
-    testWidgets('only the photo on show is fetched', (tester) async {
+    testWidgets('only the photo on show and its neighbours are fetched', (
+      tester,
+    ) async {
       final fake = await FakePhotoImages.install(tester);
       await _show(tester, _photos(5));
-      expect(fake.requested.toSet(), {'v1/public/p0.webp'});
+      expect(fake.requested.toSet(), {
+        'v1/public/p0.webp',
+        'v1/public/p1.webp',
+      });
+
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      expect(fake.requested.toSet(), {
+        'v1/public/p0.webp',
+        'v1/public/p1.webp',
+        'v1/public/p2.webp',
+      });
     });
 
     testWidgets('a photo that cannot load shows a quiet tile; the rest go on', (
@@ -192,7 +242,7 @@ void main() {
       expect(_dots, findsNothing);
       expect(find.text('1/1'), findsNothing);
       expect(find.byType(PageView), findsOneWidget);
-      expect(find.byIcon(Icons.storefront_rounded), findsNothing);
+      expect(find.byType(GalleryEmptyState), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
@@ -212,7 +262,7 @@ void main() {
     ) async {
       final fake = await FakePhotoImages.install(tester);
       await _show(tester, const []);
-      expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
+      expect(find.byType(GalleryEmptyState), findsOneWidget);
       expect(find.byType(PageView), findsNothing);
       // (The faint leaf behind every screen is an Image too; look in the gallery.)
       expect(
@@ -226,18 +276,19 @@ void main() {
     });
 
     testWidgets(
-      'while the photos are still being asked for: a spinner, not the placeholder',
+      'while the photos are still being asked for: a spinner, not the "no photos" message',
       (tester) async {
         await FakePhotoImages.install(tester);
         await _show(tester, const [], loading: true);
         expect(find.byType(CircularProgressIndicator), findsOneWidget);
-        expect(find.byIcon(Icons.storefront_rounded), findsNothing);
+        expect(find.text('No photos available'), findsNothing);
+        expect(find.text('Business photos will appear here'), findsNothing);
       },
     );
 
     testWidgets('the placeholder works in the dark theme too', (tester) async {
       await _show(tester, const [], theme: AppTheme.dark);
-      expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
+      expect(find.byType(GalleryEmptyState), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -266,7 +317,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('1/2'), findsOneWidget);
-      expect(find.byIcon(Icons.storefront_rounded), findsNothing);
+      expect(find.byType(GalleryEmptyState), findsNothing);
     });
   });
 
@@ -500,6 +551,281 @@ void main() {
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('swiping between photos', () {
+    const k0 = 'v1/public/p0.webp';
+    const k1 = 'v1/public/p1.webp';
+    const k2 = 'v1/public/p2.webp';
+
+    testWidgets('the next photo is fetched while this one is on show, so it is '
+        'ready when the finger gets there', (tester) async {
+      final fake = await FakePhotoImages.install(tester, slow: {k1, k2});
+      await _show(tester, _photos(3));
+      expect(
+        fake.requested,
+        contains(k1),
+        reason: 'asked for before any swipe',
+      );
+      expect(
+        fake.requested,
+        isNot(contains(k2)),
+        reason: 'two ahead is too far',
+      );
+
+      fake.release(k1); // it arrives while the first photo is still on show
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final g = await tester.startGesture(const Offset(300, 200));
+      await g.moveBy(const Offset(-60, 0));
+      await tester.pump();
+      await g.moveBy(const Offset(-120, 0));
+      await tester.pump();
+      expect(_scrolled(tester), greaterThan(100));
+      expect(
+        find.descendant(
+          of: _gallery,
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsNothing,
+        reason: 'the incoming photo is drawn at once, not after a wait',
+      );
+      await g.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('the photo behind is ready too when going back', (
+      tester,
+    ) async {
+      final fake = await FakePhotoImages.install(tester);
+      await _show(tester, _photos(4));
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('3/4'), findsOneWidget);
+      // On photo 3: photos 2 and 4 are loaded; photo 1 was loaded on the way.
+      expect(fake.requested.toSet(), {
+        'v1/public/p0.webp',
+        'v1/public/p1.webp',
+        'v1/public/p2.webp',
+        'v1/public/p3.webp',
+      });
+    });
+
+    testWidgets('the photo that leaves does not paint over the one that comes '
+        '(swiping back)', (tester) async {
+      final red = await solidImage(tester, const ui.Color(0xFFC81E1E));
+      final green = await solidImage(tester, const ui.Color(0xFF1EAA3C));
+      await FakePhotoImages.install(tester, pictures: {k0: red, k1: green});
+      final boundary = GlobalKey();
+      await _show(tester, _photos(3), boundary: boundary);
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('2/3'), findsOneWidget);
+
+      // Half way back to the red photo.
+      final g = await tester.startGesture(const Offset(100, 200));
+      await g.moveBy(const Offset(40, 0));
+      await tester.pump();
+      await g.moveBy(const Offset(140, 0));
+      await tester.pump();
+      final seam = 390 - _scrolled(tester); // where the green page begins
+      expect(seam, inInclusiveRange(100, 290));
+
+      // Just on the red side of the seam it is red. The green page's blur used to
+      // spread over this strip.
+      for (final dx in [4.0, 12.0, 30.0, 60.0]) {
+        final c = await _pixel(tester, boundary, seam - dx, 100);
+        expect(
+          _red(c),
+          greaterThan(_green(c) + 40),
+          reason: '${dx}px before the seam',
+        );
+      }
+      // And on the green side it is green.
+      final c = await _pixel(tester, boundary, seam + 12, 100);
+      expect(_green(c), greaterThan(_red(c) + 40));
+      await g.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('a photo that has not arrived yet is an opaque page of its '
+        'own: the photo that leaves does not show through', (tester) async {
+      final red = await solidImage(tester, const ui.Color(0xFFC81E1E));
+      await FakePhotoImages.install(tester, pictures: {k0: red}, slow: {k1});
+      final boundary = GlobalKey();
+      await _show(tester, _photos(3), boundary: boundary);
+
+      final g = await tester.startGesture(const Offset(300, 200));
+      await g.moveBy(const Offset(-40, 0));
+      await tester.pump();
+      await g.moveBy(const Offset(-140, 0));
+      await tester.pump();
+      final seam = 390 - _scrolled(tester); // where the waiting page begins
+      expect(seam, inInclusiveRange(100, 290));
+
+      for (final dx in [4.0, 12.0, 40.0]) {
+        final c = await _pixel(tester, boundary, seam + dx, 100);
+        expect(
+          _green(c),
+          greaterThan(_red(c)),
+          reason:
+              'the waiting page is its own light page, not the red photo ${dx}px in',
+        );
+      }
+      await g.up();
+      await tester.pump(const Duration(milliseconds: 600));
+    });
+
+    testWidgets('pages are not rebuilt while they move (only the dots and the '
+        'count change)', (tester) async {
+      final fake = await FakePhotoImages.install(tester);
+      await _show(tester, _photos(3));
+      final g = await tester.startGesture(const Offset(300, 200));
+      await g.moveBy(const Offset(-40, 0));
+      await tester.pump();
+      await g.moveBy(const Offset(-80, 0));
+      await tester.pump();
+      final before = fake.providersMade.where((k) => k == k1).length;
+      expect(before, greaterThan(0), reason: 'the second page is on screen');
+
+      await g.moveBy(const Offset(-150, 0)); // past half way: the count changes
+      await tester.pump();
+      expect(find.text('2/3'), findsOneWidget);
+      await g.up();
+      await tester.pumpAndSettle();
+      expect(
+        fake.providersMade.where((k) => k == k1).length,
+        before,
+        reason: 'the second page was built once',
+      );
+    });
+
+    testWidgets('going back and forth does not fetch a photo again', (
+      tester,
+    ) async {
+      final fake = await FakePhotoImages.install(tester);
+      await _show(tester, _photos(3));
+      for (final dx in [-300.0, -300.0, 300.0, 300.0, -300.0]) {
+        await tester.drag(find.byType(PageView), Offset(dx, 0));
+        await tester.pumpAndSettle();
+      }
+      for (final k in [k0, k1, k2]) {
+        // Two pictures per photo at most: the full one and the small blurred one.
+        expect(
+          fake.requested.where((r) => r == k).length,
+          lessThanOrEqualTo(2),
+          reason: k,
+        );
+      }
+    });
+
+    testWidgets('full screen uses the picture the carousel already has', (
+      tester,
+    ) async {
+      final fake = await FakePhotoImages.install(tester);
+      await _show(tester, _photos(3));
+      await tester.pumpAndSettle();
+      final before = fake.requested.where((r) => r == k0).length;
+      await tester.tap(find.byType(PageView));
+      await tester.pumpAndSettle();
+      expect(find.byType(BusinessPhotoViewer), findsOneWidget);
+      expect(
+        fake.requested.where((r) => r == k0).length,
+        before,
+        reason: 'photo 1 was not loaded a second time',
+      );
+    });
+
+    testWidgets('full screen also gets the next photo ready', (tester) async {
+      final fake = await FakePhotoImages.install(tester, slow: {k1});
+      await _show(tester, _photos(3));
+      await tester.tap(find.byType(PageView));
+      await tester.pumpAndSettle();
+      expect(fake.requested, contains(k1));
+    });
+
+    testWidgets('swiping fast through every photo on a slow connection: the '
+        'swipe is never blocked, and everything arrives afterwards', (
+      tester,
+    ) async {
+      final keys = [for (var i = 0; i < 5; i++) 'v1/public/p$i.webp'];
+      final fake = await FakePhotoImages.install(tester, slow: keys.toSet());
+      await _show(tester, _photos(5));
+      // Flings one after the other, without waiting for the photos or for the
+      // carousel to come to rest: it keeps moving every time.
+      var flings = 0;
+      while (find.text('5/5').evaluate().isEmpty && flings < 12) {
+        await tester.fling(find.byType(PageView), const Offset(-300, 0), 2500);
+        await tester.pump(const Duration(milliseconds: 100));
+        flings++;
+      }
+      expect(flings, lessThan(12), reason: 'the end was reached');
+      await tester.pump(const Duration(milliseconds: 800));
+      expect(find.text('5/5'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      fake.releaseAll();
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: _gallery,
+          matching: find.byType(CircularProgressIndicator),
+        ),
+        findsNothing,
+      );
+      // Swiping back shows the photos that arrived in the meantime.
+      await tester.fling(find.byType(PageView), const Offset(300, 0), 2500);
+      await tester.pumpAndSettle();
+      expect(find.text('4/5'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a photo that fails to load is skipped over without a hitch', (
+      tester,
+    ) async {
+      final fake = await FakePhotoImages.install(tester, broken: {k1});
+      await _show(tester, _photos(3));
+      expect(fake.requested, contains(k1));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'the failed preload is not an error',
+      );
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.image_not_supported_outlined), findsOneWidget);
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('3/3'), findsOneWidget);
+      expect(find.byIcon(Icons.image_not_supported_outlined), findsNothing);
+    });
+
+    testWidgets('the dots and the count follow the photo that is on show', (
+      tester,
+    ) async {
+      await FakePhotoImages.install(tester);
+      await _show(tester, _photos(4));
+      Future<void> expectOn(int n) async {
+        expect(find.text('$n/4'), findsOneWidget);
+        for (var i = 0; i < 4; i++) {
+          expect(tester.getSize(_dots.at(i)).width, i == n - 1 ? 24 : 12);
+        }
+      }
+
+      await expectOn(1);
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      await expectOn(2);
+      await tester.drag(find.byType(PageView), const Offset(-300, 0));
+      await tester.pumpAndSettle();
+      await expectOn(3);
+      await tester.drag(find.byType(PageView), const Offset(300, 0));
+      await tester.pumpAndSettle();
+      await expectOn(2);
     });
   });
 
