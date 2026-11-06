@@ -586,6 +586,20 @@ void main() {
       }
     });
 
+    testWidgets('the pinned Instagram Shops tile is named in Hindi and Urdu on Home',
+        (tester) async {
+      for (final e in {
+        'hi': 'इंस्टाग्राम शॉप्स',
+        'ur': 'انسٹاگرام شاپس',
+      }.entries) {
+        saved(_live());
+        await home(tester, locale: Locale(e.key));
+        expect(find.text(e.value), findsOneWidget, reason: e.key);
+        expect(find.text('Instagram Shops'), findsNothing, reason: e.key);
+        await tester.pumpWidget(const SizedBox());
+      }
+    });
+
     testWidgets('the group names follow the app language', (tester) async {
       saved(_live());
       await home(tester, locale: const Locale('hi'));

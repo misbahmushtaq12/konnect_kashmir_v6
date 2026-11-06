@@ -2,6 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Universal links (https://konnectkashmir.com/business/<id>, /go) are handed to
+	     the app's own routes. On by default since Flutter 3.27; written out so it
+	     cannot silently change. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -576,7 +576,7 @@ void main() {
       await _settle(tester);
     }
 
-    testWidgets('shows the reading, below the prayer times, with the credit', (tester) async {
+    testWidgets('shows the reading, below the prayer times, with no data-source line', (tester) async {
       await open(tester, _metAt(_t1340));
       expect(find.text('Weather'), findsOneWidget);
       expect(find.text('18°C'), findsOneWidget);
@@ -590,7 +590,7 @@ void main() {
       expect(find.text('Sunset'), findsOneWidget);
       expect(find.text('5:37 PM'), findsOneWidget);
       expect(find.byIcon(Icons.wb_cloudy_rounded), findsOneWidget);
-      expect(find.text('Data from MET Norway'), findsOneWidget);
+      expect(find.textContaining('MET Norway'), findsNothing);
       expect(find.textContaining('OpenWeather'), findsNothing);
 
       // The prayer times are still there, and the card sits below them.
@@ -637,7 +637,7 @@ void main() {
       await tester.pumpWidget(_app(const DeenTab(), theme: AppTheme.light));
       await _settle(tester);
       expect(find.text('18°C'), findsOneWidget);
-      expect(find.text('Data from MET Norway'), findsOneWidget);
+      expect(find.textContaining('MET Norway'), findsNothing);
       expect(asked?.host, 'api.met.no');
       expect(asked?.queryParameters, {'lat': '34.1000', 'lon': '74.8000'});
       expect(await WeatherService.cached(34.1, 74.8), isNotNull);
@@ -661,9 +661,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    for (final (lang, title, kind, wind, credit) in [
-      ('hi', 'मौसम', 'आंशिक बादल', '12 किमी/घंटा', 'डेटा: MET Norway'),
-      ('ur', 'موسم', 'جزوی ابر آلود', '12 کلومیٹر/گھنٹہ', 'ڈیٹا: MET Norway'),
+    for (final (lang, title, kind, wind) in [
+      ('hi', 'मौसम', 'आंशिक बादल', '12 किमी/घंटा'),
+      ('ur', 'موسم', 'جزوی ابر آلود', '12 کلومیٹر/گھنٹہ'),
     ]) {
       testWidgets('is in the app language ($lang)', (tester) async {
         await open(tester, _metAt(_t1340), locale: Locale(lang));
@@ -671,7 +671,7 @@ void main() {
         expect(find.text(kind), findsOneWidget);
         expect(find.text(wind), findsOneWidget);
         expect(find.text('18°C'), findsOneWidget);
-        expect(find.text(credit), findsOneWidget);
+        expect(find.textContaining('MET Norway'), findsNothing);
         expect(tester.takeException(), isNull);
       });
     }

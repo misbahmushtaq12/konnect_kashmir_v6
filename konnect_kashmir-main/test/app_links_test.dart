@@ -117,7 +117,51 @@ void main() {
       ]) {
         expect(AppLinks.businessId(no), isNull, reason: '$no');
       }
-      expect(AppLinks.isAppLink('/business/a,b'), isFalse);
+      // Never an id, yet still a /business/ link the phone hands over: the app
+      // takes it in (so it is not an unknown route) and just opens as usual.
+      expect(AppLinks.isAppLink('/business/a,b'), isTrue);
+      expect(AppLinks.isBusinessLink('/business/a,b'), isTrue);
+    });
+
+    test('a real shared link (a UUID) gives its id, from every way it arrives', () {
+      const id = 'a38a59e1-23a6-4a2f-9394-ce77d50c8e3c';
+      for (final link in [
+        'https://konnectkashmir.com/business/$id',
+        'https://konnectkashmir.com/business/$id/',
+        'https://konnectkashmir.com/business/$id?utm_source=whatsapp&fbclid=1',
+        // Uppercase ids (some messengers change the case) are still ids.
+        'https://konnectkashmir.com/business/${id.toUpperCase()}',
+        // What Flutter gives the app: the path alone, query and fragment kept.
+        '/business/$id',
+        '/business/$id?utm_source=whatsapp#x',
+      ]) {
+        expect(AppLinks.businessId(link), equalsIgnoringCase(id), reason: link);
+        expect(AppLinks.isAppLink(link), isTrue, reason: link);
+      }
+    });
+
+    test('only /business/ links are business links', () {
+      for (final yes in [
+        '/business/42',
+        '/business/42/reviews',
+        '/business/a,b',
+        'https://konnectkashmir.com/business/42',
+      ]) {
+        expect(AppLinks.isBusinessLink(yes), isTrue, reason: yes);
+      }
+      for (final no in [
+        null,
+        '',
+        '/',
+        '/business',
+        '/business/',
+        '/businesses/42',
+        '/go',
+        '/vendor/dashboard',
+        '/home',
+      ]) {
+        expect(AppLinks.isBusinessLink(no), isFalse, reason: '$no');
+      }
     });
 
     test('every /go link and the old dashboard link open the app', () {
@@ -313,6 +357,44 @@ void main() {
       expect(find.byType(LoginScreen), findsOneWidget);
       expect(MainShell.tabRequest.value, isNull);
     });
+
+    testWidgets('a shared business: the sign-in stays, the business waits for Home',
+        (tester) async {
+      await tester.pumpWidget(await _app());
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(LoginScreen), findsOneWidget);
+
+      final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+      nav.pushNamed('/business/a38a59e1-23a6-4a2f-9394-ce77d50c8e3c');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LeadsLinkScreen), findsNothing);
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(AppLinks.businessRequest.value,
+          'a38a59e1-23a6-4a2f-9394-ce77d50c8e3c');
+      expect(MainShell.tabRequest.value, isNull);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a /business/ link with an id the app refuses: no error, nothing asked',
+        (tester) async {
+      await tester.pumpWidget(await _app());
+      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(const Duration(seconds: 1));
+
+      final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+      for (final bad in ['/business/a,b', '/business/42/reviews', '/business/1),id.neq.(2']) {
+        nav.pushNamed(bad);
+        await tester.pumpAndSettle();
+      }
+
+      // Without this the route would be unknown, which is an error.
+      expect(tester.takeException(), isNull);
+      expect(find.byType(LeadsLinkScreen), findsNothing);
+      expect(find.byType(LoginScreen), findsOneWidget);
+      expect(AppLinks.businessRequest.value, isNull);
+    });
   });
 
   // The signed-in route is checked on a small stand-in app: the real one builds
@@ -378,6 +460,19 @@ void main() {
       expect(find.byType(LeadsLinkScreen), findsNothing);
       expect(AppLinks.businessRequest.value, 'biz-9');
       expect(MainShell.tabRequest.value, isNull);
+    });
+
+    testWidgets('signed in, a business link the app refuses: opens the shell, asks for nothing',
+        (tester) async {
+      final auth = AuthProvider();
+      await auth.setSession('token', 'user-1',
+          phone: '9999999999', role: 'customer');
+      await pump(tester, auth, '/business/a,b');
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('the shell'), findsOneWidget);
+      expect(find.byType(LeadsLinkScreen), findsNothing);
+      expect(AppLinks.businessRequest.value, isNull);
     });
 
     testWidgets('signed out, SMS link: leaves, keeps nothing', (tester) async {

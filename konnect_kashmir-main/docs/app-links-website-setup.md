@@ -40,12 +40,36 @@ the website (it shows the site's 404), so it should not be used in the SMS.
   signed out signs in first and then sees it. Android needs nothing more from the website; **iPhone
   needs one line added to the apple-app-site-association file** (below).
 
+## Status on 6 Nov 2026 (checked over the network and on an Android 14 emulator)
+
+| Piece | State |
+|---|---|
+| `https://konnectkashmir.com/.well-known/assetlinks.json` | **Live and correct**: HTTP 200, `application/json`, no redirect, package `com.mediamosiac.konnect_kashmir`, both fingerprints (Play app signing `21:FA:63:…` and upload key `F3:FA:B6:…`). Google's Digital Asset Links API lists both. |
+| `https://konnectkashmir.com/.well-known/apple-app-site-association` | Live (HTTP 200, `application/json`, no redirect, Apple's CDN has it) **but it does not contain `/business/*`**: it only lists `/go` and `/vendor/dashboard*`. So **an iPhone never opens the app for a shared business**. The file in `docs/well-known/` already has the line; the website still serves the older copy. **This is the one thing left to publish.** |
+| Android app (manifest, build 13 and later) | Has the verified `/business/` filter. Build 13 (upload-key signed) installed on an Android 14 emulator: `pm get-app-links` says `konnectkashmir.com: verified`, and the link opens the app (no chooser). |
+| Flutter | Cold start and warm start both open the exact business (tested on the emulator, below). |
+
+### Why a shared business link opened the website
+
+* **Android, any build not signed by a key in `assetlinks.json`** (the debug build from VS Code /
+  Android Studio / `flutter run`, signed `08:F9:18:0B…`, or anything else): Android marks the domain
+  `1024` (verification failed) and hands the link to the browser. Reproduced on the emulator and the
+  same state is on the phone that has the debug build. The same build signed with the upload key is
+  `verified` and opens the app.
+* **Android, a phone that installed the app while `assetlinks.json` was not on the website yet (it was
+  404 in October), or has a build older than the `/business/` filter**: it stays unverified until the app is
+  updated (Android only re-checks at install / update). Update the app from Play.
+* **iPhone**: the website's `apple-app-site-association` has no `/business/*` entry (above).
+* A link typed or pasted into a browser's address bar never opens the app on either platform; it must be
+  tapped in a message / chat / note (see "Check it").
+
 ## What is left
 
 ### 1. Proof files on the website (so the phone opens the app, not the browser)
 
 The phone only opens the app after the website proves the app belongs to it, with two
-small files. Today both return 404 on `konnectkashmir.com`.
+small files. `assetlinks.json` is live; `apple-app-site-association` is live but needs the
+`/business/*` line (replace it with the copy below).
 
 **Ready to upload, in this repository:**
 `docs/well-known/assetlinks.json` and `docs/well-known/apple-app-site-association`.
@@ -78,18 +102,22 @@ directly (HTTPS, status 200, no redirect, no login) on the host the SMS link use
       "namespace": "android_app",
       "package_name": "com.mediamosiac.konnect_kashmir",
       "sha256_cert_fingerprints": [
-        "PUT:THE:APP:SIGNING:KEY:SHA-256:HERE"
+        "21:FA:63:64:EC:30:1E:E2:73:61:12:2A:7C:FC:E5:2E:8A:F7:5D:28:8D:B0:4C:A1:69:48:1F:02:D5:CD:F4:29",
+        "F3:FA:B6:77:96:51:C6:FD:8D:E6:4F:A0:C1:35:7D:D8:CB:60:3D:77:01:9E:28:B5:09:8E:33:DB:99:21:F8:B0"
       ]
     }
   }
 ]
 ```
 
-The fingerprint is **not** in the code. Copy it from Google Play Console: the app →
-Test and release → App integrity → App signing →
-**App signing key certificate → SHA-256 certificate fingerprint**.
-(The *upload* key fingerprint can be added as a second entry; the app signing key is
-the one that matters for the Play Store version.)
+This is exactly what the website serves today (same two fingerprints; order does not matter), so
+nothing needs to change for Android. Do not "improve" it: a wrong or missing fingerprint makes
+Android treat the link as unverified and open the browser. To re-check the Play key:
+Play Console → the app → Test and release → App integrity → App signing →
+**App signing key certificate → SHA-256 certificate fingerprint**. If the app is ever signed
+with another key (a new upload key, a different distribution), add that SHA-256 as another
+entry **before** shipping it (`keytool -list -v -keystore <file>` or
+`apksigner verify --print-certs <apk>`).
 
 **iPhone — `/.well-known/apple-app-site-association`** (no file extension),
 Content-Type `application/json`:
@@ -101,9 +129,9 @@ Content-Type `application/json`:
       {
         "appIDs": ["5VTU5RA37T.com.mediamosiac.konnectkashmirapp"],
         "components": [
-          { "/": "/go", "comment": "get-the-app / new-lead SMS link" },
+          { "/": "/go" },
           { "/": "/vendor/dashboard*" },
-          { "/": "/business/*", "comment": "a shared business" }
+          { "/": "/business/*" }
         ]
       }
     ]
@@ -121,25 +149,45 @@ account (Xcode does this itself with automatic signing and a paid team).
 
 ### 2. New app builds
 
-Both platforms need a **new app build** (the Android manifest and the iPhone
-entitlements changed). Phones with an older app keep going to the store page. Android
-checks the files when the app is installed or updated, so publish the website files
-**before** the build reaches users.
+Both platforms need a **new app build** that has the `/business/` filter / entitlement
+(Android: the filter was added on 26 Oct 2026; the build 13 APK was checked and has it, and
+the Play version must be at least that new, see `pubspec.yaml` `version:`).
+Phones with an older app keep going to the website. Android checks the files when the
+app is installed or updated, so publish the website files **before** the build reaches
+users. An iPhone build must be archived from Xcode on a Mac with the **Associated
+Domains** capability (the entitlement is already in `ios/Runner/Runner.entitlements`).
 
 ### 3. Check it
 
-* Link in a browser: goes to the store page (not a 404).
-* Android: `adb shell pm get-app-links com.mediamosiac.konnect_kashmir` should say
-  `verified` for `konnectkashmir.com`. Then
-  `adb shell am start -a android.intent.action.VIEW -d "https://konnectkashmir.com/go?utm_campaign=new_lead"`
-  should open the app on My Business.
-* Google's checker:
-  `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://konnectkashmir.com&relation=delegate_permission/common.handle_all_urls`
-  must list the app.
-* iPhone: `https://app-site-association.cdn-apple.com/a/v1/konnectkashmir.com` must
-  return the JSON above. Apple caches it, so test with a fresh install on a real
-  iPhone, and open the link from Messages or Notes (typing it in Safari's address bar
-  does not open the app).
+Use a **release-signed** build for Android (installed from Play, or the signed release APK):
+a debug build is signed with another key, is never verified, and always opens the browser.
+
+* Website proof files (any computer):
+  * `curl -sSI https://konnectkashmir.com/.well-known/assetlinks.json` and
+    `curl -sSI https://konnectkashmir.com/.well-known/apple-app-site-association` must each
+    answer `HTTP/… 200`, `content-type: application/json`, and **no** `location:` header.
+  * `curl -s https://konnectkashmir.com/.well-known/apple-app-site-association` must contain
+    `"/business/*"`.
+  * Google's checker:
+    `https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=https://konnectkashmir.com&relation=delegate_permission/common.handle_all_urls`
+    must list the package with both fingerprints.
+  * Apple's CDN copy (what iPhones actually read, refreshed within about 6 hours):
+    `curl -s https://app-site-association.cdn-apple.com/a/v1/konnectkashmir.com` must show
+    `/business/*` too.
+* Android:
+  * `adb shell pm get-app-links com.mediamosiac.konnect_kashmir` must say
+    `konnectkashmir.com: verified` (`1024` means verification failed: wrong signing key, or
+    the files were not on the website when the app was installed; update/reinstall the app, or
+    run `adb shell pm verify-app-links --re-verify com.mediamosiac.konnect_kashmir`).
+  * App installed: `adb shell am start -W -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d "https://konnectkashmir.com/business/<id>"`
+    opens the app straight on that business, with no "Open with" chooser. Also tap the link
+    in WhatsApp (see the steps in the hand-over report).
+  * App not installed: the same link opens the website's business page in the browser.
+* iPhone (a real iPhone with a build from Xcode / TestFlight; the simulator cannot test the
+  CDN): delete and reinstall the app (the association is read at install), then tap the link in
+  Messages, Notes or WhatsApp. A link typed or pasted into Safari's address bar, or tapped on a
+  page of konnectkashmir.com itself, opens the website; that is how iOS behaves, not a fault.
+  Long-press the link: the menu must offer "Open in Konnect Kashmir".
 
 ## Why no `www`
 

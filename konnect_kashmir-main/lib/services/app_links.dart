@@ -40,11 +40,25 @@ class AppLinks {
 
   /// Whether [route] (a path such as "/go?utm_campaign=new_lead", or a full
   /// address) is a link the app should take over.
+  ///
+  /// Every `/business/...` address counts, even one with an id the app refuses
+  /// (see [businessId]): the phone hands the app everything under `/business/`
+  /// (that is what the app declares), so the app has to take it in and just open
+  /// as usual. Leaving it out would be an unknown route, an error, instead.
   static bool isAppLink(String? route) {
     final u = _parse(route);
     if (u == null) return false;
     final path = _path(u);
-    return path == goPath || _isLeadsPath(path) || businessId(route) != null;
+    return path == goPath || _isLeadsPath(path) || isBusinessLink(route);
+  }
+
+  /// Whether [route] is under `/business/` at all, whatever follows (an id the
+  /// app accepts, see [businessId], or not).
+  static bool isBusinessLink(String? route) {
+    final u = _parse(route);
+    if (u == null) return false;
+    final parts = u.pathSegments.where((s) => s.isNotEmpty).toList();
+    return parts.length >= 2 && '/${parts.first}' == businessPath;
   }
 
   /// The id in a `/business/<id>` link, or null. Only plain ids (letters, digits,

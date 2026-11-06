@@ -638,10 +638,23 @@ class ApiService {
     final res = await sharedHttp
         .get(uri, headers: _headers)
         .timeout(const Duration(seconds: 20));
-    if (res.statusCode != 200) {
-      throw Exception('Business details unavailable (${res.statusCode})');
+    return vendorDetailsFromResponse(res.statusCode, res.body);
+  }
+
+  /// What the answer to [getVendorDetails] means: the business, null when there
+  /// is no such business, or an exception when the server could not be asked.
+  ///
+  /// A business id is a UUID. A link with an id that is not one (cut off, mistyped,
+  /// or made up) is refused by the database with 400 / code 22P02. That is "no such
+  /// business", not a network problem, so the screen says the business is not
+  /// available instead of offering a retry that can never work.
+  static Map<String, dynamic>? vendorDetailsFromResponse(
+      int status, String body) {
+    if (status == 400 && body.contains('22P02')) return null;
+    if (status != 200) {
+      throw Exception('Business details unavailable ($status)');
     }
-    final list = jsonDecode(res.body);
+    final list = jsonDecode(body);
     if (list is! List || list.isEmpty) return null;
     return Map<String, dynamic>.from(list.first as Map);
   }

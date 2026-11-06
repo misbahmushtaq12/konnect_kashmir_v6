@@ -214,9 +214,9 @@ class WeatherNow {
 /// (https://api.met.no/weatherapi/locationforecast/2.0/documentation).
 ///
 /// Its terms: every request names the app and a way to reach us ([userAgent]),
-/// coordinates have at most four decimals, the data is credited (the card shows
-/// "Data from MET Norway"), and an answer is not asked for again before its Expires
-/// time. A reading is kept on the phone and the card opens with it straight away; a
+/// coordinates have at most four decimals, and an answer is not asked for again
+/// before its Expires time. (The card no longer shows a "Data from MET Norway"
+/// line, by the app owner's decision; the `weatherCreditMet` strings are kept.) A reading is kept on the phone and the card opens with it straight away; a
 /// failed request is not repeated for [retryAfterFailure], and never shows an error:
 /// the card keeps the last reading for up to [usable], or stays away if there is none.
 class WeatherService {
