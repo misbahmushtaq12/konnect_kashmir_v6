@@ -57,11 +57,16 @@ class _SplashScreenState extends State<SplashScreen>
     // Signed out and no language picked yet: the picker comes first. Once it is
     // confirmed the sign-in opens in that language (and the picker never comes
     // back, except from Profile).
+    // This route is a custom fade (not a MaterialPageRoute), so the theme does not
+    // put the app background behind it: without AppBackground here the picker's
+    // transparent Scaffold shows the bare black window.
     final Widget first = (loggedIn || chosen)
         ? app()
-        : LanguageScreen(
-            onContinue: () => nav.pushReplacement(
-              MaterialPageRoute(builder: (_) => app()),
+        : AppBackground(
+            child: LanguageScreen(
+              onContinue: () => nav.pushReplacement(
+                MaterialPageRoute(builder: (_) => app()),
+              ),
             ),
           );
 
