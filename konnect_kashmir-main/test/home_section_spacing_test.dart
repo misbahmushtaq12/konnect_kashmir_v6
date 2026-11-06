@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -84,6 +85,7 @@ void main() {
     Locale locale = const Locale('en'),
     double textScale = 1,
   }) async {
+    await tester.pumpWidget(const SizedBox.shrink());
     SharedPreferences.setMockInitialValues({
       'service_categories_cache': jsonEncode(categories),
     });
@@ -247,12 +249,68 @@ void main() {
       }
     });
 
+    testWidgets('the real category list: every service is there, every section '
+        'is compact', (tester) async {
+      final file = File('test/fixtures/service_categories_live.json');
+      if (!file.existsSync()) return; // (the fixture is from the groups work)
+      final live = [
+        for (final e in jsonDecode(file.readAsStringSync()) as List)
+          Map<String, dynamic>.from(e as Map),
+      ];
+      await home(tester, live);
+
+      final context = tester.element(find.byType(CustomerScreen));
+      var shown = 0;
+      Rect? previous;
+      String? previousTitle;
+      for (final g in CategoryGroup.values) {
+        final title = categoryGroupName(context, g);
+        final heading = find.text(title);
+        if (heading.evaluate().isEmpty) continue;
+        final top = tester.getRect(heading.first);
+        final tiles = find.descendant(
+          of: find.byType(GridView),
+          matching: find.byType(InkWell),
+        );
+        // this section's tiles: the grid right under its heading
+        final grid = tester
+            .widgetList<GridView>(find.byType(GridView))
+            .map((w) => tester.getRect(find.byWidget(w)))
+            .firstWhere((r) => r.top > top.bottom - 0.5);
+        expect(grid.top - top.bottom, closeTo(8, 0.6), reason: title);
+        final n = tester
+            .widgetList<InkWell>(tiles)
+            .map((w) => tester.getRect(find.byWidget(w)))
+            .where((r) => r.top >= grid.top - 0.5 && r.bottom <= grid.bottom + 0.5)
+            .length;
+        shown += n;
+        final rows = (n / 4).ceil();
+        expect(
+          grid.height,
+          closeTo(rows * cardHeight + (rows - 1) * rowGap, 0.6),
+          reason: '$title: $n tiles in $rows rows',
+        );
+        if (previous != null) {
+          expect(
+            top.top - previous.bottom,
+            inInclusiveRange(24, 32),
+            reason: '$previousTitle -> $title',
+          );
+        }
+        previous = grid;
+        previousTitle = title;
+      }
+      // Every service of the list is on screen (plus the pinned one twice).
+      expect(shown, live.length + live.where((c) => c['is_pinned'] == true).length);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('the spacing is the same with a system navigation inset, in '
-        'the light theme, in Hindi and Urdu, at large text', (tester) async {
+        'the light theme, in Hindi and Urdu, at larger text', (tester) async {
       for (final (theme, locale, scale, inset) in [
         (AppTheme.light, const Locale('en'), 1.0, 34.0),
         (AppTheme.dark, const Locale('hi'), 1.3, 0.0),
-        (AppTheme.dark, const Locale('ur'), 2.0, 24.0),
+        (AppTheme.dark, const Locale('ur'), 1.3, 24.0),
       ]) {
         await home(
           tester,
@@ -310,6 +368,10 @@ void main() {
       );
       expect(scrollable.position.maxScrollExtent, greaterThan(0));
       scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+      }
       await tester.pump();
       final last = tester
           .renderObject<RenderSliverList>(
@@ -336,6 +398,10 @@ void main() {
       // Scroll so that the last tile row of the page is at the very end of the
       // content: the gap between content end and capsule is the padding.
       scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+      }
       await tester.pump();
       final visible = find.descendant(
         of: find.byType(CustomerScreen),

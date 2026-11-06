@@ -618,23 +618,169 @@ void main() {
 
     Finder button() => find.widgetWithText(FilledButton, 'Show in map');
 
-    testWidgets('sits right under the address, with a map icon', (
-      tester,
-    ) async {
+    /// The one map button, labelled or icon-only.
+    Finder anyButton() => find.byType(FilledButton);
+
+    /// The text block of the address / area row: its label and its value.
+    Rect textBlock(WidgetTester tester, String label, String value) {
+      final l = tester.getRect(find.text(label));
+      // (The place name also appears in the header: take the one under the label.)
+      final v = find
+          .text(value)
+          .evaluate()
+          .map((e) => tester.getRect(find.byWidget(e.widget)))
+          .where((r) => r.top >= l.top)
+          .reduce((a, b) => a.top <= b.top ? a : b);
+      return l.expandToInclude(v);
+    }
+
+    testWidgets('sits to the right of the address on the same row, vertically '
+        'centred with it', (tester) async {
       await _show(tester, unlockedHost(_full()), id: 'b1');
+      expect(anyButton(), findsOneWidget, reason: 'one button, no duplicate');
       expect(button(), findsOneWidget);
       expect(
         find.descendant(of: button(), matching: find.byIcon(Icons.map_outlined)),
         findsOneWidget,
       );
-      final address = tester.getRect(find.text('Lane 4, Rajbagh'));
-      final b = tester.getRect(button());
-      expect(b.top, greaterThanOrEqualTo(address.bottom), reason: 'under it');
-      expect(b.top - address.bottom, lessThan(16), reason: 'right under it');
-      expect(b.left, closeTo(address.left, 1), reason: 'in its column');
       expect(find.text('Address'), findsOneWidget, reason: 'the address stays');
+
+      final text = textBlock(tester, 'Address', 'Lane 4, Rajbagh');
+      final value = tester.getRect(find.text('Lane 4, Rajbagh'));
+      final b = tester.getRect(button());
+      expect(
+        b.left,
+        greaterThanOrEqualTo(value.right + 8),
+        reason: 'to the right of the text, with a gap',
+      );
+      expect(b.left - value.right, lessThan(60), reason: 'beside it, not far');
+      expect(b.top, lessThan(text.bottom), reason: 'on the same row');
+      expect(b.bottom, greaterThan(text.top), reason: 'on the same row');
+      expect(
+        b.center.dy,
+        closeTo(text.center.dy, 1),
+        reason: 'centred with the text',
+      );
       expect(b.height, greaterThanOrEqualTo(40));
+
+      // The pin and the text are where they were: the text starts 12px after
+      // the 20px pin, and the pin is centred with the text too.
+      final pin = tester.getRect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('Address'),
+            matching: find.byType(Row),
+          ).first,
+          matching: find.byIcon(Icons.location_on_outlined),
+        ),
+      );
+      expect(text.left - pin.right, closeTo(12, 0.5));
+      expect(pin.center.dy, closeTo(text.center.dy, 1));
+      // And it did not change the other rows: phone and WhatsApp rows keep
+      // their own call / WhatsApp buttons, nothing else carries a map button.
+      expect(find.byTooltip('WhatsApp'), findsWidgets);
     });
+
+    testWidgets('the Area row (no address) has it on the right as well', (
+      tester,
+    ) async {
+      await _show(
+        tester,
+        unlockedHost(_full()..['address'] = null),
+        id: 'b1',
+      );
+      expect(anyButton(), findsOneWidget);
+      final text = textBlock(tester, 'Area', 'Srinagar');
+      final value = text.bottomLeft; // the text block's own left edge
+      final b = tester.getRect(button());
+      expect(b.left, greaterThanOrEqualTo(text.left + 8));
+      expect(b.left, greaterThan(value.dx + 40), reason: 'right of the name');
+      expect(b.center.dy, closeTo(text.center.dy, 1));
+      expect(b.top, lessThan(text.bottom));
+      expect(b.bottom, greaterThan(text.top));
+    });
+
+    testWidgets('right to left (Urdu): the button is on the left of the text', (
+      tester,
+    ) async {
+      final host = unlockedHost(_full());
+      tester.view.physicalSize = const Size(390, 2400) * 2;
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.dark,
+          locale: const Locale('ur'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: BusinessDetailsScreen(host: host, vendorId: 'b1'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(anyButton(), findsOneWidget);
+      final value = tester.getRect(find.text('Lane 4, Rajbagh'));
+      final b = tester.getRect(anyButton());
+      expect(b.right, lessThanOrEqualTo(value.left - 8));
+      expect(b.center.dy, closeTo(value.center.dy - 1, 14));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('the label shows where there is room for it', (tester) async {
+      for (final w in [360.0, 390.0, 430.0]) {
+        await _show(
+          tester,
+          unlockedHost(_full()),
+          id: 'b1',
+          size: Size(w, 2400),
+        );
+        expect(button(), findsOneWidget, reason: 'labelled at $w');
+        expect(tester.takeException(), isNull, reason: '$w');
+      }
+    });
+
+    testWidgets(
+      'on a narrow phone it is the same button with only its icon, so the '
+      'address is not squeezed',
+      (tester) async {
+        final host = unlockedHost(_full());
+        await _show(tester, host, id: 'b1', size: const Size(320, 2400));
+        expect(anyButton(), findsOneWidget, reason: 'still one button');
+        expect(button(), findsNothing, reason: 'no label here');
+        expect(
+          find.descendant(
+            of: anyButton(),
+            matching: find.byIcon(Icons.map_outlined),
+          ),
+          findsOneWidget,
+        );
+        expect(find.byTooltip('Show in map'), findsOneWidget);
+        final b = tester.getRect(anyButton());
+        // A 40px round-cornered square (inside the usual 48px touch area, like
+        // the call and WhatsApp buttons of the rows above it).
+        expect(b.width, inInclusiveRange(40, 48));
+        expect(b.height, inInclusiveRange(40, 48));
+        final text = textBlock(tester, 'Address', 'Lane 4, Rajbagh');
+        expect(b.left, greaterThanOrEqualTo(text.right));
+        expect(b.center.dy, closeTo(text.center.dy, 1));
+        // The address keeps to one line.
+        expect(
+          tester.getRect(find.text('Lane 4, Rajbagh')).height,
+          lessThan(26),
+          reason: 'one line',
+        );
+
+        // It is the same action.
+        await tester.tap(anyButton());
+        await tester.pump();
+        expect(host.log.single, startsWith('map '));
+      },
+    );
 
     testWidgets('with only an address it opens a Google Maps search for it', (
       tester,
@@ -721,26 +867,41 @@ void main() {
 
     for (final (name, theme, scale, w) in [
       ('dark', AppTheme.dark, 1.0, 390.0),
+      ('a small phone', AppTheme.light, 1.0, 320.0),
       ('a small phone with large text', AppTheme.light, 2.0, 320.0),
+      ('a normal phone with large text', AppTheme.dark, 1.6, 360.0),
     ]) {
       testWidgets('fits: $name', (tester) async {
+        final host = unlockedHost(
+          _full()
+            ..['address'] =
+                'Lane 4, Rajbagh, near the old bridge, Srinagar 190008',
+        );
         await _show(
           tester,
-          unlockedHost(
-            _full()
-              ..['address'] =
-                  'Lane 4, Rajbagh, near the old bridge, Srinagar 190008',
-          ),
+          host,
           id: 'b1',
           theme: theme,
           textScale: scale,
-          size: Size(w, 3200),
+          size: Size(w, 3600),
         );
-        expect(button(), findsOneWidget);
+        expect(anyButton(), findsOneWidget);
         expect(tester.takeException(), isNull);
-        final b = tester.getRect(button());
+        final b = tester.getRect(anyButton());
         expect(b.right, lessThanOrEqualTo(w));
         expect(b.left, greaterThanOrEqualTo(0));
+        expect(b.height, greaterThanOrEqualTo(40));
+        // Beside the text, on its row, never over it.
+        final text = tester.getRect(
+          find.text('Lane 4, Rajbagh, near the old bridge, Srinagar 190008'),
+        );
+        expect(b.left, greaterThanOrEqualTo(text.right - 0.5));
+        expect(b.top, lessThan(text.bottom));
+        expect(b.bottom, greaterThan(text.top));
+        // And it still works.
+        await tester.tap(anyButton());
+        await tester.pump();
+        expect(host.log.single, startsWith('map '));
       });
     }
 

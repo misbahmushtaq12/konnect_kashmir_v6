@@ -586,13 +586,7 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
   ) {
     final cs = Theme.of(context).colorScheme;
     final muted = cs.onSurface.withValues(alpha: 0.66);
-    Widget row(
-      Widget icon,
-      String label,
-      String value, {
-      Widget? trailing,
-      Widget? below,
-    }) =>
+    Widget row(Widget icon, String label, String value, {Widget? trailing}) =>
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -616,7 +610,6 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
                         height: 1.3,
                       ),
                     ),
-                    if (below != null) below,
                   ],
                 ),
               ),
@@ -670,30 +663,31 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
         );
       }
       if (address.isNotEmpty || locality.isNotEmpty) {
+        // The pin and the text are as they were. "Show in map" is on the right
+        // of the same row, centred with the text; it opens the business itself
+        // in Google Maps (its saved pin, else a search for its address), never
+        // the visitor's own position.
         rows.add(
-          row(
-            _icon(Icons.location_on_outlined),
-            address.isNotEmpty
-                ? context.l10n.detailsAddress
-                : context.l10n.detailsArea,
-            address.isNotEmpty ? address : locality,
-            // Right under the address: opens the business itself in Google Maps
-            // (its saved pin, else a search for its address), never the
-            // visitor's own position.
-            below: mapUri == null
-                ? null
-                : Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: FilledButton.tonalIcon(
+          LayoutBuilder(
+            builder: (context, c) => row(
+              _icon(Icons.location_on_outlined),
+              address.isNotEmpty
+                  ? context.l10n.detailsAddress
+                  : context.l10n.detailsArea,
+              address.isNotEmpty ? address : locality,
+              trailing: mapUri == null
+                  ? null
+                  : Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 10),
+                      child: _ShowInMapButton(
                         onPressed: () => _host.openMap(mapUri),
-                        style: AppButtons.compact(AppButtons.secondary),
-                        icon: const Icon(Icons.map_outlined, size: 18),
-                        label: Text(context.l10n.showInMap),
+                        labelled: _ShowInMapButton.fitsBeside(
+                          context,
+                          rowWidth: c.maxWidth,
+                        ),
                       ),
                     ),
-                  ),
+            ),
           ),
         );
       }
@@ -996,6 +990,91 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
 }
 
 // ── Pieces ───────────────────────────────────────────────────────────────────
+
+/// The one "Show in map" button of the contact card. Beside the address it is
+/// labelled; where the label would squeeze the address into a few narrow lines
+/// (a small phone, very large text) it is the same button with only its map
+/// icon, and the name as tooltip and for a screen reader.
+class _ShowInMapButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool labelled;
+  const _ShowInMapButton({required this.onPressed, required this.labelled});
+
+  static const double _padX = 14; // AppButtons.compact
+  static const double _iconSize = 18;
+  static const double _iconGap = 8;
+  static const double _size = 40; // an icon-only button is a 40px square
+
+  /// The room the address and the label's button must keep for the address.
+  static const double _minTextWidth = 110;
+
+  /// The row is a pin (20), a gap (12), the text, a gap (10) and this button.
+  static const double _beforeText = 20 + 12;
+  static const double _beforeButton = 10;
+
+  /// The label's font is the page's, so measuring the label is the same as
+  /// showing it (a button's own text style names no font).
+  static TextStyle _font(BuildContext context) {
+    final d = DefaultTextStyle.of(context).style;
+    return TextStyle(
+      fontFamily: d.fontFamily,
+      fontFamilyFallback: d.fontFamilyFallback,
+    );
+  }
+
+  /// Whether the labelled button leaves the address enough room, in a row that
+  /// is [rowWidth] wide (measured with the real label, language and text size).
+  static bool fitsBeside(BuildContext context, {required double rowWidth}) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: context.l10n.showInMap,
+        style: _font(
+          context,
+        ).copyWith(fontSize: AppText.secondary, fontWeight: FontWeight.w700),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final button = _padX * 2 + _iconSize + _iconGap + painter.width + 4;
+    painter.dispose();
+    return rowWidth - _beforeText - _beforeButton - button >= _minTextWidth;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppButtons.compact(AppButtons.secondary);
+    const icon = Icon(Icons.map_outlined, size: _iconSize);
+    final label = context.l10n.showInMap;
+    if (labelled) {
+      return FilledButton.tonalIcon(
+        onPressed: onPressed,
+        style: style,
+        icon: icon,
+        label: Text(
+          label,
+          style: _font(context),
+          maxLines: 1,
+          softWrap: false,
+        ),
+      );
+    }
+    return Tooltip(
+      message: label,
+      // (The button below already says its name to a screen reader.)
+      excludeFromSemantics: true,
+      child: FilledButton.tonal(
+        onPressed: onPressed,
+        style: style.copyWith(
+          minimumSize: const WidgetStatePropertyAll(Size.square(_size)),
+          fixedSize: const WidgetStatePropertyAll(Size.square(_size)),
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        ),
+        child: Semantics(label: label, excludeSemantics: true, child: icon),
+      ),
+    );
+  }
+}
 
 class _Section extends StatelessWidget {
   final String title;
