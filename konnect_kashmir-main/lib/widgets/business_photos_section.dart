@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../l10n/l10n.dart';
+import '../services/business_photos/business_photo_service.dart'
+    show PhotoStatus;
 import '../services/business_photos/business_photos_controller.dart';
 import '../services/business_photos/photo_images.dart';
 import '../services/business_photos/photo_rules.dart';
@@ -139,6 +141,20 @@ class BusinessPhotosSection extends StatelessWidget {
             style: TextStyle(color: muted, fontSize: AppText.caption),
           ),
         ],
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.verified_user_outlined, size: 14, color: muted),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                l.photosShownAfterReview,
+                style: TextStyle(color: muted, fontSize: AppText.caption),
+              ),
+            ),
+          ],
+        ),
         if (controller.notes.isNotEmpty) ...[
           const SizedBox(height: 8),
           for (final n in controller.notes.take(_shownNotes))
@@ -163,11 +179,23 @@ class BusinessPhotosSection extends StatelessWidget {
   Widget _photoTile(BuildContext context, int i, double size) {
     final l = context.l10n;
     final item = controller.items[i];
+    final status = item.saved?.status;
+    final waiting = status == PhotoStatus.pending;
+    final rejected = status == PhotoStatus.rejected;
     final rtl = Directionality.of(context) == TextDirection.rtl;
     final idle = !controller.busy;
     final last = i == controller.items.length - 1;
+    // Every button has a 44 px touch area (its look is smaller); two of them
+    // fit side by side even on the narrowest tile.
+    final hit = math.min(44.0, (size - 2) / 2);
 
-    return SizedBox(
+    final frame = rejected
+        ? AppColors.danger
+        : waiting
+        ? AppColors.warning
+        : null;
+
+    final thumb = SizedBox(
       width: size,
       height: size,
       child: ClipRRect(
@@ -175,7 +203,20 @@ class BusinessPhotosSection extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _Thumb(item: item),
+            // A photo that was not approved is dimmed.
+            Opacity(
+              opacity: rejected ? 0.55 : 1,
+              child: _Thumb(item: item),
+            ),
+            if (frame != null)
+              IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(color: frame, width: 2),
+                  ),
+                ),
+              ),
             if (item.uploading)
               const ColoredBox(
                 color: Color(0x80000000),
@@ -197,35 +238,54 @@ class BusinessPhotosSection extends StatelessWidget {
                 child: _Badge('${i + 1}'),
               ),
               PositionedDirectional(
-                top: 4,
-                end: 4,
+                top: 0,
+                end: 0,
                 child: _TileButton(
                   icon: Icons.delete_outline_rounded,
                   tooltip: l.deletePhoto,
+                  hit: hit,
                   onTap: idle ? () => _delete(context, i) : null,
                 ),
               ),
               PositionedDirectional(
-                bottom: 4,
-                start: 4,
+                bottom: 0,
+                start: 0,
                 child: _TileButton(
                   icon: rtl ? Icons.chevron_right : Icons.chevron_left,
                   tooltip: l.movePhotoEarlier,
+                  hit: hit,
                   onTap: idle && i > 0 ? () => _move(context, i, -1) : null,
                 ),
               ),
               PositionedDirectional(
-                bottom: 4,
-                end: 4,
+                bottom: 0,
+                end: 0,
                 child: _TileButton(
                   icon: rtl ? Icons.chevron_left : Icons.chevron_right,
                   tooltip: l.movePhotoLater,
+                  hit: hit,
                   onTap: idle && !last ? () => _move(context, i, 1) : null,
                 ),
               ),
             ],
           ],
         ),
+      ),
+    );
+
+    if (status == null || status == PhotoStatus.approved) return thumb;
+    return SizedBox(
+      width: size,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          thumb,
+          _StatusNote(
+            key: ValueKey<String>('status-$i'),
+            status: status,
+            reason: item.saved?.rejectionReason,
+          ),
+        ],
       ),
     );
   }
@@ -406,28 +466,121 @@ class _TileButton extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback? onTap;
-  const _TileButton({required this.icon, required this.tooltip, this.onTap});
+
+  /// The size of the touch area (the round button drawn in it is smaller).
+  final double hit;
+  const _TileButton({
+    required this.icon,
+    required this.tooltip,
+    required this.hit,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) => Opacity(
     opacity: onTap == null ? 0.35 : 1,
     child: Tooltip(
       message: tooltip,
-      child: Material(
-        color: Colors.black.withValues(alpha: 0.55),
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: SizedBox(
-            width: 30,
-            height: 30,
-            child: Icon(icon, size: 18, color: Colors.white),
+      child: InkResponse(
+        onTap: onTap,
+        radius: hit / 2,
+        child: SizedBox(
+          width: hit,
+          height: hit,
+          child: Center(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox(
+                width: 30,
+                height: 30,
+                child: Icon(icon, size: 18, color: Colors.white),
+              ),
+            ),
           ),
         ),
       ),
     ),
   );
+}
+
+/// What an admin decided about a photo, under its tile: "Under review", or "Not
+/// approved" with the reason (tap to read all of it).
+class _StatusNote extends StatelessWidget {
+  final PhotoStatus status;
+  final String? reason;
+  const _StatusNote({super.key, required this.status, this.reason});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final rejected = status == PhotoStatus.rejected;
+    final color = rejected ? AppColors.danger : AppColors.warning;
+    final text = !rejected
+        ? l.photoUnderReview
+        : (reason == null
+              ? l.photoNotApproved
+              : l.photoNotApprovedReason(reason!));
+    final note = Padding(
+      padding: const EdgeInsets.fromLTRB(2, 6, 2, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            rejected
+                ? Icons.error_outline_rounded
+                : Icons.hourglass_top_rounded,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: color,
+                fontSize: AppText.caption,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    return Semantics(
+      container: true,
+      label: text,
+      child: ExcludeSemantics(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: rejected && reason != null
+              ? InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  onTap: () => showDialog<void>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text(ctx.l10n.photoReasonTitle),
+                      content: Text(reason!),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text(ctx.l10n.ok),
+                        ),
+                      ],
+                    ),
+                  ),
+                  child: note,
+                )
+              : note,
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptyTile extends StatelessWidget {

@@ -53,13 +53,14 @@ void main() {
     Locale locale = const Locale('en'),
     double textScale = 1,
     double width = 390,
+    ThemeData? theme,
   }) async {
     tester.view.physicalSize = Size(width, 1400) * 2;
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         locale: locale,
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: const [
@@ -400,6 +401,300 @@ void main() {
         findsNothing,
       );
     });
+  });
+
+  group('admin approval, as the owner sees it', () {
+    const longReason =
+        'Not a photo of this business. Please upload a clear picture of your shop front or of your work, without any text or logo on it.';
+
+    Future<BusinessPhotosController> mixed(
+      WidgetTester tester, {
+      double width = 390,
+      ThemeData? theme,
+      Locale locale = const Locale('en'),
+      double textScale = 1,
+      String reason = 'Not a photo of this business',
+    }) async {
+      await FakePhotoImages.install(tester);
+      backend.seed('v1', sortOrder: 0, file: 'a.webp');
+      backend.seed(
+        'v1',
+        sortOrder: 1,
+        file: 'b.webp',
+        status: PhotoStatus.pending,
+      );
+      backend.seed(
+        'v1',
+        sortOrder: 2,
+        file: 'c.webp',
+        status: PhotoStatus.rejected,
+        rejectionReason: reason,
+      );
+      final c = controller(vendorId: 'v1');
+      await c.load();
+      await show(
+        tester,
+        c,
+        width: width,
+        theme: theme,
+        locale: locale,
+        textScale: textScale,
+      );
+      return c;
+    }
+
+    testWidgets(
+      'each photo shows where it stands: live, under review, or not approved with the reason',
+      (tester) async {
+        await mixed(tester);
+        expect(find.text('Under review'), findsOneWidget);
+        expect(
+          find.text('Not approved: Not a photo of this business'),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('status-0')),
+          findsNothing,
+          reason: 'an approved photo has no note',
+        );
+        expect(find.byKey(const ValueKey('status-1')), findsOneWidget);
+        expect(find.byKey(const ValueKey('status-2')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'a rejected photo without a reason still says it was not approved',
+      (tester) async {
+        await FakePhotoImages.install(tester);
+        backend.seed('v1', file: 'x.webp', status: PhotoStatus.rejected);
+        final c = controller(vendorId: 'v1');
+        await c.load();
+        await show(tester, c);
+        expect(find.text('Not approved'), findsOneWidget);
+      },
+    );
+
+    testWidgets('tapping the note reads the whole reason', (tester) async {
+      await mixed(tester, reason: longReason);
+      await tester.tap(find.byKey(const ValueKey('status-2')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Why this photo was not approved'), findsOneWidget);
+      expect(find.text(longReason), findsOneWidget);
+      await tester.tap(find.text('OK'));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Why this photo was not approved'), findsNothing);
+    });
+
+    testWidgets('the line under the block says photos are shown after review', (
+      tester,
+    ) async {
+      await mixed(tester);
+      expect(find.text('Photos are shown after admin review.'), findsOneWidget);
+    });
+
+    testWidgets('the same line on a new listing', (tester) async {
+      await FakePhotoImages.install(tester);
+      await show(tester, controller());
+      expect(find.text('Photos are shown after admin review.'), findsOneWidget);
+    });
+
+    testWidgets(
+      'the count is waiting and approved photos; a rejected one is not in it',
+      (tester) async {
+        final c = await mixed(tester);
+        expect(find.text('Photos (2/20)'), findsOneWidget);
+        expect(
+          c.items,
+          hasLength(3),
+          reason: 'the rejected photo is still listed',
+        );
+      },
+    );
+
+    testWidgets(
+      'twenty waiting and approved photos fill it, whatever is rejected',
+      (tester) async {
+        await FakePhotoImages.install(tester);
+        for (var i = 0; i < 12; i++) {
+          backend.seed('v1', sortOrder: i, status: PhotoStatus.pending);
+        }
+        for (var i = 12; i < 20; i++) {
+          backend.seed('v1', sortOrder: i);
+        }
+        for (var i = 20; i < 23; i++) {
+          backend.seed(
+            'v1',
+            sortOrder: i,
+            status: PhotoStatus.rejected,
+            rejectionReason: 'x',
+          );
+        }
+        final c = controller(vendorId: 'v1');
+        await c.load();
+        await show(tester, c);
+        expect(find.text('Photos (20/20)'), findsOneWidget);
+        expect(
+          find.text(
+            'You have reached the limit of 20 photos. Delete one to add another.',
+          ),
+          findsOneWidget,
+        );
+        nextPick = [_pick('21st.jpg')];
+        await tester.tap(find.text('Add photos'));
+        await settle(tester);
+        expect(pickerLimits, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'a rejected photo leaves a place free: Add still works at 19 + 1 rejected',
+      (tester) async {
+        await FakePhotoImages.install(tester);
+        for (var i = 0; i < 19; i++) {
+          backend.seed('v1', sortOrder: i);
+        }
+        backend.seed(
+          'v1',
+          sortOrder: 19,
+          status: PhotoStatus.rejected,
+          rejectionReason: 'x',
+        );
+        final c = controller(vendorId: 'v1');
+        await c.load();
+        await show(tester, c);
+        expect(find.text('Photos (19/20)'), findsOneWidget);
+        nextPick = [_pick('new.jpg')];
+        await tester.tap(find.text('Add photos'));
+        await settle(tester);
+        expect(pickerLimits, [1]);
+        // The new photo waits for an admin, and shows so.
+        expect(find.text('Photos (20/20)'), findsOneWidget);
+        expect(find.text('Under review'), findsOneWidget);
+      },
+    );
+
+    testWidgets('the owner can delete a waiting or a rejected photo', (
+      tester,
+    ) async {
+      await mixed(tester);
+      // delete the rejected one (the third tile), then the waiting one
+      await tester.tap(find.byTooltip('Delete photo').at(2));
+      await tester.pump();
+      await tester.tap(find.text('Delete photo'));
+      await settle(tester);
+      expect(
+        find.text('Not approved: Not a photo of this business'),
+        findsNothing,
+      );
+      expect(backend.rowsOf('v1').map((p) => p.status), [
+        PhotoStatus.approved,
+        PhotoStatus.pending,
+      ]);
+
+      await tester.tap(find.byTooltip('Delete photo').at(1));
+      await tester.pump();
+      await tester.tap(find.text('Delete photo'));
+      await settle(tester);
+      expect(find.text('Under review'), findsNothing);
+      expect(backend.rowsOf('v1').map((p) => p.status), [PhotoStatus.approved]);
+      expect(find.text('Photos (1/20)'), findsOneWidget);
+    });
+
+    testWidgets('moving a photo keeps its status', (tester) async {
+      await mixed(tester);
+      await tester.tap(find.byTooltip('Move earlier').at(1));
+      await settle(tester);
+      expect(backend.rowsOf('v1').map((p) => p.status), [
+        PhotoStatus.pending,
+        PhotoStatus.approved,
+        PhotoStatus.rejected,
+      ]);
+      expect(find.text('Under review'), findsOneWidget);
+    });
+
+    for (final width in [320.0, 375.0, 390.0, 768.0, 1024.0, 1440.0]) {
+      for (final dark in [false, true]) {
+        testWidgets(
+          '${width.toInt()}px, ${dark ? 'dark' : 'light'}: every button has a 44 px touch area, '
+          'nothing overlaps or overflows',
+          (tester) async {
+            await mixed(
+              tester,
+              width: width,
+              theme: dark ? AppTheme.dark : AppTheme.light,
+              reason: longReason,
+            );
+            expect(tester.takeException(), isNull);
+
+            final tiles = tester.getRect(find.byType(BusinessPhotosSection));
+            for (var i = 0; i < 3; i++) {
+              final rects = [
+                tester.getRect(find.byTooltip('Delete photo').at(i)),
+                tester.getRect(find.byTooltip('Move earlier').at(i)),
+                tester.getRect(find.byTooltip('Move later').at(i)),
+              ];
+              for (final r in rects) {
+                expect(
+                  r.width,
+                  greaterThanOrEqualTo(44),
+                  reason: 'tile $i width',
+                );
+                expect(
+                  r.height,
+                  greaterThanOrEqualTo(44),
+                  reason: 'tile $i height',
+                );
+                expect(r.right, lessThanOrEqualTo(tiles.right + 0.5));
+                expect(r.left, greaterThanOrEqualTo(tiles.left - 0.5));
+              }
+              for (var a = 0; a < 3; a++) {
+                for (var b = a + 1; b < 3; b++) {
+                  expect(
+                    rects[a].overlaps(rects[b]),
+                    isFalse,
+                    reason: 'buttons $a and $b of tile $i overlap',
+                  );
+                }
+              }
+            }
+            // The Add tile and the status notes are easy targets too, and stay in their tile.
+            expect(
+              tester.getSize(find.text('Add photos')).width,
+              greaterThan(0),
+            );
+            final note = tester.getRect(find.byKey(const ValueKey('status-2')));
+            expect(note.height, greaterThanOrEqualTo(44));
+            expect(note.right, lessThanOrEqualTo(tiles.right + 0.5));
+            final photo = tester.getRect(find.byTooltip('Delete photo').at(2));
+            expect(
+              note.top,
+              greaterThanOrEqualTo(photo.bottom - 1),
+              reason: 'the note is under its photo',
+            );
+          },
+        );
+      }
+    }
+
+    for (final code in ['hi', 'ur']) {
+      testWidgets('$code, a small phone with large text: fits', (tester) async {
+        await mixed(
+          tester,
+          width: 320,
+          locale: Locale(code),
+          textScale: 1.6,
+          reason: longReason,
+        );
+        expect(tester.takeException(), isNull);
+        final l = AppLocalizations.of(
+          tester.element(find.byType(BusinessPhotosSection)),
+        );
+        expect(find.text(l.photoUnderReview), findsOneWidget);
+        expect(find.text(l.photosShownAfterReview), findsOneWidget);
+        expect(find.text(l.photoNotApprovedReason(longReason)), findsOneWidget);
+      });
+    }
   });
 
   group('languages and sizes', () {

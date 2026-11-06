@@ -99,30 +99,10 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  /// The Profile tab's icon: the round initial the Home screen used to show. It
-  /// is quiet like the other icons until the tab is selected.
-  Widget _profileIcon(String name, bool selected, ColorScheme cs) {
-    final n = name.trim();
-    return CircleAvatar(
-      radius: 13,
-      backgroundColor:
-          selected ? AppColors.primary : cs.onSurface.withValues(alpha: 0.16),
-      child: Text(n.isNotEmpty ? n[0].toUpperCase() : '?',
-          style: TextStyle(
-              color: selected ? Colors.white : cs.onSurface.withValues(alpha: 0.7),
-              fontSize: 13,
-              fontWeight: FontWeight.w700)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     final expired =
         context.select<AuthProvider, bool>((a) => a.sessionExpired);
-    final name =
-        context.select<AuthProvider, String>((a) => a.user?.name ?? '');
     if (expired && !_expiredDialogOpen) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _showSessionExpired();
@@ -136,24 +116,31 @@ class _MainShellState extends State<MainShell> {
         if (!didPop) _select(0);
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _index,
-          children: [
-            CustomerScreen(isActive: _index == 0, onOpenProfile: () => _select(MainShell.tabProfile)),
-            _opened.contains(1)
-                ? MyBusinessTab(isActive: _index == 1)
-                : const SizedBox.shrink(),
-            _opened.contains(2)
-                ? DeenTab(isActive: _index == 2)
-                : const SizedBox.shrink(),
-            _opened.contains(3)
-                ? ProfileTab(isActive: _index == 3)
-                : const SizedBox.shrink(),
-          ],
+        // The pages run behind the floating bar instead of stopping above a
+        // blank strip; each one pads its list's end (FloatingNavBar.bottomClearance).
+        extendBody: true,
+        // (The scope hands the bar's height to each page's main list only, so
+        // lists and grids nested inside a page add no blank strip of their own.)
+        body: FloatingNavBarScope(
+          child: IndexedStack(
+            index: _index,
+            children: [
+              CustomerScreen(isActive: _index == 0, onOpenProfile: () => _select(MainShell.tabProfile)),
+              _opened.contains(1)
+                  ? MyBusinessTab(isActive: _index == 1)
+                  : const SizedBox.shrink(),
+              _opened.contains(2)
+                  ? DeenTab(isActive: _index == 2)
+                  : const SizedBox.shrink(),
+              _opened.contains(3)
+                  ? ProfileTab(isActive: _index == 3)
+                  : const SizedBox.shrink(),
+            ],
+          ),
         ),
         // The bottom bar is on every tab, Deen included. (Android's back button on
-        // another tab goes to Home.) It floats a little above the bottom edge; the
-        // pages end above it, so nothing is hidden behind it.
+        // another tab goes to Home.) It floats a little above the bottom edge, over
+        // the pages, which scroll behind it and pad their last item clear of it.
         bottomNavigationBar: FloatingNavBar(
           selectedIndex: _index,
           onSelected: _select,
@@ -175,8 +162,8 @@ class _MainShellState extends State<MainShell> {
             ),
             FloatingNavItem(
               label: context.l10n.navProfile,
-              icon: _profileIcon(name, false, cs),
-              selectedIcon: _profileIcon(name, true, cs),
+              icon: const Icon(Icons.person_outline_rounded),
+              selectedIcon: const Icon(Icons.person_rounded),
             ),
           ],
         ),

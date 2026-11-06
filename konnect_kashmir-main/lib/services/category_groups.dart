@@ -1,123 +1,91 @@
-/// The groups the service categories are shown in, the same ones the website's
-/// Browse page uses (Featured, Home & Repair, Health & Education, ...).
+/// The groups the service categories are shown in: the same nine, in the same
+/// order, as the website's Home and Browse pages (Featured, Home & Repair, ...).
 ///
-/// The database has no group column, so the website decides the group of each
-/// category by its slug. This copies that table; a slug it does not know goes to
-/// [CategoryGroup.moreServices], as on the website.
+/// Which group a category belongs to is decided by an admin, in the database
+/// (`service_categories.group_key`), and the order inside a group by
+/// `display_order`. Nothing here knows any category: a category that is added or
+/// moved shows up in its group with no change to the app.
 ///
-/// The one exception is [CategoryGroup.featured]: the categories an admin has
-/// pinned (`service_categories.is_pinned`, for example Instagram Shops) are shown
-/// first, on their own, and are left out of their usual group - as on the website.
+/// [CategoryGroup.featured] has no key of its own: it holds the categories an
+/// admin has pinned (`is_pinned`, for example Instagram Shops). A pinned category
+/// is shown there and also stays in its own group.
 enum CategoryGroup {
-  featured('Featured'),
-  homeRepair('Home & Repair'),
-  healthEducation('Health & Education'),
-  foodGrocery('Food & Grocery'),
-  fashionShopping('Fashion & Shopping'),
-  businessProfessional('Business & Professional'),
-  eventsTravel('Events & Travel'),
-  moreServices('More Services'),
-  other('Other');
+  featured(null, 'Featured'),
+  homeRepair('home_repair', 'Home & Repair'),
+  healthEducation('health_education', 'Health & Education'),
+  foodGrocery('food_grocery', 'Food & Grocery'),
+  fashionShopping('fashion_shopping', 'Fashion & Shopping'),
+  businessProfessional('business_professional', 'Business & Professional'),
+  eventsTravel('events_travel', 'Events & Travel'),
+  moreServices('more_services', 'More Services'),
+  other('other', 'Other');
+
+  /// The value of `service_categories.group_key` (null for Featured).
+  final String? key;
 
   /// English name (Hindi and Urdu are in l10n/category_names.dart).
   final String label;
-  const CategoryGroup(this.label);
+  const CategoryGroup(this.key, this.label);
+
+  /// The group a `group_key` names. A category that has no group yet (null: the
+  /// admin has not placed it), or one with a key this app does not know, is shown
+  /// under [other], as on the website.
+  static CategoryGroup fromKey(Object? key) {
+    final k = key?.toString().trim();
+    if (k == null || k.isEmpty) return other;
+    for (final g in values) {
+      if (g.key == k) return g;
+    }
+    return other;
+  }
 }
 
 class CategoryGroups {
   CategoryGroups._();
 
-  static const Map<String, CategoryGroup> _bySlug = {
-    // Home & Repair
-    'home_services': CategoryGroup.homeRepair,
-    'electrician': CategoryGroup.homeRepair,
-    'plumber': CategoryGroup.homeRepair,
-    'carpenter': CategoryGroup.homeRepair,
-    'painter': CategoryGroup.homeRepair,
-    'mason_dasil': CategoryGroup.homeRepair,
-    'labour': CategoryGroup.homeRepair,
-    'gardener': CategoryGroup.homeRepair,
-    'cleaner': CategoryGroup.homeRepair,
-    'laptop_mobile_repair': CategoryGroup.homeRepair,
-    'appliance_repair': CategoryGroup.homeRepair,
-    'laundry': CategoryGroup.homeRepair,
-    'cctv_security': CategoryGroup.homeRepair,
-    'solar_installer': CategoryGroup.homeRepair,
-    'building_material': CategoryGroup.homeRepair,
-    'interior-designers': CategoryGroup.homeRepair,
-    'flooring_and_furnishing': CategoryGroup.homeRepair,
-    'steel_iron_works': CategoryGroup.homeRepair,
-    'heating-hamams': CategoryGroup.homeRepair,
-    // Health & Education
-    'home_tutor': CategoryGroup.healthEducation,
-    'professional_instructor': CategoryGroup.healthEducation,
-    'education_consultant': CategoryGroup.healthEducation,
-    'pharmacy': CategoryGroup.healthEducation,
-    'psychiatrist_therapist': CategoryGroup.healthEducation,
-    'physiotherapist': CategoryGroup.healthEducation,
-    'hijama': CategoryGroup.healthEducation,
-    'clinics': CategoryGroup.healthEducation,
-    'labs_diagnostics': CategoryGroup.healthEducation,
-    'training_fitness': CategoryGroup.healthEducation,
-    // Food & Grocery
-    'food-items': CategoryGroup.foodGrocery,
-    'beverages': CategoryGroup.foodGrocery,
-    'grocery': CategoryGroup.foodGrocery,
-    'bakery': CategoryGroup.foodGrocery,
-    'catering': CategoryGroup.foodGrocery,
-    // Fashion & Shopping
-    'tailor': CategoryGroup.fashionShopping,
-    'mens-clothing': CategoryGroup.fashionShopping,
-    'womens-clothing': CategoryGroup.fashionShopping,
-    'shoes': CategoryGroup.fashionShopping,
-    'kidswear': CategoryGroup.fashionShopping,
-    'makeup_artist': CategoryGroup.fashionShopping,
-    'mehndi_artist': CategoryGroup.fashionShopping,
-    // Business & Professional
-    'architect': CategoryGroup.businessProfessional,
-    'lawyer': CategoryGroup.businessProfessional,
-    'chartered_accountant': CategoryGroup.businessProfessional,
-    'property_dealer': CategoryGroup.businessProfessional,
-    'buliders_developers': CategoryGroup.businessProfessional,
-    'insurance_agent': CategoryGroup.businessProfessional,
-    'designer': CategoryGroup.businessProfessional,
-    'web_mobile': CategoryGroup.businessProfessional,
-    'sales_marketing': CategoryGroup.businessProfessional,
-    'advertisement_hoardings': CategoryGroup.businessProfessional,
-    // Events & Travel
-    'wedding': CategoryGroup.eventsTravel,
-    'photography': CategoryGroup.eventsTravel,
-    'tent': CategoryGroup.eventsTravel,
-    'tour_travels': CategoryGroup.eventsTravel,
-    'hajj_umrah': CategoryGroup.eventsTravel,
-    'musician': CategoryGroup.eventsTravel,
-    'custom_gifting': CategoryGroup.eventsTravel,
-    // Other
-    'other': CategoryGroup.other,
-  };
-
-  /// The group of a category slug.
-  static CategoryGroup of(String slug) =>
-      _bySlug[slug] ?? CategoryGroup.moreServices;
-
-  /// [items] split into groups, in the groups' order. A group keeps its
-  /// categories in the order given (the database's display order), and groups
-  /// with nothing in them are left out. With [limit], only the first [limit]
-  /// categories counting group by group are kept (the collapsed Home view).
+  /// [items] split into groups, in the groups' fixed order. Groups with nothing in
+  /// them are left out (so Featured is hidden when nothing is pinned).
   ///
-  /// Items for which [pinned] says true form the Featured group, which comes
-  /// first, takes them out of their usual group and is never cut by [limit].
+  /// Inside every group the categories are in `display_order` ([orderOf]), then by
+  /// name ([nameOf]); two with both the same keep the order they came in.
+  ///
+  /// Items for which [pinned] says true form the Featured group (in the same
+  /// order). They also stay in their own group. With [limit], only the first
+  /// [limit] categories counting group by group are kept (the collapsed Home
+  /// view); Featured is never cut by it.
   static List<({CategoryGroup group, List<T> items})> group<T>(
-    Iterable<T> items,
-    String Function(T item) slugOf, {
-    int? limit,
+    Iterable<T> items, {
+    required String? Function(T item) groupKeyOf,
     bool Function(T item)? pinned,
+    int Function(T item)? orderOf,
+    String Function(T item)? nameOf,
+    int? limit,
   }) {
+    final all = items.toList();
+    // Sorted by display order, then name; ties keep the order they came in.
+    final order = List<int>.generate(all.length, (i) => i)
+      ..sort((i, j) {
+        final byOrder = (orderOf?.call(all[i]) ?? 0).compareTo(
+          orderOf?.call(all[j]) ?? 0,
+        );
+        if (byOrder != 0) return byOrder;
+        final byName = (nameOf?.call(all[i]) ?? '').toLowerCase().compareTo(
+          (nameOf?.call(all[j]) ?? '').toLowerCase(),
+        );
+        return byName != 0 ? byName : i.compareTo(j);
+      });
+    final sorted = [for (final i in order) all[i]];
+
     final byGroup = {for (final g in CategoryGroup.values) g: <T>[]};
-    for (final it in items) {
-      final isPinned = pinned != null && pinned(it);
-      byGroup[isPinned ? CategoryGroup.featured : of(slugOf(it))]!.add(it);
+    for (final it in sorted) {
+      // A category with no group (or an unknown one) is under Other.
+      byGroup[CategoryGroup.fromKey(groupKeyOf(it))]!.add(it);
+      // Pinned ones are also shown first, under Featured.
+      if (pinned != null && pinned(it)) {
+        byGroup[CategoryGroup.featured]!.add(it);
+      }
     }
+
     final out = <({CategoryGroup group, List<T> items})>[];
     var left = limit;
     for (final g in CategoryGroup.values) {

@@ -343,17 +343,25 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('on Deen: the bar sits below the page, nothing is hidden behind it',
-        (tester) async {
+    testWidgets('on Deen: the page runs behind the floating bar, with its last item '
+        'scrollable clear of it', (tester) async {
       _phone(tester);
       await tester.pumpWidget(_app(const MainShell(), theme: AppTheme.light));
       MainShell.tabRequest.value = MainShell.tabDeen;
       await _settle(tester);
 
+      final screenH = tester.view.physicalSize.height / tester.view.devicePixelRatio;
       final bar = tester.getRect(find.byType(FloatingNavBar));
       final deen = tester.getRect(find.byType(DeenTab));
-      expect(deen.bottom, lessThanOrEqualTo(bar.top + 0.5), reason: 'the page ends where the bar starts');
-      expect(bar.bottom, closeTo(tester.view.physicalSize.height / tester.view.devicePixelRatio, 0.5));
+      expect(deen.bottom, closeTo(screenH, 0.5), reason: 'no blank strip is held back for the bar');
+      expect(bar.bottom, closeTo(screenH, 0.5));
+      expect(bar.height, lessThan(80), reason: 'a slim bar, not a big container');
+
+      // Scrolled to its end, the last card sits above the capsule.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -3000));
+      await _settle(tester);
+      final capsule = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+      expect(tester.getBottomLeft(find.text('Continue Reading')).dy, lessThanOrEqualTo(capsule.top));
     });
 
     testWidgets("the bar's Home takes you home from Deen, and its Deen item comes back",

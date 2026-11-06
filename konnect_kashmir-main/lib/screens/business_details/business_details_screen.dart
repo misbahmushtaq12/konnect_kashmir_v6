@@ -586,7 +586,13 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
   ) {
     final cs = Theme.of(context).colorScheme;
     final muted = cs.onSurface.withValues(alpha: 0.66);
-    Widget row(Widget icon, String label, String value, {Widget? trailing}) =>
+    Widget row(
+      Widget icon,
+      String label,
+      String value, {
+      Widget? trailing,
+      Widget? below,
+    }) =>
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -610,6 +616,7 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
                         height: 1.3,
                       ),
                     ),
+                    if (below != null) below,
                   ],
                 ),
               ),
@@ -670,14 +677,21 @@ class _BusinessDetailsScreenState extends State<BusinessDetailsScreen> {
                 ? context.l10n.detailsAddress
                 : context.l10n.detailsArea,
             address.isNotEmpty ? address : locality,
-            trailing: mapUri == null
+            // Right under the address: opens the business itself in Google Maps
+            // (its saved pin, else a search for its address), never the
+            // visitor's own position.
+            below: mapUri == null
                 ? null
-                : IconButton(
-                    onPressed: () => _host.openMap(mapUri),
-                    tooltip: context.l10n.detailsDirections,
-                    icon: const Icon(
-                      Icons.directions_rounded,
-                      color: AppColors.primary,
+                : Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: FilledButton.tonalIcon(
+                        onPressed: () => _host.openMap(mapUri),
+                        style: AppButtons.compact(AppButtons.secondary),
+                        icon: const Icon(Icons.map_outlined, size: 18),
+                        label: Text(context.l10n.showInMap),
+                      ),
                     ),
                   ),
           ),

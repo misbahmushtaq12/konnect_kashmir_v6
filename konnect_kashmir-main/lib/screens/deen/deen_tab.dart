@@ -18,6 +18,7 @@ import '../../widgets/app_header.dart';
 import '../../widgets/app_overlays.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/error_retry.dart';
+import '../../widgets/floating_nav_bar.dart';
 import '../../services/deen_events.dart';
 import 'audio_screen.dart';
 import 'duas_screen.dart';
@@ -336,6 +337,9 @@ class _DeenTabState extends State<DeenTab> {
     final hPad = size.width > 600 ? size.width * 0.10 : 16.0;
 
     return SafeArea(
+      // (No bottom inset here: the list pads its own end, so it can scroll
+      // clear of the floating bottom bar it runs behind.)
+      bottom: false,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
@@ -345,7 +349,8 @@ class _DeenTabState extends State<DeenTab> {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
-              padding: EdgeInsets.fromLTRB(hPad, 8, hPad, 24),
+              padding: EdgeInsets.fromLTRB(
+                  hPad, 8, hPad, FloatingNavBar.bottomClearance(context)),
               children: [
                 _header(),
                 const SizedBox(height: 14),

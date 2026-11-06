@@ -17,8 +17,10 @@ import '../services/map_link.dart';
 import '../widgets/app_chip.dart';
 import '../widgets/category_meta.dart';
 import '../widgets/app_header.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/app_snack.dart';
 import '../widgets/error_retry.dart';
+import '../widgets/floating_nav_bar.dart';
 import '../services/lead_loader.dart';
 import '../widgets/lead_contact_sheet.dart';
 import '../widgets/share_business_button.dart';
@@ -295,6 +297,9 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   }
 
   double _viewportHeight = 0;
+  // The list's bottom padding: just enough to scroll the last card clear of the
+  // floating bottom bar, which the page runs behind.
+  double _bottomPad = 24;
 
   Future<void> _push(Widget screen) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
@@ -306,8 +311,11 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
     context.watch<LiveSync>(); // rebuild when the shared balance changes
     final size = MediaQuery.of(context).size;
     final hPad = size.width > 600 ? size.width * 0.12 : 20.0;
+    _bottomPad = FloatingNavBar.bottomClearance(context);
 
     return SafeArea(
+      // (No bottom inset here: the list pads its own end, see _bottomPad.)
+      bottom: false,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
@@ -319,11 +327,12 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
               return ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
-              padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
+              padding: EdgeInsets.fromLTRB(hPad, 12, hPad, _bottomPad),
               children: [
                 AppHeader(
                   title: context.l10n.navMyBusiness,
                   actions: [
+                    const NotificationBell(),
                     if (_credits != null) CreditChip(_credits!),
                     if (!_loading && _errorMsg == null && _businesses.isNotEmpty)
                       IconButton(
@@ -410,7 +419,7 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   // Circular loader centered in the space below the title.
   List<Widget> _skeletons() => [
         SizedBox(
-          height: (_viewportHeight - 12 - 32 - 16 - 24).clamp(240.0, double.infinity),
+          height: (_viewportHeight - 12 - 32 - 16 - _bottomPad).clamp(240.0, double.infinity),
           child: const Center(
             child: SizedBox(
               width: 36,
@@ -425,8 +434,8 @@ class _MyBusinessTabState extends State<MyBusinessTab> {
   Widget _emptyState() {
     final cs = Theme.of(context).colorScheme;
     // Exact space left below the title: viewport minus list padding (12 top,
-    // 24 bottom), title row (~32) and the 16px gap under it.
-    const double headerHeight = 12 + 32 + 16 + 24;
+    // _bottomPad bottom), title row (~32) and the 16px gap under it.
+    final double headerHeight = 12 + 32 + 16 + _bottomPad;
     final double availableHeight =
         (_viewportHeight - headerHeight).clamp(360.0, double.infinity);
 

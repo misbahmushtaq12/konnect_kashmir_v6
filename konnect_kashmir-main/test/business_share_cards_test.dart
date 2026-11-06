@@ -252,6 +252,20 @@ List<MethodCall> _watchShare(WidgetTester tester) {
   return calls;
 }
 
+/// The card (the rounded, outlined box) of the business with this name.
+Finder _cardOf(String name) => find
+    .ancestor(
+      of: find.text(name),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration as BoxDecoration).borderRadius != null &&
+            (w.decoration as BoxDecoration).border != null,
+      ),
+    )
+    .first;
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -340,6 +354,94 @@ void main() {
       expect(text, contains('Address: Lane 4, Noorbagh, Srinagar'));
       expect(text, contains('Phone: +91 9876543210'));
       expect(text, contains('/business/v1'));
+    });
+
+    testWidgets(
+      'a card is compact: no review/report footer, no address row, no map '
+      'button, locked or unlocked',
+      (tester) async {
+        await _pumpHome(
+          tester,
+          _Backend(list: [_vendor('v1', 'Sajad Khatmband')]),
+        );
+        await tester.scrollUntilVisible(
+          find.byTooltip('Share'),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+
+        void expectClean(String when) {
+          expect(find.text('Rate, review or report'), findsNothing, reason: when);
+          expect(find.text('Show in map'), findsNothing, reason: when);
+          final card = _cardOf('Sajad Khatmband');
+          for (final icon in [
+            Icons.map_outlined,
+            Icons.keyboard_arrow_down_rounded,
+            Icons.keyboard_arrow_up_rounded,
+            Icons.flag_outlined,
+          ]) {
+            expect(
+              find.descendant(of: card, matching: find.byIcon(icon)),
+              findsNothing,
+              reason: '$when: nothing on the card opens or maps ($icon)',
+            );
+          }
+          expect(find.text('Report'), findsNothing, reason: when);
+          expect(find.text('Leave a Review'), findsNothing, reason: when);
+          expect(
+            find.text('Lane 4, Noorbagh, Srinagar'),
+            findsNothing,
+            reason: '$when: the address is on the details page',
+          );
+        }
+
+        expectClean('locked');
+
+        // The user unlocks this contact: the number is shown, and still
+        // nothing else is added below it. (The call and WhatsApp buttons need
+        // a signed-in user, which this harness does not have.)
+        final state = tester.state(find.byType(CustomerScreen)) as dynamic;
+        // ignore: avoid_dynamic_calls
+        state.setState(() => state.revealedVendors['v1'] = true);
+        await tester.pump();
+        expectClean('unlocked');
+        expect(find.text('+91 9876543210'), findsOneWidget);
+        expect(find.byTooltip('Share'), findsOneWidget);
+        // The place stays in the card's header, next to the category.
+        expect(find.text('Noorbagh'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets('an unlocked card ends with its contact row, and is no taller '
+        'than a locked one plus its buttons', (tester) async {
+      await _pumpHome(
+        tester,
+        _Backend(list: [_vendor('v1', 'Sajad Khatmband')]),
+      );
+      await tester.scrollUntilVisible(
+        find.byTooltip('Share'),
+        400,
+        scrollable: find.byType(Scrollable).first,
+      );
+      Finder cardBox() => _cardOf('Sajad Khatmband');
+      final locked = tester.getSize(cardBox()).height;
+
+      final state = tester.state(find.byType(CustomerScreen)) as dynamic;
+      // ignore: avoid_dynamic_calls
+      state.setState(() => state.revealedVendors['v1'] = true);
+      await tester.pump();
+      final unlocked = tester.getSize(cardBox()).height;
+
+      expect(
+        unlocked,
+        closeTo(locked, 20),
+        reason: 'unlocking only swaps the button for call/WhatsApp',
+      );
+      // Contact row is the last thing in the card: nothing hangs below it.
+      final card = tester.getRect(cardBox());
+      final contact = tester.getRect(find.text('+91 9876543210'));
+      expect(card.bottom - contact.bottom, lessThan(40));
     });
 
     testWidgets('each business shares its own details', (tester) async {

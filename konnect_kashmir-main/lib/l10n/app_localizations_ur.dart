@@ -1536,4 +1536,40 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get noPhotosSubtitle => 'کاروبار کی تصاویر یہاں دکھائی دیں گی';
+
+  @override
+  String get photoUnderReview => 'جائزے میں';
+
+  @override
+  String get photoNotApproved => 'منظور نہیں';
+
+  @override
+  String photoNotApprovedReason(String reason) {
+    return 'منظور نہیں: $reason';
+  }
+
+  @override
+  String get photosShownAfterReview =>
+      'تصاویر ایڈمن کے جائزے کے بعد دکھائی جاتی ہیں۔';
+
+  @override
+  String get photoReasonTitle => 'یہ تصویر منظور کیوں نہیں ہوئی';
+
+  @override
+  String get notificationsTitle => 'اطلاعات';
+
+  @override
+  String notificationsUnread(int count) {
+    return '$count غیر پڑھی';
+  }
+
+  @override
+  String get markAllRead => 'سب کو پڑھا ہوا نشان زد کریں';
+
+  @override
+  String get noNotificationsYet => 'ابھی کوئی اطلاع نہیں';
+
+  @override
+  String get noNotificationsBody =>
+      'آپ کے کاروبار میں کچھ بدلنے پر یہاں نظر آئے گا۔';
 }

@@ -110,7 +110,11 @@ class BusinessPhotosController extends ChangeNotifier {
   List<CompressionNote> get notes => _notes;
 
   bool get editing => vendorId != null;
-  int get count => _items.length;
+
+  /// How many photos count towards the limit: waiting and approved ones, and
+  /// those prepared on this phone. A rejected photo does not count.
+  int get count =>
+      _items.where((i) => i.saved?.status != PhotoStatus.rejected).length;
   int get remaining =>
       (kMaxBusinessPhotos - count).clamp(0, kMaxBusinessPhotos);
   bool get atLimit => count >= kMaxBusinessPhotos;
@@ -146,7 +150,7 @@ class BusinessPhotosController extends ChangeNotifier {
     _loadFailed = false;
     _notify();
     try {
-      final list = await service.photos(id, refresh: true);
+      final list = await service.photos(id, refresh: true, ownerView: true);
       _items = [for (final p in list) PhotoItem.saved(p)];
     } catch (_) {
       _loadFailed = true;
@@ -241,7 +245,7 @@ class BusinessPhotosController extends ChangeNotifier {
     final id = vendorId;
     if (id == null) return;
     try {
-      final list = await service.photos(id, refresh: true);
+      final list = await service.photos(id, refresh: true, ownerView: true);
       _items = [for (final p in list) PhotoItem.saved(p)];
       _loadFailed = false;
     } catch (_) {
@@ -259,7 +263,11 @@ class BusinessPhotosController extends ChangeNotifier {
   /// Returns false when it could not be saved.
   Future<bool> move(int index, int delta) async {
     final to = index + delta;
-    if (_busy || index < 0 || index >= count || to < 0 || to >= count) {
+    if (_busy ||
+        index < 0 ||
+        index >= _items.length ||
+        to < 0 ||
+        to >= _items.length) {
       return true;
     }
     final before = _items;
@@ -283,7 +291,7 @@ class BusinessPhotosController extends ChangeNotifier {
 
   /// Deletes the photo at [index]. Returns false when it could not be deleted.
   Future<bool> remove(int index) async {
-    if (_busy || index < 0 || index >= count) return true;
+    if (_busy || index < 0 || index >= _items.length) return true;
     final item = _items[index];
     final saved = item.saved;
     if (saved == null) {

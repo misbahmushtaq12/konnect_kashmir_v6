@@ -2679,6 +2679,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Business photos will appear here'**
   String get noPhotosSubtitle;
+
+  /// No description provided for @photoUnderReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Under review'**
+  String get photoUnderReview;
+
+  /// No description provided for @photoNotApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Not approved'**
+  String get photoNotApproved;
+
+  /// No description provided for @photoNotApprovedReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Not approved: {reason}'**
+  String photoNotApprovedReason(String reason);
+
+  /// No description provided for @photosShownAfterReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos are shown after admin review.'**
+  String get photosShownAfterReview;
+
+  /// No description provided for @photoReasonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Why this photo was not approved'**
+  String get photoReasonTitle;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unread'**
+  String notificationsUnread(int count);
+
+  /// No description provided for @markAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get markAllRead;
+
+  /// No description provided for @noNotificationsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet'**
+  String get noNotificationsYet;
+
+  /// No description provided for @noNotificationsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When something changes for your business, you will see it here.'**
+  String get noNotificationsBody;
 }
 
 class _AppLocalizationsDelegate

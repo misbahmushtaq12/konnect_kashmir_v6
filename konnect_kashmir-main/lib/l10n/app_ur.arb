@@ -434,5 +434,15 @@
   "photosLoadFailed": "آپ کی تصاویر لوڈ نہیں ہو سکیں۔ انٹرنیٹ چیک کریں۔",
   "businessSubmittedPhotosFailed": "{count} تصاویر اپ لوڈ نہیں ہو سکیں۔ انہیں دوبارہ شامل کرنے کے لیے کاروبار میں ترمیم کھولیں۔",
   "noPhotosTitle": "کوئی تصویر دستیاب نہیں",
-  "noPhotosSubtitle": "کاروبار کی تصاویر یہاں دکھائی دیں گی"
+  "noPhotosSubtitle": "کاروبار کی تصاویر یہاں دکھائی دیں گی",
+  "photoUnderReview": "جائزے میں",
+  "photoNotApproved": "منظور نہیں",
+  "photoNotApprovedReason": "منظور نہیں: {reason}",
+  "photosShownAfterReview": "تصاویر ایڈمن کے جائزے کے بعد دکھائی جاتی ہیں۔",
+  "photoReasonTitle": "یہ تصویر منظور کیوں نہیں ہوئی",
+  "notificationsTitle": "اطلاعات",
+  "notificationsUnread": "{count} غیر پڑھی",
+  "markAllRead": "سب کو پڑھا ہوا نشان زد کریں",
+  "noNotificationsYet": "ابھی کوئی اطلاع نہیں",
+  "noNotificationsBody": "آپ کے کاروبار میں کچھ بدلنے پر یہاں نظر آئے گا۔"
 }

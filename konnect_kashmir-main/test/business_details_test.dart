@@ -10,6 +10,7 @@ import 'package:konnect_kashmir/screens/business_details/business_details_host.d
 import 'package:konnect_kashmir/screens/business_details/business_details_screen.dart';
 import 'package:konnect_kashmir/screens/business_details/business_photo_gallery.dart';
 import 'package:konnect_kashmir/screens/business_details/gallery_empty_state.dart';
+import 'package:konnect_kashmir/services/map_link.dart';
 import 'package:konnect_kashmir/services/business_photos/business_photo_service.dart';
 import 'package:konnect_kashmir/theme/app_theme.dart';
 
@@ -512,6 +513,7 @@ void main() {
         expect(find.textContaining('Unlock this business'), findsOneWidget);
         expect(find.text('Unlock Contact'), findsOneWidget);
         expect(find.textContaining('Lane 4'), findsNothing);
+        expect(find.text('Show in map'), findsNothing);
         expect(find.textContaining('9876543210'), findsNothing);
         expect(find.text('Call Now'), findsNothing);
         expect(find.text('Report this business'), findsNothing);
@@ -588,7 +590,7 @@ void main() {
       expect(find.text('Call Now'), findsNothing);
       expect(find.text('Phone not available'), findsOneWidget);
       // The address can still be opened in the map.
-      expect(find.byTooltip('Directions'), findsWidgets);
+      expect(find.text('Show in map'), findsOneWidget);
     });
 
     testWidgets(
@@ -606,6 +608,171 @@ void main() {
         expect(find.text('+91 9111111111'), findsWidgets);
       },
     );
+  });
+
+  group('Show in map', () {
+    _FakeHost unlockedHost(Map<String, dynamic> vendor) =>
+        _FakeHost(_FakeSource(detail: vendor))
+          ..unlocked.add('b1')
+          ..phones['b1'] = '9876543210';
+
+    Finder button() => find.widgetWithText(FilledButton, 'Show in map');
+
+    testWidgets('sits right under the address, with a map icon', (
+      tester,
+    ) async {
+      await _show(tester, unlockedHost(_full()), id: 'b1');
+      expect(button(), findsOneWidget);
+      expect(
+        find.descendant(of: button(), matching: find.byIcon(Icons.map_outlined)),
+        findsOneWidget,
+      );
+      final address = tester.getRect(find.text('Lane 4, Rajbagh'));
+      final b = tester.getRect(button());
+      expect(b.top, greaterThanOrEqualTo(address.bottom), reason: 'under it');
+      expect(b.top - address.bottom, lessThan(16), reason: 'right under it');
+      expect(b.left, closeTo(address.left, 1), reason: 'in its column');
+      expect(find.text('Address'), findsOneWidget, reason: 'the address stays');
+      expect(b.height, greaterThanOrEqualTo(40));
+    });
+
+    testWidgets('with only an address it opens a Google Maps search for it', (
+      tester,
+    ) async {
+      final host = unlockedHost(_full());
+      await _show(tester, host, id: 'b1');
+      await tester.tap(button());
+      await tester.pump();
+
+      final uri = Uri.parse(host.log.single.substring(4));
+      expect(uri.host, 'www.google.com');
+      expect(uri.path, '/maps/search/');
+      final q = uri.queryParameters['query']!;
+      expect(q, contains('Lane 4, Rajbagh'));
+      expect(q, contains('Srinagar'), reason: 'with the locality');
+      expect(q, contains('Kashmir'), reason: 'and kept in the state');
+      expect(q.toLowerCase(), isNot(contains('current')));
+    });
+
+    testWidgets('with a saved pin it opens exactly that pin', (tester) async {
+      final pin = MapLink.pinFromCoordinates(34.0836, 74.7973);
+      final host = unlockedHost(_full()..['address'] = 'Lane 4, Rajbagh $pin');
+      await _show(tester, host, id: 'b1');
+      // The address is shown without the link.
+      expect(find.text('Lane 4, Rajbagh'), findsOneWidget);
+      expect(find.textContaining('https://'), findsNothing);
+
+      await tester.tap(button());
+      await tester.pump();
+      expect(host.log.single, 'map $pin');
+      final uri = Uri.parse(host.log.single.substring(4));
+      expect(uri.queryParameters['query'], '34.083600,74.797300');
+    });
+
+    testWidgets('with a saved Google Maps link it opens that link', (
+      tester,
+    ) async {
+      const link = 'https://maps.app.goo.gl/AbCdEf123';
+      final host = unlockedHost(_full()..['address'] = 'Lane 4 $link');
+      await _show(tester, host, id: 'b1');
+      await tester.tap(button());
+      await tester.pump();
+      expect(host.log.single, 'map $link');
+    });
+
+    testWidgets('with no address it searches the business in its locality', (
+      tester,
+    ) async {
+      final host = unlockedHost(_full()..['address'] = null);
+      await _show(tester, host, id: 'b1');
+      expect(find.text('Area'), findsOneWidget, reason: 'the area stays');
+      await tester.tap(button());
+      await tester.pump();
+      final q = Uri.parse(
+        host.log.single.substring(4),
+      ).queryParameters['query']!;
+      expect(q, contains('Orchid Cab Services'));
+      expect(q, contains('Srinagar'));
+    });
+
+    testWidgets('no address and no locality: no button that goes nowhere', (
+      tester,
+    ) async {
+      final host = unlockedHost(
+        _full()
+          ..['address'] = null
+          ..['localities'] = null,
+      );
+      await _show(tester, host, id: 'b1');
+      expect(button(), findsNothing);
+      expect(find.byTooltip('Directions'), findsNothing);
+    });
+
+    testWidgets('the address is part of the unlocked contact, so is the map', (
+      tester,
+    ) async {
+      final host = _FakeHost(_FakeSource(detail: _full()));
+      await _show(tester, host, id: 'b1');
+      expect(button(), findsNothing);
+      await tester.tap(find.text('Unlock Contact'));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(button(), findsOneWidget);
+    });
+
+    for (final (name, theme, scale, w) in [
+      ('dark', AppTheme.dark, 1.0, 390.0),
+      ('a small phone with large text', AppTheme.light, 2.0, 320.0),
+    ]) {
+      testWidgets('fits: $name', (tester) async {
+        await _show(
+          tester,
+          unlockedHost(
+            _full()
+              ..['address'] =
+                  'Lane 4, Rajbagh, near the old bridge, Srinagar 190008',
+          ),
+          id: 'b1',
+          theme: theme,
+          textScale: scale,
+          size: Size(w, 3200),
+        );
+        expect(button(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        final b = tester.getRect(button());
+        expect(b.right, lessThanOrEqualTo(w));
+        expect(b.left, greaterThanOrEqualTo(0));
+      });
+    }
+
+    for (final (code, label) in [
+      ('hi', 'मैप में दिखाएँ'),
+      ('ur', 'نقشے میں دکھائیں'),
+    ]) {
+      testWidgets('is translated: $code', (tester) async {
+        final host = unlockedHost(_full());
+        tester.view.physicalSize = const Size(390, 2400) * 2;
+        tester.view.devicePixelRatio = 2;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.dark,
+            locale: Locale(code),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: BusinessDetailsScreen(host: host, vendorId: 'b1'),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(find.widgetWithText(FilledButton, label), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
   });
 
   group('reviews', () {

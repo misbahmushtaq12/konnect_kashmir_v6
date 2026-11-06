@@ -736,5 +736,25 @@
     }
   },
   "noPhotosTitle": "No photos available",
-  "noPhotosSubtitle": "Business photos will appear here"
+  "noPhotosSubtitle": "Business photos will appear here",
+  "photoUnderReview": "Under review",
+  "photoNotApproved": "Not approved",
+  "photoNotApprovedReason": "Not approved: {reason}",
+  "@photoNotApprovedReason": {
+    "placeholders": {
+      "reason": {"type": "String"}
+    }
+  },
+  "photosShownAfterReview": "Photos are shown after admin review.",
+  "photoReasonTitle": "Why this photo was not approved",
+  "notificationsTitle": "Notifications",
+  "notificationsUnread": "{count} unread",
+  "@notificationsUnread": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "markAllRead": "Mark all as read",
+  "noNotificationsYet": "No notifications yet",
+  "noNotificationsBody": "When something changes for your business, you will see it here."
 }

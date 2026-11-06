@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../l10n/l10n.dart';
@@ -25,13 +26,14 @@ import '../services/map_link.dart';
 import '../services/search_gate.dart';
 import '../providers/auth_provider.dart';
 import 'package:konnect_kashmir/screens/dashboard_screen.dart';
-import 'package:konnect_kashmir/static/grevience_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chip.dart';
 import '../widgets/app_header.dart';
+import '../widgets/notification_bell.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/error_retry.dart';
+import '../widgets/floating_nav_bar.dart';
 import '../widgets/share_business_button.dart';
 import '../widgets/category_meta.dart';
 import 'ad_watch_dialog.dart';
@@ -360,6 +362,14 @@ class _HomeScreenState extends State<CustomerScreen>
   List<Map<String, dynamic>> _localities = [];
   List<Map<String, dynamic>> _serviceCategories = [];
 
+  /// Asked for, and the server had none (no internet, and none saved from an
+  /// earlier visit): the built-in list is shown, without groups.
+  bool _categoriesGaveUp = false;
+
+  /// The last category list the server gave, kept on the phone so the groups
+  /// (and Featured) are on screen at once; the live list replaces it.
+  static const String _categoriesCacheKey = 'service_categories_cache';
+
   String? selectedDistrictId;
   String? selectedDistrictName;
   String? selectedLocalityId;
@@ -390,7 +400,6 @@ class _HomeScreenState extends State<CustomerScreen>
   Map<dynamic, bool> revealedVendors = {};
   Map<dynamic, String> _revealedPhones = {};
   Map<dynamic, bool> _isRevealingVendor = {};
-  Map<dynamic, bool> showActionsMap = {};
   Map<dynamic, int> vendorRatings = {};
   Map<dynamic, TextEditingController> reviewControllers = {};
   Map<dynamic, String?> selectedReportReason = {};
@@ -401,6 +410,7 @@ class _HomeScreenState extends State<CustomerScreen>
     super.initState();
     selectedBrowseCategory = widget.initialCategory;
     userCredits = context.read<LiveSync>().credits ?? userCredits;
+    _restoreCachedCategories();
     final initialSearch = (widget.initialSearch ?? '').trim();
     if (initialSearch.isNotEmpty) {
       _searchController.text = initialSearch;
@@ -633,14 +643,51 @@ class _HomeScreenState extends State<CustomerScreen>
     }
   }
 
+  /// The category list of the last visit (see [_categoriesCacheKey]).
+  Future<void> _restoreCachedCategories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_categoriesCacheKey);
+      if (raw == null || !mounted || _serviceCategories.isNotEmpty) return;
+      final list = jsonDecode(raw);
+      if (list is! List || list.isEmpty) return;
+      setState(() {
+        _serviceCategories = [
+          for (final e in list)
+            if (e is Map) Map<String, dynamic>.from(e),
+        ];
+        _categoriesGaveUp = false;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saveCachedCategories(List<Map<String, dynamic>> data) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_categoriesCacheKey, jsonEncode(data));
+    } catch (_) {}
+  }
+
   Future<void> _loadServiceCategories() async {
     try {
-      final data = await _api.getServiceCategories();
+      // Not waited for for ever: after a few seconds without an answer the page
+      // shows the built-in list instead of the placeholder.
+      final data = await _api
+          .getServiceCategories()
+          .timeout(const Duration(seconds: 6), onTimeout: () => []);
       if (!mounted) return;
-      setState(
-              () => _serviceCategories = List<Map<String, dynamic>>.from(data));
+      if (data.isEmpty) {
+        // Nothing came back (no internet): keep the list on screen, if any.
+        setState(() => _categoriesGaveUp = _serviceCategories.isEmpty);
+        return;
+      }
+      setState(() {
+        _serviceCategories = List<Map<String, dynamic>>.from(data);
+        _categoriesGaveUp = false;
+      });
+      _saveCachedCategories(_serviceCategories);
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || _serviceCategories.isNotEmpty) return;
       setState(() => _serviceCategories = [
         {'slug': 'plumber', 'name': 'Plumbing'},
         {'slug': 'electrician', 'name': 'Electrical'},
@@ -1951,12 +1998,42 @@ class _HomeScreenState extends State<CustomerScreen>
   Widget _buildCategoriesGrid() {
     final cs = Theme.of(context).colorScheme;
     
-    final List<dynamic> sourceList = _serviceCategories.isNotEmpty 
-        ? _serviceCategories 
+    // Until the groups are known (from the server, or saved from the last visit)
+    // there is a quiet placeholder: showing the services first and moving them
+    // into their groups a moment later would make the page jump.
+    if (_serviceCategories.isEmpty && !_categoriesGaveUp) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeader(title: context.l10n.ourServices),
+          const SizedBox(height: 18),
+          GridView.builder(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              mainAxisExtent: 88,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+            ),
+            // As tall as its tiles: it takes no padding from its surroundings.
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 8,
+            itemBuilder: (_, __) => const Skeleton(height: 88, radius: 16),
+          ),
+        ],
+      );
+    }
+
+    // No groups are known (offline, nothing saved): the built-in list, as one
+    // plain list.
+    final bool grouped = _serviceCategories.isNotEmpty;
+    final List<dynamic> sourceList = grouped
+        ? _serviceCategories
         : CategoryMeta.allCategories;
 
     final cats = <Map<String, dynamic>>[
-      for (final e in sourceList)
+      for (final (i, e) in sourceList.indexed)
         {
           'slug': e['slug']?.toString() ?? e['id']?.toString() ?? '',
           'name': e['name']?.toString() ?? 'Service',
@@ -1964,6 +2041,10 @@ class _HomeScreenState extends State<CustomerScreen>
           'color': e['color']?.toString() ?? e['color_hex']?.toString(),
           // Pinned by an admin (e.g. Instagram Shops): shown first, under Featured.
           'pinned': e['is_pinned'] == true,
+          // The admin's choices, from the database (the same as the website's).
+          'group_key': e['group_key']?.toString(),
+          // (The built-in list has no order of its own: it keeps the order it is in.)
+          'order': grouped ? ((e['display_order'] as num?)?.toInt() ?? 0) : i,
         }
     ];
 
@@ -1972,8 +2053,10 @@ class _HomeScreenState extends State<CustomerScreen>
     // every group. Featured is always shown, whatever is collapsed.
     final groups = CategoryGroups.group<Map<String, dynamic>>(
       cats,
-      (c) => c['slug'].toString(),
+      groupKeyOf: (c) => c['group_key'] as String?,
       pinned: (c) => c['pinned'] == true,
+      orderOf: (c) => c['order'] as int,
+      nameOf: (c) => c['name'].toString(),
       limit: _showAllCategories ? null : _collapsedServiceTiles,
     );
 
@@ -1987,10 +2070,16 @@ class _HomeScreenState extends State<CustomerScreen>
               setState(() => _showAllCategories = !_showAllCategories),
         ),
         const SizedBox(height: 2),
-        for (final g in groups) ...[
+        // Every section is its heading and its tiles, nothing else: its height
+        // follows the number of rows it has. Sections are the same distance
+        // apart, and the heading the same distance from its tiles, in all of them.
+        for (final (i, g) in groups.indexed) ...[
           Padding(
-            padding: const EdgeInsets.fromLTRB(2, 16, 2, 8),
-            child: Text(
+            padding: EdgeInsets.fromLTRB(
+                2, !grouped ? 8 : (i == 0 ? 16 : _sectionGap), 2, _headingGap),
+            child: !grouped
+                ? const SizedBox.shrink()
+                : Text(
               categoryGroupName(context, g.group),
               style: TextStyle(
                 fontSize: AppText.body,
@@ -2006,6 +2095,8 @@ class _HomeScreenState extends State<CustomerScreen>
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
             ),
+            // As tall as its rows: it takes no padding from its surroundings.
+            padding: EdgeInsets.zero,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: g.items.length,
@@ -2018,6 +2109,11 @@ class _HomeScreenState extends State<CustomerScreen>
 
   /// How many services the collapsed Home view shows (before "Show all").
   static const int _collapsedServiceTiles = 7;
+
+  /// The space between one group of services and the next (from its last row of
+  /// tiles to the next group's name), and between a group's name and its tiles.
+  static const double _sectionGap = 24;
+  static const double _headingGap = 8;
 
   Widget _serviceTile(Map<String, dynamic> c) {
     final cs = Theme.of(context).colorScheme;
@@ -2103,6 +2199,7 @@ class _HomeScreenState extends State<CustomerScreen>
             leading: _adaptiveLogo(height: 56),
             actions: [
               if (auth.isAuthenticated) ...[
+              const NotificationBell(),
               CreditChip(userCredits,
                   onTap: _hasWatchableAds ? _showWatchAdSheet : null),
               ],
@@ -2251,8 +2348,10 @@ class _HomeScreenState extends State<CustomerScreen>
               child: ListView(
                 controller: _scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                // Room under the last card, so the bottom bar never covers it.
-                padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 40),
+                // Just enough under the last card to scroll it clear of the
+                // floating bottom bar (the list itself runs behind the bar).
+                padding: EdgeInsets.fromLTRB(
+                    hPad, 0, hPad, FloatingNavBar.bottomClearance(context)),
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 children: [
@@ -2265,7 +2364,6 @@ class _HomeScreenState extends State<CustomerScreen>
                   _buildVendorCount(),
                   const SizedBox(height: 4),
                   ..._vendorListChildren(),
-                  const SizedBox(height: 24),
                   ],
                 ],
               ),
@@ -2789,7 +2887,6 @@ class _HomeScreenState extends State<CustomerScreen>
           .addPostFrameCallback((_) => _resolveUnlockedPhone(vendorId));
     }
     final isFav = _favorites.contains(vendorId.toString());
-    final expanded = showActionsMap[vendorId] ?? false;
     final price = _priceLabel(vendor);
     final exp = _asNum(vendor['experience_years']);
     final homeService = vendor['provides_home_service'] == true;
@@ -2846,14 +2943,10 @@ class _HomeScreenState extends State<CustomerScreen>
       action = _buildRevealButton(vendor);
     }
 
-    // After the contact is unlocked: the address and a button that opens it in
-    // Google Maps (the provider's pin if it has one, else a search for it).
-    final rawAddress = (vendor['address'] ?? '').toString();
-    final addressText = MapLink.split(rawAddress).text;
-    final mapUri = isRevealed
-        ? MapLink.target(
-            address: rawAddress, locality: localityDisplay, businessName: name)
-        : null;
+    // The address is only for sharing (once the contact is unlocked). Showing it
+    // and opening it in Google Maps is on the business's own page.
+    final addressText =
+        MapLink.split((vendor['address'] ?? '').toString()).text;
 
     // What is shared. The address and number only once this contact is unlocked
     // (a locked contact costs credits, so sharing must not give it away).
@@ -2880,7 +2973,7 @@ class _HomeScreenState extends State<CustomerScreen>
       onTap: () => _openDetails(vendor),
       child: Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.fromLTRB(14, 12, 14, isRevealed ? 2 : 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -2985,7 +3078,9 @@ class _HomeScreenState extends State<CustomerScreen>
         const SizedBox(height: 10),
         Divider(color: cs.onSurface.withValues(alpha: 0.07), height: 1),
         const SizedBox(height: 8),
-        // Contact: the label and number stacked, the action on the right.
+        // Contact: the label and number stacked, the action on the right. (The
+        // address, "Show in map", reviews and reporting are on the business's
+        // own page, which the card opens.)
         Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
           Expanded(
             child: Column(
@@ -3015,80 +3110,6 @@ class _HomeScreenState extends State<CustomerScreen>
           const SizedBox(width: 8),
           action,
         ]),
-        // Location: one compact row with the map action.
-        if (mapUri != null) ...[
-          const SizedBox(height: 2),
-          Row(children: [
-            const Icon(Icons.location_on_outlined,
-                size: 18, color: AppColors.primary),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(addressText.isEmpty ? localityDisplay : addressText,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: AppText.secondary,
-                      color: cs.onSurface.withValues(alpha: 0.85))),
-            ),
-            TextButton.icon(
-              onPressed: () => _openInMap(mapUri),
-              style: TextButton.styleFrom(
-                minimumSize: const Size(0, 36),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                visualDensity: VisualDensity.compact,
-              ),
-              icon: const Icon(Icons.map_outlined, size: 16),
-              label: Text(context.l10n.showInMap,
-                  style: const TextStyle(
-                      fontSize: AppText.secondary, fontWeight: FontWeight.w600)),
-            ),
-          ]),
-        ],
-        // Review / report: a quiet footer that opens.
-        if (isRevealed)
-          InkWell(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            onTap: () => setState(() => showActionsMap[vendorId] = !expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(children: [
-                Text(expanded ? context.l10n.hide : context.l10n.rateReviewReport,
-                    style: TextStyle(
-                        fontSize: AppText.caption,
-                        color: cs.onSurface.withValues(alpha: 0.55))),
-                const Spacer(),
-                Icon(
-                    expanded
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    size: 18,
-                    color: cs.onSurface.withValues(alpha: 0.55)),
-              ]),
-            ),
-          ),
-        if (expanded) ...[
-          const SizedBox(height: 4),
-          _buildImportantNotice(),
-          const SizedBox(height: 14),
-          _buildReviewSection(vendorId),
-          const SizedBox(height: 10),
-          Divider(color: cs.onSurface.withValues(alpha: 0.1)),
-          InkWell(
-            onTap: () => _showReportDialog(vendor),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(children: [
-                Icon(Icons.flag_outlined,
-                    color: cs.onSurface.withValues(alpha: 0.66), size: 18),
-                const SizedBox(width: 8),
-                Text('Report',
-                    style: TextStyle(
-                        color: cs.onSurface.withValues(alpha: 0.66),
-                        fontSize: AppText.body)),
-              ]),
-            ),
-          ),
-        ],
       ]),
     ));
   }
@@ -3381,54 +3402,6 @@ class _HomeScreenState extends State<CustomerScreen>
       ));
   }
 
-  Widget _buildImportantNotice() {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cs.onSurface.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: cs.onSurface.withOpacity(0.12)),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(Icons.warning_amber_rounded,
-              color: cs.onSurface.withOpacity(0.7), size: 20),
-          const SizedBox(width: 10),
-          Text('Important Notice',
-              style: TextStyle(
-                  color: cs.onSurface,
-                  fontSize: AppText.body,
-                  fontWeight: FontWeight.bold)),
-        ]),
-        const SizedBox(height: 10),
-        RichText(
-            text: TextSpan(
-                style: TextStyle(
-                    color: cs.onSurface.withOpacity(0.6),
-                    fontSize: AppText.secondary,
-                    height: 1.6),
-                children: [
-                  const TextSpan(
-                      text:
-                      'By revealing vendor contact, you acknowledge that KonnectKashmir is not responsible for any transactions, disputes, or issues arising from direct communication. As per Consumer Protection Act, 2019, verify vendor identity and service terms before engaging. Report suspicious activity via our '),
-                  WidgetSpan(
-                      child: GestureDetector(
-                        onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const GrievanceScreen())),
-                        child: const Text('Grievance Portal.',
-                            style: TextStyle(
-                                color: Color(0xFF6BC4B2),
-                                fontSize: AppText.secondary,
-                                decoration: TextDecoration.underline)),
-                      )),
-                ])),
-      ]),
-    );
-  }
-
   Widget _buildReviewSection(dynamic vendorId) {
     final cs = Theme.of(context).colorScheme;
     reviewControllers.putIfAbsent(
@@ -3510,7 +3483,6 @@ class _HomeScreenState extends State<CustomerScreen>
       setState(() {
         vendorRatings.remove(vendorId);
         reviewControllers[vendorId]?.clear();
-        showActionsMap[vendorId] = false;
       });
       showAppSnack(context, 'Review submitted! It will be visible after admin approval.', type: SnackType.success, duration: const Duration(seconds: 3));
     } else {

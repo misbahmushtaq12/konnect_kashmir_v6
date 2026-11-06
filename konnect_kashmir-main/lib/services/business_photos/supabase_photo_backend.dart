@@ -50,12 +50,17 @@ class SupabasePhotoBackend implements BusinessPhotoBackend {
   }
 
   @override
-  Future<List<BusinessPhoto>> rows(String vendorId) async {
+  Future<List<BusinessPhoto>> rows(
+    String vendorId, {
+    bool approvedOnly = false,
+  }) async {
     final res = await _client
         .get(
           _rest('business_photos', {
-            'select': 'id,vendor_id,storage_path,sort_order,created_at',
+            'select':
+                'id,vendor_id,storage_path,sort_order,created_at,status,rejection_reason',
             'vendor_id': 'eq.$vendorId',
+            if (approvedOnly) 'status': 'eq.approved',
             'order': 'sort_order.asc,created_at.asc',
           }),
           headers: _headers(),

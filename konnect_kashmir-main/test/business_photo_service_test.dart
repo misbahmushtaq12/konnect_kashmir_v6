@@ -292,8 +292,10 @@ void main() {
       await service.photos(_vendor, refresh: true);
       expect(backend.calls.where((c) => c.startsWith('rows')), hasLength(2));
 
+      // The owner's list was asked for too; it must not be served from before.
+      await service.photos(_vendor, ownerView: true);
       await service.addPhotos(_vendor, [fakeProcessed('a')]);
-      final after = await service.photos(_vendor);
+      final after = await service.photos(_vendor, ownerView: true);
       expect(after, hasLength(2), reason: 'the new photo shows at once');
     });
 
@@ -463,6 +465,223 @@ void main() {
     });
   });
 
+  group('admin approval', () {
+    test(
+      'a photo status is read from the server, an unknown one as waiting',
+      () {
+        expect(PhotoStatus.parse('approved'), PhotoStatus.approved);
+        expect(PhotoStatus.parse('APPROVED '), PhotoStatus.approved);
+        expect(PhotoStatus.parse('pending'), PhotoStatus.pending);
+        expect(PhotoStatus.parse('rejected'), PhotoStatus.rejected);
+        // An older row without the column, or a blank one, is an approved photo.
+        expect(PhotoStatus.parse(null), PhotoStatus.approved);
+        expect(PhotoStatus.parse(''), PhotoStatus.approved);
+        // Never show what we cannot read.
+        expect(PhotoStatus.parse('on_hold'), PhotoStatus.pending);
+      },
+    );
+
+    test('a row carries its status and the reason it was not approved', () {
+      final p = BusinessPhoto.fromRow({
+        'id': 'r1',
+        'vendor_id': 'v1',
+        'storage_path': 'v1/public/a.webp',
+        'sort_order': 0,
+        'status': 'rejected',
+        'rejection_reason': '  Not a photo of this business ',
+      });
+      expect(p.status, PhotoStatus.rejected);
+      expect(p.rejectionReason, 'Not a photo of this business');
+      final blank = BusinessPhoto.fromRow({
+        'id': 'r2',
+        'vendor_id': 'v1',
+        'storage_path': 'v1/public/b.webp',
+        'sort_order': 1,
+        'status': 'approved',
+        'rejection_reason': '   ',
+      });
+      expect(blank.rejectionReason, isNull);
+      // copies keep both
+      final c = p.copyWith(url: 'https://x');
+      expect(c.status, PhotoStatus.rejected);
+      expect(c.rejectionReason, 'Not a photo of this business');
+    });
+
+    void seedThree() {
+      backend.seed(_vendor, sortOrder: 0, file: 'live.webp');
+      backend.seed(
+        _vendor,
+        sortOrder: 1,
+        file: 'wait.webp',
+        status: PhotoStatus.pending,
+      );
+      backend.seed(
+        _vendor,
+        sortOrder: 2,
+        file: 'no.webp',
+        status: PhotoStatus.rejected,
+        rejectionReason: 'Photo contains content that is not allowed.',
+      );
+    }
+
+    test('the public sees approved photos only', () async {
+      seedThree();
+      final list = await service.photos(_vendor);
+      expect(list.map((p) => p.storagePath.split('/').last), ['live.webp']);
+      expect(list.single.status, PhotoStatus.approved);
+      // The server is asked for approved photos only, and only those are signed.
+      expect(backend.calls, contains('rows v1 approved'));
+      expect(backend.signRequests.single, ['v1/public/live.webp']);
+    });
+
+    test('even a server that answered with more would not get a waiting or '
+        'rejected photo shown', () async {
+      seedThree();
+      final careless = _IgnoresApprovedOnly(backend);
+      final list = await BusinessPhotoService(
+        backend: careless,
+      ).photos(_vendor);
+      expect(list.map((p) => p.storagePath.split('/').last), ['live.webp']);
+      expect(backend.signRequests.single, ['v1/public/live.webp']);
+    });
+
+    test('the owner sees every photo with its status and reason', () async {
+      seedThree();
+      final list = await service.photos(_vendor, ownerView: true);
+      expect(list.map((p) => p.status), [
+        PhotoStatus.approved,
+        PhotoStatus.pending,
+        PhotoStatus.rejected,
+      ]);
+      expect(
+        list.last.rejectionReason,
+        'Photo contains content that is not allowed.',
+      );
+      expect(backend.calls, contains('rows v1'));
+      expect(backend.calls, isNot(contains('rows v1 approved')));
+      expect(
+        list.every((p) => p.url != null),
+        isTrue,
+        reason: 'all can be shown to the owner',
+      );
+    });
+
+    test('the two lists are kept apart, and a change drops both', () async {
+      seedThree();
+      expect(await service.photos(_vendor), hasLength(1));
+      expect(await service.photos(_vendor, ownerView: true), hasLength(3));
+      // Both come from the cache now.
+      final before = backend.calls.where((c) => c.startsWith('rows')).length;
+      await service.photos(_vendor);
+      await service.photos(_vendor, ownerView: true);
+      expect(backend.calls.where((c) => c.startsWith('rows')).length, before);
+
+      await service.addPhotos(_vendor, [fakeProcessed('new')]);
+      expect(
+        await service.photos(_vendor),
+        hasLength(1),
+        reason: 'the new one waits',
+      );
+      expect(await service.photos(_vendor, ownerView: true), hasLength(4));
+    });
+
+    test(
+      'a new photo waits for an admin: the owner sees it, the public does not',
+      () async {
+        await service.addPhotos(_vendor, [fakeProcessed('a')]);
+        final mine = await service.photos(_vendor, ownerView: true);
+        expect(mine.single.status, PhotoStatus.pending);
+        expect(await service.photos(_vendor), isEmpty);
+      },
+    );
+
+    test(
+      'the limit of 20 counts waiting and approved photos together',
+      () async {
+        for (var i = 0; i < 12; i++) {
+          backend.seed(_vendor, status: PhotoStatus.pending);
+        }
+        for (var i = 0; i < 8; i++) {
+          backend.seed(_vendor);
+        }
+        final out = await service.addPhotos(_vendor, [fakeProcessed('21st')]);
+        expect(out.single.error, isA<PhotoLimitReached>());
+        expect(backend.calls.where((c) => c.startsWith('upload')), isEmpty);
+      },
+    );
+
+    test('a rejected photo does not use up a place', () async {
+      for (var i = 0; i < 18; i++) {
+        backend.seed(_vendor);
+      }
+      for (var i = 0; i < 5; i++) {
+        backend.seed(
+          _vendor,
+          status: PhotoStatus.rejected,
+          rejectionReason: 'Inappropriate content',
+        );
+      }
+      // 23 rows, but only 18 count: two more fit.
+      final out = await service.addPhotos(_vendor, [
+        fakeProcessed('a'),
+        fakeProcessed('b'),
+        fakeProcessed('c'),
+      ]);
+      expect(out.map((o) => o.ok), [true, true, false]);
+      expect(out.last.error, isA<PhotoLimitReached>());
+    });
+
+    test(
+      'the new photo goes after every photo, rejected ones included',
+      () async {
+        backend.seed(_vendor, sortOrder: 0);
+        backend.seed(_vendor, sortOrder: 5, status: PhotoStatus.rejected);
+        await service.addPhotos(_vendor, [fakeProcessed('a')]);
+        expect(backend.rowsOf(_vendor).last.sortOrder, 6);
+      },
+    );
+
+    test(
+      'the owner can delete a waiting or a rejected photo, row and files',
+      () async {
+        final waiting = backend.seed(
+          _vendor,
+          file: 'w.webp',
+          status: PhotoStatus.pending,
+        );
+        final rejected = backend.seed(
+          _vendor,
+          file: 'r.webp',
+          status: PhotoStatus.rejected,
+          rejectionReason: 'x',
+        );
+        await service.deletePhoto(waiting);
+        await service.deletePhoto(rejected);
+        expect(backend.table, isEmpty);
+        expect(backend.files, isEmpty);
+      },
+    );
+
+    test('moving photos keeps their status', () async {
+      final a = backend.seed(_vendor, sortOrder: 0, file: 'a.webp');
+      final b = backend.seed(
+        _vendor,
+        sortOrder: 1,
+        file: 'b.webp',
+        status: PhotoStatus.pending,
+      );
+      final done = await service.saveOrder([b, a]);
+      expect(done.map((p) => p.status), [
+        PhotoStatus.pending,
+        PhotoStatus.approved,
+      ]);
+      expect(backend.rowsOf(_vendor).map((p) => p.status), [
+        PhotoStatus.pending,
+        PhotoStatus.approved,
+      ]);
+    });
+  });
+
   group('the real backend, with its requests checked', () {
     late List<http.Request> sent;
     late SupabasePhotoBackend api;
@@ -509,6 +728,36 @@ void main() {
         expect(r.url.queryParameters['order'], 'sort_order.asc,created_at.asc');
         expect(r.headers['Authorization'], 'Bearer user-token');
         expect(r.headers['apikey'], isNotEmpty);
+      },
+    );
+
+    test(
+      'rows: the public list asks for approved photos only; the owner list '
+      'does not filter, and both ask for the status and the reason',
+      () async {
+        answer = (_) => jsonEncode([
+          {
+            'id': 'r1',
+            'vendor_id': 'v1',
+            'storage_path': 'v1/public/a.webp',
+            'sort_order': 0,
+            'status': 'rejected',
+            'rejection_reason': 'Inappropriate content',
+          },
+        ]);
+        final mine = await api.rows('v1');
+        expect(mine.single.status, PhotoStatus.rejected);
+        expect(mine.single.rejectionReason, 'Inappropriate content');
+        expect(sent.last.url.queryParameters.containsKey('status'), isFalse);
+        expect(sent.last.url.queryParameters['select'], contains('status'));
+        expect(
+          sent.last.url.queryParameters['select'],
+          contains('rejection_reason'),
+        );
+
+        await api.rows('v1', approvedOnly: true);
+        expect(sent.last.url.queryParameters['status'], 'eq.approved');
+        expect(sent.last.url.queryParameters['vendor_id'], 'eq.v1');
       },
     );
 
@@ -715,4 +964,40 @@ class ProcessedPhotoFor {
     format: PhotoFormat.jpeg,
     inputBytes: 10,
   );
+}
+
+/// A backend that ignores [approvedOnly] and answers with every row (as if the
+/// filter were lost on the way), to check the app does not show them anyway.
+class _IgnoresApprovedOnly implements BusinessPhotoBackend {
+  final FakePhotoBackend inner;
+  _IgnoresApprovedOnly(this.inner);
+
+  @override
+  Future<List<BusinessPhoto>> rows(
+    String vendorId, {
+    bool approvedOnly = false,
+  }) => inner.rows(vendorId);
+  @override
+  Future<Map<String, String>> signedUrls(List<String> publicPaths) =>
+      inner.signedUrls(publicPaths);
+  @override
+  Future<void> upload(String path, Uint8List bytes, String contentType) =>
+      inner.upload(path, bytes, contentType);
+  @override
+  Future<void> removeFiles(List<String> paths) => inner.removeFiles(paths);
+  @override
+  Future<BusinessPhoto> insertRow({
+    required String vendorId,
+    required String storagePath,
+    required int sortOrder,
+  }) => inner.insertRow(
+    vendorId: vendorId,
+    storagePath: storagePath,
+    sortOrder: sortOrder,
+  );
+  @override
+  Future<void> deleteRow(String id) => inner.deleteRow(id);
+  @override
+  Future<void> updateSortOrder(String id, int sortOrder) =>
+      inner.updateSortOrder(id, sortOrder);
 }

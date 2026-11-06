@@ -14,6 +14,7 @@ import 'services/deen_events.dart';
 import 'services/app_links.dart';
 import 'services/live_sync.dart';
 import 'services/notification_service.dart';
+import 'services/notifications/inbox_service.dart';
 import 'services/prayer_alarm/prayer_alarm_background.dart';
 import 'services/prayer_alarm/prayer_alarm_service.dart';
 import 'screens/blocked_account_screen.dart';
@@ -123,6 +124,15 @@ class KonnectKashmirApp extends StatelessWidget {
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: localeProvider),
         ChangeNotifierProvider.value(value: liveSync),
+        // The signed-in user's notifications (the bell in the headers).
+        ChangeNotifierProxyProvider<AuthProvider, InboxController>(
+          create: (_) => InboxController(
+            backend: SupabaseInboxBackend(token: () => authProvider.accessToken),
+            pushSignal: NotificationService.instance.pushArrived,
+          ),
+          update: (_, auth, inbox) =>
+              inbox!..setUser(auth.isAuthenticated ? auth.userId : null),
+        ),
       ],
       child: Consumer2<ThemeProvider, LocaleProvider>(
         builder: (context, themeState, localeState, _) => MaterialApp(

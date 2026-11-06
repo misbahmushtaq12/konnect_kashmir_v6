@@ -5,6 +5,25 @@ import 'package:flutter/foundation.dart';
 import 'photo_processor.dart';
 import 'photo_rules.dart';
 
+/// Where a photo stands with the admins. Nothing is shown to the public until it
+/// is [approved]; the owner sees all three.
+enum PhotoStatus {
+  pending,
+  approved,
+  rejected;
+
+  /// A missing value is an older photo (approved); a value we do not know is
+  /// treated as waiting, so it is never shown by mistake.
+  static PhotoStatus parse(Object? value) {
+    if (value == null) return approved;
+    return switch ('$value'.trim().toLowerCase()) {
+      '' || 'approved' => approved,
+      'rejected' => rejected,
+      _ => pending,
+    };
+  }
+}
+
 /// One photo of a business, as stored: a row of `business_photos` that points at
 /// the watermarked copy in the `business-photos` bucket.
 @immutable
@@ -17,6 +36,12 @@ class BusinessPhoto {
   final int sortOrder;
   final DateTime? createdAt;
 
+  /// Pending until an admin approves it (see [PhotoStatus]).
+  final PhotoStatus status;
+
+  /// Why an admin (or the automatic check) did not approve it; null otherwise.
+  final String? rejectionReason;
+
   /// A signed link to the public copy (valid for [kSignedUrlLifetime]); null when
   /// one could not be made.
   final String? url;
@@ -27,6 +52,8 @@ class BusinessPhoto {
     required this.storagePath,
     required this.sortOrder,
     this.createdAt,
+    this.status = PhotoStatus.approved,
+    this.rejectionReason,
     this.url,
   });
 
@@ -38,7 +65,14 @@ class BusinessPhoto {
         ? (row['sort_order'] as num).toInt()
         : int.tryParse('${row['sort_order']}') ?? 0,
     createdAt: DateTime.tryParse('${row['created_at'] ?? ''}'),
+    status: PhotoStatus.parse(row['status']),
+    rejectionReason: _reason(row['rejection_reason']),
   );
+
+  static String? _reason(Object? v) {
+    final s = v?.toString().trim() ?? '';
+    return s.isEmpty ? null : s;
+  }
 
   /// Names the picture in the image cache. It stays the same when the signed link
   /// is renewed, so a photo already on the phone is not downloaded again.
@@ -50,6 +84,8 @@ class BusinessPhoto {
     storagePath: storagePath,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt,
+    status: status,
+    rejectionReason: rejectionReason,
     url: url ?? this.url,
   );
 }
@@ -84,8 +120,13 @@ class PhotoLimitReached implements Exception {
 /// What the service needs from the server: the `business_photos` table and the
 /// `business-photos` bucket. [SupabasePhotoBackend] is the real one.
 abstract class BusinessPhotoBackend {
-  /// The rows of one business (any order).
-  Future<List<BusinessPhoto>> rows(String vendorId);
+  /// The rows of one business (any order). With [approvedOnly] only the photos
+  /// an admin has approved: what everybody else sees. Without it, the server
+  /// answers with all the signed-in user may see (an owner: every status).
+  Future<List<BusinessPhoto>> rows(
+    String vendorId, {
+    bool approvedOnly = false,
+  });
 
   /// A signed link for each of [publicPaths] (a path that could not be signed is
   /// missing from the answer).
@@ -136,6 +177,8 @@ class BusinessPhotoService {
   /// signed links in it last hours), and is dropped whenever a photo is added,
   /// deleted or moved, so the next look shows the change.
   static final Map<String, _Cached> _cache = {};
+  static String _key(String vendorId, bool owner) =>
+      '$vendorId#${owner ? 'owner' : 'public'}';
   static const Duration _listFresh = Duration(minutes: 10);
 
   static void clearCache() => _cache.clear();
@@ -146,24 +189,32 @@ class BusinessPhotoService {
   Future<List<BusinessPhoto>> photos(
     String vendorId, {
     bool refresh = false,
+    bool ownerView = false,
   }) async {
-    final hit = _cache[vendorId];
+    final key = _key(vendorId, ownerView);
+    final hit = _cache[key];
     if (!refresh && hit != null && _now().difference(hit.at) < _listFresh) {
       return hit.photos;
     }
     final rows = [
-      for (final r in await backend.rows(vendorId))
-        if (isPublicPhotoPath(r.storagePath)) r,
+      for (final r in await backend.rows(vendorId, approvedOnly: !ownerView))
+        // (Checked again here: the public never gets a photo that is not approved.)
+        if (isPublicPhotoPath(r.storagePath) &&
+            (ownerView || r.status == PhotoStatus.approved))
+          r,
     ]..sort(comparePhotos);
     final urls = rows.isEmpty
         ? const <String, String>{}
         : await backend.signedUrls([for (final r in rows) r.storagePath]);
     final out = [for (final r in rows) r.copyWith(url: urls[r.storagePath])];
-    _cache[vendorId] = _Cached(out, _now());
+    _cache[key] = _Cached(out, _now());
     return out;
   }
 
-  void _changed(String vendorId) => _cache.remove(vendorId);
+  void _changed(String vendorId) {
+    _cache.remove(_key(vendorId, true));
+    _cache.remove(_key(vendorId, false));
+  }
 
   /// Uploads [photos] one after the other, as the next photos of [vendorId].
   /// A photo that cannot be added is reported in its outcome; the rest go on
@@ -184,7 +235,8 @@ class BusinessPhotoService {
     var last = -1;
     try {
       final current = await backend.rows(vendorId);
-      count = current.length;
+      // The limit counts waiting and approved photos; a rejected one does not.
+      count = current.where((p) => p.status != PhotoStatus.rejected).length;
       last = current.fold<int>(-1, (m, p) => math.max(m, p.sortOrder));
     } catch (e) {
       for (final p in photos) {

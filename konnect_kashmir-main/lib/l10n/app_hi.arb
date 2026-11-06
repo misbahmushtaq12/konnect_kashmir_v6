@@ -434,5 +434,15 @@
   "photosLoadFailed": "आपकी फ़ोटो लोड नहीं हो सकीं। इंटरनेट जाँचें।",
   "businessSubmittedPhotosFailed": "{count} फ़ोटो अपलोड नहीं हो सकीं। उन्हें दोबारा जोड़ने के लिए व्यवसाय संपादित करें खोलें।",
   "noPhotosTitle": "कोई फ़ोटो उपलब्ध नहीं",
-  "noPhotosSubtitle": "व्यवसाय की फ़ोटो यहाँ दिखाई देंगी"
+  "noPhotosSubtitle": "व्यवसाय की फ़ोटो यहाँ दिखाई देंगी",
+  "photoUnderReview": "समीक्षा में",
+  "photoNotApproved": "स्वीकृत नहीं",
+  "photoNotApprovedReason": "स्वीकृत नहीं: {reason}",
+  "photosShownAfterReview": "फ़ोटो एडमिन की समीक्षा के बाद दिखाई जाती हैं।",
+  "photoReasonTitle": "यह फ़ोटो स्वीकृत क्यों नहीं हुई",
+  "notificationsTitle": "सूचनाएँ",
+  "notificationsUnread": "{count} अपठित",
+  "markAllRead": "सभी को पढ़ा हुआ चिह्नित करें",
+  "noNotificationsYet": "अभी कोई सूचना नहीं",
+  "noNotificationsBody": "आपके व्यवसाय में कुछ बदलने पर यहाँ दिखेगा।"
 }

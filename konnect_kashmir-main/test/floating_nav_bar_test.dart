@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,8 +57,8 @@ List<FloatingNavItem> _items(BuildContext c) => [
   ),
   FloatingNavItem(
     label: c.l10n.navProfile,
-    icon: const Icon(Icons.person_outline),
-    selectedIcon: const Icon(Icons.person),
+    icon: const Icon(Icons.person_outline_rounded),
+    selectedIcon: const Icon(Icons.person_rounded),
   ),
 ];
 
@@ -69,13 +70,16 @@ Future<ValueNotifier<int>> _bar(
   Size size = const Size(390, 844),
   double textScale = 1,
   double bottomInset = 0,
+  double keyboard = 0,
   int selected = 0,
+  Widget body = const SizedBox.expand(),
   void Function(int)? onTap,
 }) async {
   tester.view.physicalSize = size * 2;
   tester.view.devicePixelRatio = 2;
   tester.view.padding = FakeViewPadding(bottom: bottomInset * 2);
   tester.view.viewPadding = FakeViewPadding(bottom: bottomInset * 2);
+  tester.view.viewInsets = FakeViewPadding(bottom: keyboard * 2);
   addTearDown(tester.view.reset);
   final index = ValueNotifier<int>(selected);
   await tester.pumpWidget(
@@ -96,7 +100,9 @@ Future<ValueNotifier<int>> _bar(
         child: child!,
       ),
       home: Scaffold(
-        body: const SizedBox.expand(),
+        // As in the app: the page runs behind the floating bar.
+        extendBody: true,
+        body: body,
         bottomNavigationBar: Builder(
           builder: (context) => ValueListenableBuilder<int>(
             valueListenable: index,
@@ -148,7 +154,9 @@ void main() {
   setUpAll(_loadRoboto);
 
   group('the bar', () {
-    testWidgets('has the four destinations, each named', (tester) async {
+    testWidgets('has the four destinations, each named and with its icon', (
+      tester,
+    ) async {
       await _bar(tester);
       expect(find.byType(FloatingNavBar), findsOneWidget);
       for (final label in ['Home', 'My Business', 'Deen', 'Profile']) {
@@ -157,85 +165,321 @@ void main() {
       for (var i = 0; i < 4; i++) {
         expect(_slot(i), findsOneWidget);
       }
+      // Home is selected: its icon is filled, the others are outlined.
+      expect(find.byIcon(Icons.home_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.storefront_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.mosque_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.person_outline_rounded), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('icons only: no text at all, whichever item is selected', (
+      tester,
+    ) async {
+      for (final code in ['en', 'hi', 'ur']) {
+        for (var i = 0; i < 4; i++) {
+          await _bar(tester, selected: i, locale: Locale(code));
+          expect(
+            find.descendant(
+              of: find.byType(FloatingNavBar),
+              matching: find.byType(Text),
+            ),
+            findsNothing,
+            reason: '$code, item $i selected',
+          );
+          // (An icon is drawn as a glyph, which is the only rich text there.)
+          for (final w in tester.widgetList<RichText>(
+            find.descendant(
+              of: find.byType(FloatingNavBar),
+              matching: find.byType(RichText),
+            ),
+          )) {
+            expect(
+              w.text.style?.fontFamily,
+              'MaterialIcons',
+              reason: '$code, item $i selected: only icon glyphs',
+            );
+          }
+        }
+      }
+    });
+
+    testWidgets('is a slim capsule, lower than the old 64px bar', (
+      tester,
+    ) async {
+      await _bar(tester);
+      final pill = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+      expect(pill.height, FloatingNavBar.barHeight);
+      expect(pill.height, lessThanOrEqualTo(56));
+      // The whole bar, air included, takes little height: the capsule and a
+      // thin strip of air, no outer container.
+      final bar = tester.getRect(find.byType(FloatingNavBar));
+      expect(bar.height, lessThanOrEqualTo(56 + 4 + 8 + 0.5));
+      expect(pill.top - bar.top, lessThanOrEqualTo(4.5));
+      expect(bar.bottom - pill.bottom, lessThanOrEqualTo(8.5));
+    });
+
+    testWidgets('has no background of its own around the capsule', (
+      tester,
+    ) async {
+      await _bar(tester);
+      // Nothing is painted in the bar's space except the capsule: no outer
+      // card, no fade strip. (Only the capsule's own boxes are decorated.)
+      final boxes = find.descendant(
+        of: find.byType(FloatingNavBar),
+        matching: find.byType(DecoratedBox),
+      );
+      final capsule = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+      for (final box in boxes.evaluate()) {
+        final r = tester.getRect(find.byWidget(box.widget));
+        expect(
+          capsule.inflate(0.5).contains(r.topLeft) &&
+              capsule.inflate(0.5).contains(r.bottomRight),
+          isTrue,
+          reason: 'a box outside the capsule: $r',
+        );
+      }
+      expect(
+        find.descendant(
+          of: find.byType(FloatingNavBar),
+          matching: find.byType(IgnorePointer),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the space beside and under the capsule is see-through to taps', (
+      tester,
+    ) async {
+      var pageTaps = 0;
+      final taps = <int>[];
+      await _bar(
+        tester,
+        body: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => pageTaps++,
+          child: const SizedBox.expand(),
+        ),
+        onTap: taps.add,
+      );
+      final capsule = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+      // Left of the capsule, level with it; and in the air under it.
+      await tester.tapAt(Offset(4, capsule.center.dy));
+      await tester.tapAt(Offset(capsule.center.dx, 844 - 2));
+      expect(pageTaps, 2, reason: 'those taps belong to the page');
+      expect(taps, isEmpty);
+      // On the capsule, the bar takes it.
+      await tester.tap(_slot(1));
+      expect(taps, [1]);
+      expect(pageTaps, 2);
+    });
+
+    testWidgets('steps aside while the keyboard is open', (tester) async {
+      await _bar(tester, keyboard: 300);
+      expect(find.byKey(FloatingNavBar.pillKey), findsNothing);
+      expect(
+        tester.getSize(find.byType(FloatingNavBar)).height,
+        0,
+        reason: 'and takes no room above the keyboard',
+      );
+      await _bar(tester);
+      expect(find.byKey(FloatingNavBar.pillKey), findsOneWidget);
+    });
+
+    testWidgets('a page behind it is as tall as the screen and can scroll its '
+        'last item clear of the capsule', (tester) async {
+      await _bar(
+        tester,
+        bottomInset: 20,
+        body: Builder(
+          builder: (context) => ListView(
+            key: const ValueKey('page'),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              FloatingNavBar.bottomClearance(context),
+            ),
+            children: [
+              for (var i = 0; i < 40; i++)
+                SizedBox(
+                  key: ValueKey('row$i'),
+                  height: 90,
+                  child: Text('row $i'),
+                ),
+            ],
+          ),
+        ),
+      );
+      final capsule = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+      // No blank strip is reserved: the list reaches the bottom of the screen.
+      expect(
+        tester.getRect(find.byKey(const ValueKey('page'))).bottom,
+        844,
+        reason: 'the list runs behind the bar',
+      );
+
+      // To the very end of the list (a plain jump: no overscroll stretch).
+      final position = tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position;
+      position.jumpTo(position.maxScrollExtent);
+      await tester.pump();
+      final last = tester.getRect(find.byKey(const ValueKey('row39')));
+      expect(last.bottom, lessThanOrEqualTo(capsule.top), reason: 'not hidden');
+      expect(
+        capsule.top - last.bottom,
+        lessThanOrEqualTo(4 + 12 + 0.5),
+        reason: 'and only a small gap, no big reserved padding',
+      );
+    });
+
+    testWidgets('bottomClearance is the bar height outside the shell too', (
+      tester,
+    ) async {
+      late double inScaffold;
+      await _bar(
+        tester,
+        bottomInset: 20,
+        body: Builder(
+          builder: (context) {
+            inScaffold = FloatingNavBar.bottomClearance(context);
+            return const SizedBox.expand();
+          },
+        ),
+      );
+      final bar = tester.getRect(find.byType(FloatingNavBar));
+      expect(inScaffold, closeTo(bar.height + 12, 0.5));
+
+      // On a plain page (no bar) it is only the system inset and the gap.
+      late double plain;
+      tester.view.padding = const FakeViewPadding(bottom: 40);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              plain = FloatingNavBar.bottomClearance(context);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      expect(plain, 20 + 12);
+    });
+
     testWidgets(
-      'floats: rounded, inset from the sides, above the bottom edge',
+      'floats: a fine-outlined, shadowed capsule inset from the sides and '
+      'above the bottom edge',
       (tester) async {
         await _bar(tester);
         final pill = tester.getRect(find.byKey(FloatingNavBar.pillKey));
-        expect(pill.left, greaterThanOrEqualTo(20));
-        expect(390 - pill.right, greaterThanOrEqualTo(20));
+        expect(pill.left, greaterThanOrEqualTo(16));
+        expect(390 - pill.right, greaterThanOrEqualTo(16));
         expect(
           844 - pill.bottom,
-          greaterThanOrEqualTo(12),
+          greaterThanOrEqualTo(8),
           reason: 'air below it',
         );
-        expect(pill.height, FloatingNavBar.barHeight);
+        expect(pill.center.dx, closeTo(195, 0.5), reason: 'centred');
 
-        final box =
+        final shadow =
             tester
                     .widget<DecoratedBox>(find.byKey(FloatingNavBar.pillKey))
                     .decoration
                 as BoxDecoration;
         expect(
-          box.borderRadius,
+          shadow.borderRadius,
           BorderRadius.circular(FloatingNavBar.barHeight / 2),
+          reason: 'a full capsule',
         );
-        expect(box.boxShadow, isNotEmpty, reason: 'it casts a soft shadow');
-        expect(box.border, isNotNull, reason: 'with a fine outline');
+        expect(shadow.boxShadow, isNotEmpty, reason: 'it casts a soft shadow');
+
+        // The outline is drawn over the glass.
+        final outline = tester.widget<DecoratedBox>(
+          find
+              .descendant(
+                of: find.byKey(FloatingNavBar.pillKey),
+                matching: find.byType(DecoratedBox),
+              )
+              .first,
+        );
+        expect(outline.position, DecorationPosition.foreground);
+        expect((outline.decoration as BoxDecoration).border, isNotNull);
       },
     );
 
-    testWidgets('the page above it fades out, without catching any touch', (
+    testWidgets('is glass: blurred, and translucent in both themes', (
       tester,
     ) async {
-      await _bar(tester);
-      final bar = tester.getRect(find.byType(FloatingNavBar));
-      final fade = find.descendant(
-        of: find.byType(FloatingNavBar),
-        matching: find.byType(IgnorePointer),
+      final fills = <Brightness, Color>{};
+      for (final theme in [AppTheme.dark, AppTheme.light]) {
+        await _bar(tester, theme: theme);
+        expect(
+          find.descendant(
+            of: find.byKey(FloatingNavBar.pillKey),
+            matching: find.byType(BackdropFilter),
+          ),
+          findsOneWidget,
+        );
+        final glass = tester.widget<DecoratedBox>(
+          find
+              .descendant(
+                of: find.byType(BackdropFilter),
+                matching: find.byType(DecoratedBox),
+              )
+              .first,
+        );
+        final colors = ((glass.decoration as BoxDecoration).gradient!
+                as LinearGradient)
+            .colors;
+        for (final c in colors) {
+          expect(c.a, lessThan(1), reason: 'see-through');
+          expect(c.a, greaterThan(0.5), reason: 'but still a solid backing');
+        }
+        fills[theme.brightness] = colors.last;
+      }
+      expect(
+        fills[Brightness.dark]!.computeLuminance(),
+        lessThan(fills[Brightness.light]!.computeLuminance()),
+        reason: 'dark glass on the dark theme, light glass on the light one',
       );
-      expect(fade, findsWidgets);
-      final strip = tester.getRect(fade.first);
-      expect(strip.bottom, closeTo(bar.top, 0.5));
-      expect(strip.height, FloatingNavBar.fadeHeight);
-      expect(strip.width, 390);
     });
 
     testWidgets('stays above the system navigation area', (tester) async {
       await _bar(tester, bottomInset: 34);
       final pill = tester.getRect(find.byKey(FloatingNavBar.pillKey));
-      expect(844 - pill.bottom, greaterThanOrEqualTo(34 + 12));
+      expect(844 - pill.bottom, greaterThanOrEqualTo(34 + 8));
     });
 
     testWidgets('does not stretch across a tablet', (tester) async {
       await _bar(tester, size: const Size(820, 1180));
       final pill = tester.getRect(find.byKey(FloatingNavBar.pillKey));
-      expect(pill.width, lessThanOrEqualTo(440));
+      expect(pill.width, lessThanOrEqualTo(312));
       expect(pill.center.dx, closeTo(410, 1));
     });
 
-    testWidgets('the selected one is highlighted and named; the others are '
-        'quiet icons', (tester) async {
+    testWidgets('the selected one sits in a round highlight in the accent; '
+        'the others are quiet outline icons', (tester) async {
       await _bar(tester, selected: 1);
       expect(_highlightColor(tester, 1), isNot(Colors.transparent));
       expect(_highlightColor(tester, 1)!.a, greaterThan(0.1));
-      for (final i in [0, 2, 3]) {
-        expect(_highlightColor(tester, i), Colors.transparent);
-      }
-      // Its name is written under it; the others have no text.
       expect(
-        find.descendant(of: _slot(1), matching: find.text('My Business')),
-        findsOneWidget,
+        ((_highlight(tester, 1).decoration as BoxDecoration).shape),
+        BoxShape.circle,
       );
       for (final i in [0, 2, 3]) {
-        expect(
-          find.descendant(of: _slot(i), matching: find.byType(Text)),
-          findsNothing,
-        );
+        expect(_highlightColor(tester, i)!.a, 0, reason: 'item $i: no highlight');
       }
+      // The highlight is small and round, inside the capsule.
+      final box = tester.getSize(
+        find.descendant(
+          of: _slot(1),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      expect(box, const Size.square(FloatingNavBar.highlightSize));
+      expect(box.height, lessThan(FloatingNavBar.barHeight));
+
       // Its icon is the filled one, in the mint accent; the others are outlined and muted.
       expect(
         find.descendant(
@@ -270,7 +514,20 @@ void main() {
       }
     });
 
-    testWidgets('light theme: the accent is the deeper teal', (tester) async {
+    testWidgets('the items are spread evenly', (tester) async {
+      await _bar(tester);
+      final centres = [
+        for (var i = 0; i < 4; i++) tester.getCenter(_slot(i)).dx,
+      ];
+      final gap = centres[1] - centres[0];
+      for (var i = 1; i < 4; i++) {
+        expect(centres[i] - centres[i - 1], closeTo(gap, 0.5));
+      }
+    });
+
+    testWidgets('light theme: the accent is the deeper teal, the glass is light', (
+      tester,
+    ) async {
       await _bar(tester, theme: AppTheme.light, selected: 2);
       final c = IconTheme.of(
         tester.element(
@@ -278,34 +535,74 @@ void main() {
         ),
       ).color!;
       expect(c, AppColors.primaryDark);
+      expect(_highlightColor(tester, 2)!.a, greaterThan(0.1));
+      expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a tap selects, and the highlight moves with a smooth change', (
-      tester,
-    ) async {
+    testWidgets('dark theme: the accent is the lighter mint', (tester) async {
+      await _bar(tester, theme: AppTheme.dark, selected: 3);
+      final c = IconTheme.of(
+        tester.element(
+          find.descendant(of: _slot(3), matching: find.byType(Icon)),
+        ),
+      ).color!;
+      expect(c, AppColors.primaryLight);
+    });
+
+    testWidgets('tapping each item switches to it', (tester) async {
       final taps = <int>[];
       final index = await _bar(tester, onTap: taps.add);
-      await tester.tap(_slot(2));
-      expect(taps, [2]);
-      expect(index.value, 2);
+      for (final i in [1, 2, 3, 0, 3, 1]) {
+        await tester.tap(_slot(i));
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(index.value, i);
+        // Only this one is highlighted now, and it shows the filled icon.
+        for (var j = 0; j < 4; j++) {
+          expect(
+            _highlightColor(tester, j)!.a,
+            j == i ? greaterThan(0.1) : 0,
+            reason: 'tapped $i, item $j',
+          );
+        }
+      }
+      expect(taps, [1, 2, 3, 0, 3, 1]);
+    });
 
+    testWidgets('a tap on the icon itself switches too', (tester) async {
+      final index = await _bar(tester);
+      await tester.tap(find.byIcon(Icons.mosque_outlined));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(index.value, 2);
+    });
+
+    testWidgets('the highlight and the icon colour change smoothly', (
+      tester,
+    ) async {
+      final index = await _bar(tester);
+      Color iconColor(int i) => IconTheme.of(
+        tester.element(
+          find.descendant(of: _slot(i), matching: find.byType(Icon)),
+        ),
+      ).color!;
+      final before = iconColor(2);
+
+      await tester.tap(_slot(2));
+      expect(index.value, 2);
       // Half way through the change the highlight is neither gone nor full.
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 90));
       final mid = _paintedColor(tester, 2);
+      final midIcon = iconColor(2);
       await tester.pump(const Duration(milliseconds: 400));
       final end = _paintedColor(tester, 2);
+      final endIcon = iconColor(2);
       expect(mid.a, lessThan(end.a));
       expect(mid.a, greaterThan(0));
-      expect(_highlightColor(tester, 0), Colors.transparent);
-      expect(
-        find.descendant(of: _slot(2), matching: find.text('Deen')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: _slot(0), matching: find.text('Home')),
-        findsNothing,
-      );
+      expect(midIcon, isNot(before));
+      expect(midIcon, isNot(endIcon));
+      expect(endIcon, AppColors.primaryLight);
+      // The one that was left lets go of its highlight.
+      expect(_highlightColor(tester, 0)!.a, 0);
     });
 
     testWidgets('tapping the selected one again reports it (so a tab can '
@@ -316,14 +613,16 @@ void main() {
       expect(taps, [0]);
     });
 
-    testWidgets('every item is an easy target', (tester) async {
+    testWidgets('every item is an easy target, even though the bar is slim', (
+      tester,
+    ) async {
       await _bar(tester);
       for (var i = 0; i < 4; i++) {
         final size = tester.getSize(
           find.descendant(of: _slot(i), matching: find.byType(InkWell)),
         );
-        expect(size.width, greaterThanOrEqualTo(48));
-        expect(size.height, greaterThanOrEqualTo(48));
+        expect(size.width, greaterThanOrEqualTo(48), reason: 'item $i');
+        expect(size.height, greaterThanOrEqualTo(48), reason: 'item $i');
       }
     });
 
@@ -347,15 +646,37 @@ void main() {
           isFocusable: true,
         ),
       );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Home')),
+        matchesSemantics(
+          label: 'Home',
+          isButton: true,
+          isSelected: false,
+          hasSelectedState: true,
+          hasTapAction: true,
+          hasFocusAction: true,
+          isFocusable: true,
+        ),
+      );
       handle.dispose();
     });
 
+    testWidgets('the names are also tooltips (long press)', (tester) async {
+      await _bar(tester);
+      await tester.longPress(_slot(1));
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('My Business'), findsOneWidget);
+    });
+
     for (final (name, w, h, scale) in [
+      ('a very narrow phone', 280.0, 560.0, 1.0),
       ('a small phone', 320.0, 568.0, 1.0),
       ('large text', 360.0, 800.0, 2.0),
     ]) {
       for (final code in ['en', 'hi', 'ur']) {
-        testWidgets('$name, $code: every tab fits', (tester) async {
+        testWidgets('$name, $code: everything fits and stays tappable', (
+          tester,
+        ) async {
           final index = await _bar(
             tester,
             size: Size(w, h),
@@ -363,18 +684,28 @@ void main() {
             locale: Locale(code),
             bottomInset: 20,
           );
+          final pill = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+          expect(pill.left, greaterThanOrEqualTo(0));
+          expect(pill.right, lessThanOrEqualTo(w));
+          expect(pill.height, FloatingNavBar.barHeight);
           for (var i = 0; i < 4; i++) {
             index.value = i;
             await tester.pump(const Duration(milliseconds: 400));
             expect(tester.takeException(), isNull, reason: 'tab $i');
-            final label = tester.widget<Text>(
-              find.descendant(of: _slot(i), matching: find.byType(Text)),
-            );
-            final r = tester.getRect(find.byWidget(label));
             final slot = tester.getRect(_slot(i));
-            expect(r.left, greaterThanOrEqualTo(slot.left - 0.5));
-            expect(r.right, lessThanOrEqualTo(slot.right + 0.5));
+            expect(slot.width, greaterThanOrEqualTo(48), reason: 'tab $i');
+            expect(slot.height, greaterThanOrEqualTo(48), reason: 'tab $i');
+            expect(slot.left, greaterThanOrEqualTo(pill.left - 0.5));
+            expect(slot.right, lessThanOrEqualTo(pill.right + 0.5));
+            final icon = tester.getRect(
+              find.descendant(of: _slot(i), matching: find.byType(Icon)),
+            );
+            expect(icon.left, greaterThanOrEqualTo(slot.left - 0.5));
+            expect(icon.right, lessThanOrEqualTo(slot.right + 0.5));
           }
+          // And a tap still lands on the right item.
+          await tester.tap(_slot(3));
+          expect(index.value, 3);
         });
       }
     }
@@ -549,16 +880,110 @@ void main() {
       expect(find.byType(DeenTab), findsOneWidget);
     });
 
+    // The tab's own main list (not a chip row inside it).
+    Finder mainList(Type tab) => find
+        .descendant(
+          of: find.descendant(
+            of: find.byType(tab),
+            matching: find.byType(RefreshIndicator),
+          ),
+          matching: find.byType(ListView),
+        )
+        .first;
+
+    /// The page runs behind the bar (no blank strip), and its list pads its end
+    /// by just the bar's height so the last item scrolls clear of the capsule.
+    Future<void> expectRunsBehindBar(WidgetTester tester, Type tab) async {
+      final bar = tester.getRect(find.byType(FloatingNavBar));
+      final capsule = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+      final list = mainList(tab);
+
+      expect(
+        tester.getRect(find.byType(tab)).bottom,
+        closeTo(800, 0.5),
+        reason: '$tab reaches the bottom of the screen',
+      );
+      expect(
+        tester.getRect(list).bottom,
+        closeTo(800, 0.5),
+        reason: '$tab: no strip is held back for the bar',
+      );
+      expect(bar.height, lessThanOrEqualTo(56 + 4 + 8 + 0.5));
+
+      final pad = tester
+          .widget<ListView>(list)
+          .padding!
+          .resolve(TextDirection.ltr)
+          .bottom;
+      expect(pad, greaterThanOrEqualTo(bar.height), reason: '$tab: enough');
+      expect(
+        pad,
+        lessThanOrEqualTo(bar.height + 16),
+        reason: '$tab: and no more than the minimum',
+      );
+
+      final scrollable = tester.state<ScrollableState>(
+        find.descendant(of: list, matching: find.byType(Scrollable)).first,
+      );
+      scrollable.position.jumpTo(scrollable.position.maxScrollExtent);
+      await tester.pump();
+      final last = tester
+          .renderObject<RenderSliverList>(
+            find.descendant(of: list, matching: find.byType(SliverList)).first,
+          )
+          .lastChild!;
+      final bottom = last.localToGlobal(Offset(0, last.size.height)).dy;
+      expect(
+        bottom,
+        lessThanOrEqualTo(capsule.top + 0.5),
+        reason: '$tab: the last item is not hidden behind the capsule',
+      );
+      if (scrollable.position.maxScrollExtent > 0) {
+        expect(
+          capsule.top - bottom,
+          lessThanOrEqualTo(16.5),
+          reason: '$tab: scrolled to the end it sits just above the capsule',
+        );
+      }
+    }
+
     testWidgets(
-      'the bar leaves the page above it alone: nothing hidden behind it',
+      'every tab runs behind the bar: no blank strip, and its last item '
+      'scrolls clear of the capsule',
       (tester) async {
         await shell(tester);
-        final bar = tester.getRect(find.byType(FloatingNavBar));
-        final page = tester.getRect(find.byType(CustomerScreen));
-        expect(page.bottom, lessThanOrEqualTo(bar.top + 0.5));
-        expect(bar.bottom, closeTo(800, 0.5));
+        await expectRunsBehindBar(tester, CustomerScreen);
+        for (final (label, tab) in [
+          ('My Business', MyBusinessTab),
+          ('Deen', DeenTab),
+          ('Profile', ProfileTab),
+        ]) {
+          await go(tester, label);
+          await expectRunsBehindBar(tester, tab);
+        }
+        expect(tester.takeException(), isNull);
       },
     );
+
+    testWidgets('behind a system navigation area too', (tester) async {
+      tester.view.padding = const FakeViewPadding(bottom: 48);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 48);
+      await shell(tester);
+      final capsule = tester.getRect(find.byKey(FloatingNavBar.pillKey));
+      expect(800 - capsule.bottom, greaterThanOrEqualTo(24 + 8));
+      for (final tab in [CustomerScreen]) {
+        final pad = tester
+            .widget<ListView>(mainList(tab))
+            .padding!
+            .resolve(TextDirection.ltr)
+            .bottom;
+        expect(
+          pad,
+          greaterThanOrEqualTo(800 - capsule.top),
+          reason: 'clears the capsule, with the inset',
+        );
+      }
+    });
 
     testWidgets('light theme too', (tester) async {
       await shell(tester, theme: AppTheme.light);

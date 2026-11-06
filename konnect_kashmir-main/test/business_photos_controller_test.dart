@@ -309,6 +309,77 @@ void main() {
     });
   });
 
+  group('photos waiting for an admin, or not approved', () {
+    test('the count and the free places leave out rejected photos', () async {
+      for (var i = 0; i < 17; i++) {
+        backend.seed('v1');
+      }
+      backend.seed('v1', status: PhotoStatus.pending);
+      backend.seed('v1', status: PhotoStatus.pending);
+      for (var i = 0; i < 4; i++) {
+        backend.seed('v1', status: PhotoStatus.rejected, rejectionReason: 'x');
+      }
+      final c = controller(vendorId: 'v1');
+      await c.load();
+      expect(c.items, hasLength(23));
+      expect(c.count, 19);
+      expect(c.remaining, 1);
+      expect(c.atLimit, isFalse);
+    });
+
+    test(
+      'the owners own list is loaded (all statuses), not the public one',
+      () async {
+        backend.seed('v1', status: PhotoStatus.pending);
+        final c = controller(vendorId: 'v1');
+        await c.load();
+        expect(c.items.single.saved!.status, PhotoStatus.pending);
+        expect(backend.calls, isNot(contains('rows v1 approved')));
+      },
+    );
+
+    test(
+      'a rejected photo at the end of the list can be deleted, and moved',
+      () async {
+        backend.seed('v1', sortOrder: 0, file: 'a.webp');
+        backend.seed('v1', sortOrder: 1, file: 'b.webp');
+        backend.seed(
+          'v1',
+          sortOrder: 2,
+          file: 'c.webp',
+          status: PhotoStatus.rejected,
+          rejectionReason: 'x',
+        );
+        final c = controller(vendorId: 'v1');
+        await c.load();
+        expect(await c.move(2, -1), isTrue);
+        expect(c.items.map((i) => i.saved!.storagePath.split('/').last), [
+          'a.webp',
+          'c.webp',
+          'b.webp',
+        ]);
+        expect(await c.remove(1), isTrue);
+        expect(c.items, hasLength(2));
+        expect(backend.rowsOf('v1').map((p) => p.status), [
+          PhotoStatus.approved,
+          PhotoStatus.approved,
+        ]);
+      },
+    );
+
+    test(
+      'a photo added to a business comes back waiting, and fills a place',
+      () async {
+        final c = controller(vendorId: 'v1');
+        await c.load();
+        nextPick = _picks(1);
+        await c.add();
+        expect(c.items.single.saved!.status, PhotoStatus.pending);
+        expect(c.count, 1);
+      },
+    );
+  });
+
   group('a new listing (no business yet)', () {
     test('photos are prepared and kept; nothing is uploaded', () async {
       final c = controller();

@@ -97,6 +97,10 @@ class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
 
+  /// Counts the push messages that arrive while the app is open, so the bell can
+  /// ask for its number again.
+  final ValueNotifier<int> pushArrived = ValueNotifier<int>(0);
+
   AuthProvider? _auth;
   bool _started = false;
   bool _available = false;
@@ -129,6 +133,7 @@ class NotificationService {
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
         alert: true, badge: true, sound: true);
     FirebaseMessaging.onMessage.listen((m) {
+      pushArrived.value++;
       // iOS already shows a foreground message that has a notification part (see
       // the presentation options above); a local copy would show it twice.
       // Android does not show it, so there the local copy is needed.
@@ -278,6 +283,8 @@ class NotificationService {
         kind.contains('approv') ||
         kind.contains('reject') ||
         kind.contains('listing') ||
+        // photo_pending / photo_approved / photo_rejected
+        kind.contains('photo') ||
         kind.contains('business') ||
         kind.contains('vendor')) {
       tab = MainShell.tabMyBusiness;

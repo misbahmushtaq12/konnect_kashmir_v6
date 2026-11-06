@@ -1,0 +1,634 @@
+[
+ {
+  "slug": "instagram-shops",
+  "name": "Instagram Shops",
+  "is_active": true,
+  "is_pinned": true,
+  "display_order": 0,
+  "group_key": null
+ },
+ {
+  "slug": "home_services",
+  "name": "Home Services",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 1,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "electrician",
+  "name": "Electrician",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 2,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "plumber",
+  "name": "Plumber",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 3,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "carpenter",
+  "name": "Carpenter",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 4,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "painter",
+  "name": "Painter",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 5,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "mason_dasil",
+  "name": "Mason (Dasil)",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 6,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "labour",
+  "name": "Labour / Helper",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 7,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "gardener",
+  "name": "Gardener",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 8,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "tailor",
+  "name": "Tailor",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 9,
+  "group_key": "fashion_shopping"
+ },
+ {
+  "slug": "cleaner",
+  "name": "Cleaning",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 10,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "home_tutor",
+  "name": "Tutors",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 11,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "professional_instructor",
+  "name": "Professional Trainers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 12,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "education_consultant",
+  "name": "Education",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 13,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "pharmacy",
+  "name": "Health & Medicine",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 14,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "psychiatrist_therapist",
+  "name": "Psychiatrist / Therapist",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 15,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "physiotherapist",
+  "name": "Physio",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 16,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "laptop_mobile_repair",
+  "name": "Laptop / Mobile Repair",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 17,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "appliance_repair",
+  "name": "Appliance Repair",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 18,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "laundry",
+  "name": "Laundry",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 19,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "food_beverages",
+  "name": "Food & Beverages",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 20,
+  "group_key": null
+ },
+ {
+  "slug": "mechanic",
+  "name": "Mechanic",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 21,
+  "group_key": null
+ },
+ {
+  "slug": "driver",
+  "name": "Driver",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 22,
+  "group_key": null
+ },
+ {
+  "slug": "car_rental",
+  "name": "Car Rental",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 23,
+  "group_key": null
+ },
+ {
+  "slug": "car_detailing",
+  "name": "Car Wash / Detailing",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 24,
+  "group_key": null
+ },
+ {
+  "slug": "Furniture & Fixture",
+  "name": "Furniture",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 25,
+  "group_key": null
+ },
+ {
+  "slug": "architect",
+  "name": "Architect & Engineers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 26,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "lawyer",
+  "name": "Lawyer",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 27,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "chartered_accountant",
+  "name": "CA & Accounting",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 28,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "property_dealer",
+  "name": "Property Dealers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 29,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "buliders_developers",
+  "name": "Buliders & Developers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 30,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "insurance_agent",
+  "name": "Insurance Agents / Broker",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 31,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "designer",
+  "name": "Digital / Online Services",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 32,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "web_mobile",
+  "name": "Web / Mobile Development",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 33,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "kashmiri_art_artisans",
+  "name": "Kashmiri Art & Artisans",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 34,
+  "group_key": null
+ },
+ {
+  "slug": "copperware",
+  "name": "Copperware",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 35,
+  "group_key": null
+ },
+ {
+  "slug": "steel_iron_works",
+  "name": "Steel & Iron works",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 36,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "Transport_cargo",
+  "name": "Transport & Cargo",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 37,
+  "group_key": null
+ },
+ {
+  "slug": "courier_cargo_services",
+  "name": "Movers & Packers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 38,
+  "group_key": null
+ },
+ {
+  "slug": "wedding",
+  "name": "Wedding Services",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 39,
+  "group_key": "events_travel"
+ },
+ {
+  "slug": "middleman_manzimyor",
+  "name": "MiddleMan (Manzimyor)",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 40,
+  "group_key": null
+ },
+ {
+  "slug": "photography",
+  "name": "Photography",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 41,
+  "group_key": "events_travel"
+ },
+ {
+  "slug": "tent",
+  "name": "Tent & Events",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 42,
+  "group_key": "events_travel"
+ },
+ {
+  "slug": "catering",
+  "name": "Catering",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 43,
+  "group_key": "food_grocery"
+ },
+ {
+  "slug": "bakery",
+  "name": "Bakery",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 44,
+  "group_key": "food_grocery"
+ },
+ {
+  "slug": "mehndi_artist",
+  "name": "Mehndi",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 45,
+  "group_key": "fashion_shopping"
+ },
+ {
+  "slug": "makeup_artist",
+  "name": "Makeup",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 46,
+  "group_key": "fashion_shopping"
+ },
+ {
+  "slug": "custom_gifting",
+  "name": "Custom Gifting",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 48,
+  "group_key": "events_travel"
+ },
+ {
+  "slug": "tour_travels",
+  "name": "Tour & Travels",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 49,
+  "group_key": "events_travel"
+ },
+ {
+  "slug": "books_stationary",
+  "name": "Books & Stationary",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 50,
+  "group_key": null
+ },
+ {
+  "slug": "flooring_and_furnishing",
+  "name": "Flooring and Furnishing",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 50,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "hajj_umrah",
+  "name": "Hajj & Umrah",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 50,
+  "group_key": "events_travel"
+ },
+ {
+  "slug": "advertisement_hoardings",
+  "name": "Advertising & Hoardings",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 50,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "hijama",
+  "name": "Hijama",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 50,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "hotels_guest_houses",
+  "name": "Hotels & Guest Houses",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 50,
+  "group_key": null
+ },
+ {
+  "slug": "cctv_security",
+  "name": "CCTV",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 51,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "pet_care",
+  "name": "Pet Care",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 51,
+  "group_key": null
+ },
+ {
+  "slug": "scrap_dealer",
+  "name": "Scrap Dealers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 52,
+  "group_key": null
+ },
+ {
+  "slug": "solar_installer",
+  "name": "Solar",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 52,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "sales_marketing",
+  "name": "Sales & Marketing",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 53,
+  "group_key": "business_professional"
+ },
+ {
+  "slug": "musician",
+  "name": "Music & Arts",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 54,
+  "group_key": "events_travel"
+ },
+ {
+  "slug": "auto_e_rickshaw",
+  "name": "Auto & E-Rickshaw",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 55,
+  "group_key": null
+ },
+ {
+  "slug": "training_fitness",
+  "name": "Training & Fitness",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 102,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "agriculture_farming",
+  "name": "Agriculture & Farming",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 103,
+  "group_key": null
+ },
+ {
+  "slug": "labs_diagnostics",
+  "name": "Labs & Diagnostics",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 104,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "building_material",
+  "name": "Building Material",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 105,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "car_bike",
+  "name": "Car and Bike",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 106,
+  "group_key": null
+ },
+ {
+  "slug": "mens-clothing",
+  "name": "Mens Clothing",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 110,
+  "group_key": "fashion_shopping"
+ },
+ {
+  "slug": "womens-clothing",
+  "name": "Womens Clothing",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 111,
+  "group_key": "fashion_shopping"
+ },
+ {
+  "slug": "shoes",
+  "name": "Shoes",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 112,
+  "group_key": "fashion_shopping"
+ },
+ {
+  "slug": "kidswear",
+  "name": "Kidswear",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 113,
+  "group_key": "fashion_shopping"
+ },
+ {
+  "slug": "clinics",
+  "name": "Clinics",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 114,
+  "group_key": "health_education"
+ },
+ {
+  "slug": "heating-hamams",
+  "name": "Heating & Hamams",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 115,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "interior-designers",
+  "name": "Interior Designers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 116,
+  "group_key": "home_repair"
+ },
+ {
+  "slug": "grocery",
+  "name": "Grocery",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 117,
+  "group_key": "food_grocery"
+ },
+ {
+  "slug": "beverages",
+  "name": "Beverages",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 118,
+  "group_key": "food_grocery"
+ },
+ {
+  "slug": "food-items",
+  "name": "Food Items",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 119,
+  "group_key": "food_grocery"
+ },
+ {
+  "slug": "jobseekers",
+  "name": "Jobseekers",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 120,
+  "group_key": null
+ },
+ {
+  "slug": "other",
+  "name": "Other",
+  "is_active": true,
+  "is_pinned": false,
+  "display_order": 200,
+  "group_key": "other"
+ }
+]

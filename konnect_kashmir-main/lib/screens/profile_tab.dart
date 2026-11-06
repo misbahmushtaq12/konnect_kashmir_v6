@@ -18,6 +18,7 @@ import '../static/refund_screen.dart';
 import '../static/terms_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_header.dart';
+import '../widgets/floating_nav_bar.dart';
 import '../widgets/app_widgets.dart';
 import '../widgets/add_credit_section.dart';
 import '../widgets/transactions_section.dart';
@@ -284,6 +285,9 @@ class _ProfileTabState extends State<ProfileTab> {
     final hPad = size.width > 600 ? size.width * 0.12 : 20.0;
 
     return SafeArea(
+      // (No bottom inset here: the list pads its own end, so it can scroll
+      // clear of the floating bottom bar it runs behind.)
+      bottom: false,
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 760),
@@ -299,7 +303,8 @@ class _ProfileTabState extends State<ProfileTab> {
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics()),
-              padding: EdgeInsets.fromLTRB(hPad, 12, hPad, 24),
+              padding: EdgeInsets.fromLTRB(
+                  hPad, 12, hPad, FloatingNavBar.bottomClearance(context)),
               children: [
                 AppHeader(
                   title: context.l10n.navProfile,

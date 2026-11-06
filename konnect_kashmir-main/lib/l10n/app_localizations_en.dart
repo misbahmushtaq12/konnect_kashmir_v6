@@ -1533,4 +1533,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noPhotosSubtitle => 'Business photos will appear here';
+
+  @override
+  String get photoUnderReview => 'Under review';
+
+  @override
+  String get photoNotApproved => 'Not approved';
+
+  @override
+  String photoNotApprovedReason(String reason) {
+    return 'Not approved: $reason';
+  }
+
+  @override
+  String get photosShownAfterReview => 'Photos are shown after admin review.';
+
+  @override
+  String get photoReasonTitle => 'Why this photo was not approved';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String notificationsUnread(int count) {
+    return '$count unread';
+  }
+
+  @override
+  String get markAllRead => 'Mark all as read';
+
+  @override
+  String get noNotificationsYet => 'No notifications yet';
+
+  @override
+  String get noNotificationsBody =>
+      'When something changes for your business, you will see it here.';
 }

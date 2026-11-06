@@ -40,6 +40,8 @@ class FakePhotoBackend implements BusinessPhotoBackend {
     String? file,
     DateTime? createdAt,
     String folder = 'public',
+    PhotoStatus status = PhotoStatus.approved,
+    String? rejectionReason,
   }) {
     final name = file ?? 'seed$_nextId.webp';
     final path = '$vendorId/$folder/$name';
@@ -54,6 +56,8 @@ class FakePhotoBackend implements BusinessPhotoBackend {
       sortOrder:
           sortOrder ?? table.values.where((p) => p.vendorId == vendorId).length,
       createdAt: createdAt ?? DateTime.utc(2026, 11, 3, 9, 0, _clock++),
+      status: status,
+      rejectionReason: rejectionReason,
     );
     table[photo.id] = photo;
     return photo;
@@ -64,10 +68,16 @@ class FakePhotoBackend implements BusinessPhotoBackend {
         ..sort(comparePhotos);
 
   @override
-  Future<List<BusinessPhoto>> rows(String vendorId) async {
-    calls.add('rows $vendorId');
+  Future<List<BusinessPhoto>> rows(
+    String vendorId, {
+    bool approvedOnly = false,
+  }) async {
+    calls.add(approvedOnly ? 'rows $vendorId approved' : 'rows $vendorId');
     if (failRows) throw const PhotoBackendException('offline');
-    return rowsOf(vendorId);
+    return [
+      for (final p in rowsOf(vendorId))
+        if (!approvedOnly || p.status == PhotoStatus.approved) p,
+    ];
   }
 
   @override
@@ -111,7 +121,10 @@ class FakePhotoBackend implements BusinessPhotoBackend {
       throw const PhotoBackendException('insert failed', statusCode: 500);
     }
     // The trigger.
-    if (triggerAlwaysFull || rowsOf(vendorId).length >= kMaxBusinessPhotos) {
+    final counted = rowsOf(
+      vendorId,
+    ).where((p) => p.status != PhotoStatus.rejected);
+    if (triggerAlwaysFull || counted.length >= kMaxBusinessPhotos) {
       throw const PhotoBackendException(
         'A business can have at most 20 photos',
         statusCode: 400,
@@ -123,6 +136,8 @@ class FakePhotoBackend implements BusinessPhotoBackend {
       storagePath: storagePath,
       sortOrder: sortOrder,
       createdAt: DateTime.utc(2026, 11, 3, 10, 0, _clock++),
+      // The server makes every new photo wait for an admin.
+      status: PhotoStatus.pending,
     );
     table[photo.id] = photo;
     return photo;
@@ -146,6 +161,8 @@ class FakePhotoBackend implements BusinessPhotoBackend {
       storagePath: p.storagePath,
       sortOrder: sortOrder,
       createdAt: p.createdAt,
+      status: p.status,
+      rejectionReason: p.rejectionReason,
     );
   }
 }

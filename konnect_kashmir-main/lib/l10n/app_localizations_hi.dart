@@ -1529,4 +1529,40 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get noPhotosSubtitle => 'व्यवसाय की फ़ोटो यहाँ दिखाई देंगी';
+
+  @override
+  String get photoUnderReview => 'समीक्षा में';
+
+  @override
+  String get photoNotApproved => 'स्वीकृत नहीं';
+
+  @override
+  String photoNotApprovedReason(String reason) {
+    return 'स्वीकृत नहीं: $reason';
+  }
+
+  @override
+  String get photosShownAfterReview =>
+      'फ़ोटो एडमिन की समीक्षा के बाद दिखाई जाती हैं।';
+
+  @override
+  String get photoReasonTitle => 'यह फ़ोटो स्वीकृत क्यों नहीं हुई';
+
+  @override
+  String get notificationsTitle => 'सूचनाएँ';
+
+  @override
+  String notificationsUnread(int count) {
+    return '$count अपठित';
+  }
+
+  @override
+  String get markAllRead => 'सभी को पढ़ा हुआ चिह्नित करें';
+
+  @override
+  String get noNotificationsYet => 'अभी कोई सूचना नहीं';
+
+  @override
+  String get noNotificationsBody =>
+      'आपके व्यवसाय में कुछ बदलने पर यहाँ दिखेगा।';
 }
